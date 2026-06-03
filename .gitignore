@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# VSCode
+.vscode/
+
+# env
+.env
+
+# build
+dist/
+build/
+
+# logs
+*.log
+
+# other
+*.sqlite3
+XANO/
+vgc/
