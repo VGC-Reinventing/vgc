@@ -1,730 +1,579 @@
-# VGC Xano API Reference
+# VGC Reinventing — API Reference
 
-## Setup Status
-
-**Updated:** 2026-06-03 (393 documents, 257 endpoints, **100% of API_REQUIREMENTS.md rev 4 / SRS v2.2**)
-
-> This document describes the **deployed state** as of 2026-06-03. All SRS v2.2 requirements (GAP-100 through GAP-142, including all rev-5 gaps) are implemented. Free-plan lazy-evaluation replaces all cron tasks (D9). Fresh pull confirmed 2026-06-03.
-
-### Xano Installation
-- **CLI:** `@xano/cli` v1.0.2 at `/opt/homebrew/bin/xano` · profile `vgc` (`~/.xano/credentials.yaml`)
-- **Workspace:** 161992 · **Branch:** v1 · **Plan:** Free Instance (171)
-- **Instance:** `x8ki-letl-twmt.n7.xano.io`
-- **Local Workspace:** `/Users/boss/Desktop/VGC/XANO/` (393 documents, pulled 2026-06-03)
-- **Auth Realm:** `839577`
-
-### Quick Start
-```bash
-xano workspace pull -w 161992 -b v1 -d /Users/boss/Desktop/VGC/XANO
-```
+**Last updated:** 2026-06-13  
+**Source:** XANO workspace 161992, branch `v1`, 403 documents  
+**Instance:** `https://x8ki-letl-twmt.n7.xano.io`  
+**Base URL pattern:** `https://x8ki-letl-twmt.n7.xano.io/api:<canonical>/<path>`
 
 ---
 
-## Endpoint Configuration
+## Auth Pattern
 
-**Base URL Pattern:** `https://x8ki-letl-twmt.n7.xano.io/api:<canonical>`
-
-**Authentication:** Bearer token in `Authorization` header. Issued by `POST /login` or `POST /signup`. TTL: 86400s (24h).
-
-**Response Format:** JSON
-
-**Standard Errors:**
-| Code | Meaning |
-|---|---|
-| 400 | Input validation error |
-| 401 | Unauthorized / invalid token |
-| 403 | Access denied |
-| 404 | Not found |
-| 500 | Server error |
-
----
-
-## Summary
-
-| # | Group | Canonical | Base URL | Endpoints |
-|---|---|---|---|---|
-| 1 | system | `KVaxK9ev` | `/api:KVaxK9ev` | 3 |
-| 2 | Authentication | `L9PANOan` | `/api:L9PANOan` | 14 |
-| 3 | User_Profile | `_CJw8MFH` | `/api:_CJw8MFH` | 6 |
-| 4 | Wallets | `wallets` | `/api:wallets` | 3 |
-| 5 | Points Transfer | `points-transfer` | `/api:points-transfer` | 6 |
-| 6 | Token Surrenders | `token-surrender` | `/api:token-surrender` | 3 |
-| 7 | INR Forms | `declarations` | `/api:declarations` | 6 |
-| 8 | Point Token Scheme | `pts` | `/api:pts` | 5 |
-| 9 | Activity Rewards | `activity-rewards` | `/api:activity-rewards` | 4 |
-| 10 | Notifications | `dID-7x7G` | `/api:dID-7x7G` | 5 |
-| 11 | Marketplace | `EiCwBjsO` | `/api:EiCwBjsO` | 18 |
-| 12 | Cart | `O-OY5IE_` | `/api:O-OY5IE_` | 4 |
-| 13 | Proposals | `proposals` | `/api:proposals` | 5 |
-| 14 | Financial Donors | `fin-donor` | `/api:fin-donor` | 2 |
-| 15 | Financial Investments | `fin-invest` | `/api:fin-invest` | 5 |
-| 16 | Financial Sponsors | `fin-sponsor` | `/api:fin-sponsor` | 4 |
-| 17 | Loans | `ZR6bC4we` | `/api:ZR6bC4we` | 3 |
-| 18 | Expenses | `XcifSN8G` | `/api:XcifSN8G` | 4 |
-| 19 | Contracts | `sXgmF9KL` | `/api:sXgmF9KL` | 13 |
-| 20 | Gaming Community | `gaming-community` | `/api:gaming-community` | 6 |
-| 21 | Gaming Elections | `gaming-elections` | `/api:gaming-elections` | 7 |
-| 22 | Gaming Seasons | `gaming-seasons` | `/api:gaming-seasons` | 10 |
-| 23 | Groups | `BiZZDMxu` | `/api:BiZZDMxu` | 17 |
-| 24 | Blog | `blog` | `/api:blog` | 10 |
-| 25 | Education | `education` | `/api:education` | 15 |
-| 26 | Event Logs | `7KKtC-3r` | `/api:7KKtC-3r` | 1 |
-| 27 | Admin | `EOOlx4pf` | `/api:EOOlx4pf` | 71 |
-| 28 | Admin Reports | `admin-reports` | `/api:admin-reports` | 6 |
-| 29 | Search | `search` | `/api:search` | 1 |
-
-**Total:** 257 endpoints across 29 groups.
-
-> **Retired groups (not deployed):** `edu-teachers` / `edu-sessions` (v1 Education model, replaced by `education` course-ticket model per GAP-140).
-
----
-
-## system
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:KVaxK9ev`
-
-| Verb | Path | Auth | Description |
+| Token type | How to obtain | TTL | Header |
 |---|---|---|---|
-| GET | `/config` | public | Platform configuration (rates, limits, dispute window) |
-| POST | `/files/upload` | user | Upload a file; returns `{url, access_url, path, name, type, size}` |
-| DELETE | `/files/{id}` | user | Delete own file |
+| Member Bearer | `POST /api:L9PANOan/login` → `{token}` | 24h | `Authorization: Bearer <token>` |
+| Admin Bearer | `POST /api:EOOlx4pf/admin/2fa/login` → challenge, then `POST /admin/2fa/verify` → `{token}` | 24h | `Authorization: Bearer <token>` |
+
+Auth column legend: **public** = no token required · **member** = member Bearer · **admin** = admin Bearer
 
 ---
 
-## Authentication
+## Groups (29 total)
 
+| # | Group | Canonical | Base URL |
+|---|---|---|---|
+| 1 | Authentication | `L9PANOan` | `.../api:L9PANOan` |
+| 2 | User_Profile | `_CJw8MFH` | `.../api:_CJw8MFH` |
+| 3 | System | `KVaxK9ev` | `.../api:KVaxK9ev` |
+| 4 | Wallets | `wallets` | `.../api:wallets` |
+| 5 | INR Forms (Declarations) | `declarations` | `.../api:declarations` |
+| 6 | Token Surrenders | `token-surrender` | `.../api:token-surrender` |
+| 7 | Points Transfer | `points-transfer` | `.../api:points-transfer` |
+| 8 | Activity Rewards | `activity-rewards` | `.../api:activity-rewards` |
+| 9 | Blog | `blog` | `.../api:blog` |
+| 10 | Notifications | `dID-7x7G` | `.../api:dID-7x7G` |
+| 11 | Search | `search` | `.../api:search` |
+| 12 | Marketplace | `EiCwBjsO` | `.../api:EiCwBjsO` |
+| 13 | Cart | `O-OY5IE_` | `.../api:O-OY5IE_` |
+| 14 | Proposals | `proposals` | `.../api:proposals` |
+| 15 | Groups | `BiZZDMxu` | `.../api:BiZZDMxu` |
+| 16 | Gaming Community | `gaming-community` | `.../api:gaming-community` |
+| 17 | Gaming Elections | `gaming-elections` | `.../api:gaming-elections` |
+| 18 | Gaming Seasons | `gaming-seasons` | `.../api:gaming-seasons` |
+| 19 | Education | `education` | `.../api:education` |
+| 20 | Financial Donors | `fin-donor` | `.../api:fin-donor` |
+| 21 | Financial Investments | `fin-invest` | `.../api:fin-invest` |
+| 22 | Financial Sponsors | `fin-sponsor` | `.../api:fin-sponsor` |
+| 23 | Contracts | `sXgmF9KL` | `.../api:sXgmF9KL` |
+| 24 | Loans | `ZR6bC4we` | `.../api:ZR6bC4we` |
+| 25 | Expenses | `XcifSN8G` | `.../api:XcifSN8G` |
+| 26 | Admin | `EOOlx4pf` | `.../api:EOOlx4pf` |
+| 27 | Admin Reports | `admin-reports` | `.../api:admin-reports` |
+| 28 | Event Logs | `7KKtC-3r` | `.../api:7KKtC-3r` |
+
+---
+
+## 1 — Authentication
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:L9PANOan`
 
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/signup` | public | Register (consent_given required; dob for <18 triggers guardian flow; device rate-limited 3/24h) |
-| POST | `/login` | public | Login; returns authToken |
-| POST | `/verify-email` | public | Verify email OTP |
-| POST | `/verify-mobile` | user | Verify mobile OTP |
-| POST | `/change-password` | user | Change password |
-| GET | `/reset/request-reset-link` | public | Request password reset |
-| POST | `/reset/magic-link-login` | public | Login via magic link |
-| POST | `/reset/update_password` | user | Set new password post-reset |
-| POST | `/resend-verification` | public | Resend email OTP (rate-limited 5/hr) |
-| GET | `/me` | user | Current member profile |
-| POST | `/message/send_welcome_email` | public | Internal: send welcome email |
-| POST | `/guardian-registration` | public | Register minor with guardian email |
-| GET | `/guardian-approvals/me` | user | Guardian: list pending approvals (lazy 7-day expiry) |
-| POST | `/guardian-approvals/{id}/respond` | user | Guardian: approve (creates account) or reject |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| POST | /signup | public | name, email, password, consent_given, dob?, device_fingerprint?, client_ip? | Creates account; auto-creates 3 wallets (inr/token/points); generates VGC\<id\> member_id |
+| POST | /login | public | email, password | Returns `{token}` (24h Bearer) |
+| GET | /me | member | — | Current user; strips password fields; role_flags nested (`is_admin`, `is_pioneer`) |
+| POST | /verify-email | public | token | Validates email OTP token; sets email_verified_at |
+| POST | /resend-verification | public | email | Resends email OTP; rate-limited 5/hour |
+| POST | /verify-mobile | member | otp | Verifies mobile OTP |
+| POST | /change-password | member | current_password, new_password | Updates password |
+| GET | /reset/request-reset-link | public | email | Generates password reset magic link (emailed) |
+| POST | /reset/magic-link-login | public | magic_token, email | Exchanges magic token for auth token |
+| POST | /reset/update-password | member | password, confirm_password | Sets new password in reset flow |
+| POST | /guardian-registration | public | name, dob, email, mobile?, guardian_member_id, consent_given, device_fingerprint?, client_ip? | Register minor; requires guardian approval within 7 days |
+| GET | /guardian-approvals/me | member | — | List pending guardian approvals for this guardian |
+| POST | /guardian-approvals/{id}/respond | member | id, decision (approve/reject), rejection_reason? | Guardian approves/rejects; auto-creates account on approval |
+| POST | /message/send-welcome-email | public | user_id | Send welcome email to user |
 
 ---
 
-## User_Profile
-
+## 2 — User Profile
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:_CJw8MFH`
 
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/profile` | user | Own profile |
-| PATCH | `/profile` | user | Update display fields |
-| GET | `/roles` | user | Member roles (is_admin, is_pioneer, etc.) |
-| GET | `/lookup` | user | Lookup member by email/phone |
-| POST | `/erasure-request` | user | DPDP §17 data erasure request |
-| GET | `/erasure-request` | user | Check erasure request status |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /profile | member | — | Full profile + wallet balances |
+| PATCH | /profile | member | name?, mobile?, city?, state?, country?, dob?, avatar_file_id? | Update profile; changing mobile clears mobile_verified_at |
+| GET | /lookup | member | query (min 3 chars) | Search members by member_id / name / email |
+| GET | /roles | member | — | Returns roles and restrictions |
+| GET | /erasure-request | member | — | DPDP 2023: check erasure status |
+| POST | /erasure-request | member | request_reason? | DPDP 2023: request personal data erasure (ledger retained) |
 
 ---
 
-## Wallets
+## 3 — System (Config & Files)
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:KVaxK9ev`
 
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /config | public | — | `{inr_per_token, surrender_rate, tax_pct, max_category_depth, dispute_window_days, pts_rate}` |
+| POST | /files/upload | member | file (field name `file`), purpose | purpose enum: `declaration_proof`, `pod`, `kyc`, `avatar`, `event_submission`, `blog_attachment`, `cv`, `icon`. Returns `{file_id, url, mime, size_bytes}` |
+| DELETE | /files/{id} | member | id | Delete file; owner or admin only |
+
+---
+
+## 4 — Wallets
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:wallets`
 
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/me` | user | All wallets for current member |
-| GET | `/me/{currency}` | user | Single wallet by currency type |
-| GET | `/me/activity` | user | Paginated wallet transaction history |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /me | member | — | All 3 wallets; auto-creates if empty. Currency values: `inr`, `token`, `points` (lowercase in DB, map to INR/VGC_TOKEN/VGC_POINTS in FE) |
+| GET | /me/{currency} | member | currency | Single wallet: `INR`, `VGC_TOKEN`, or `VGC_POINTS` |
+| GET | /me/activity | member | page?=1, per_page?=25 | Paginated transaction history. Returns `{items, itemsTotal, curPage, nextPage}`. Each item has top-level: `currency`, `side`, `amount`, `balance_after`, `description`, `ref_type`, `blog_id?`, `blog_title?` |
 
 ---
 
-## Points Transfer
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:points-transfer`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/points-transfer` | user | Initiate transfer; sender debited to escrow; 10-min accept window (lazy-expired on read) |
-| GET | `/pending` | user | Pending transfers for current member (lazy window expiry on read) |
-| GET | `/passbook` | user | Transfer history |
-| POST | `/{id}/accept` | user | Accept incoming transfer; credits receiver |
-| POST | `/{id}/cancel` | user | Cancel outgoing transfer; returns escrow |
-| POST | `/{id}/dispute` | user | Dispute a transfer |
-
----
-
-## Token Surrenders
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:token-surrender`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/create` | user | Surrender tokens for INR |
-| GET | `/list` | user | Own surrender history |
-| GET | `/{id}` | user | Surrender detail |
-
----
-
-## INR Forms
-
+## 5 — INR Forms (Declarations)
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:declarations`
 
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/declarations` | user | Create declaration as draft (Donation/Grant/Sponsorship/Investment) |
-| POST | `/declarations/public` | public | Public declaration (Donation/Grant/Sponsorship); contact_email required |
-| GET | `/declarations/{id}` | user | View own declaration |
-| DELETE | `/declarations/{id}` | user | Delete draft declaration |
-| POST | `/{id}/submit` | user | Submit draft → pending |
-| GET | `/list` | user | Own declarations list |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| POST | /declarations | public/member | amount, payment_type (Donation/Grant/Sponsorship/Investment/Token Purchase), description?, file_url?, contact_email?, contact_mobile?, additional_details? | Investment & Token Purchase require member auth |
+| GET | /list | member | — | List member's declarations |
+| GET | /declarations/{id} | member | id | Get declaration |
+| POST | /declarations/{id}/submit | member | id | Submit for admin review |
+| DELETE | /declarations/{id} | member | id | Delete draft |
+| PATCH | /declarations/{id}/verify | admin | id | Verify declaration |
+| PATCH | /declarations/{id}/reject | admin | id | Reject declaration |
 
 ---
 
-## Point Token Scheme (PTS)
+## 6 — Token Surrenders
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:token-surrender`
 
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:pts`
-
-Live formula (D11): `r_eq = (I + R + A − L_invest − 10·T_net) / P_net`, time-drift θ, floor 0.0001, conversion suspended when P_net ≤ 0 or r_published < 0.00011.
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/rate` | user | Computed rate (r_eq, r_published, r_user, conversion_suspended, p_net) — θ never exposed; member-only per §7.1 |
-| POST | `/quote` | user | Quote conversion; returns receive_amount before fee |
-| POST | `/convert` | user | Execute conversion (idempotency_key); resets time-idle counter |
-| GET | `/history` | user | Own conversion history |
-| PATCH | `/admin/pts/rate` | admin | Legacy rate override (deprecated by D11; kept for rollback) |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| POST | /create | member | vgc_token_amount, conversion_rate | Create surrender; checks token balance |
+| GET | /list | member | — | List member's surrenders |
+| GET | /{id} | member | id | Get surrender details |
+| PATCH | /{id}/complete | admin | id | Admin: mark complete (transfers INR) |
 
 ---
 
-## Activity Rewards
+## 7 — Points Transfer
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:points-transfer`
 
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| POST | /points-transfer | member | to_member_id, amount, remark? | Initiate transfer; sender points escrowed immediately; 10-min accept window |
+| GET | /pending | member | direction? (incoming/outgoing) | Pending transfers; lazy-expires past-window |
+| GET | /passbook | member | page?, per_page? | Paginated points transfer history |
+| POST | /{id}/accept | member | id | Accept transfer (receiver only) |
+| POST | /{id}/cancel | member | id | Cancel transfer (sender only) |
+| POST | /{id}/dispute | member | id | Dispute transfer |
+| POST | /admin/points/transfer/{id}/resolve-dispute | admin | id | Admin: resolve dispute |
+
+---
+
+## 8 — Activity Rewards
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:activity-rewards`
 
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/catalog` | public | Active activity catalog with version/effective_from |
-| GET | `/changelog` | user | Catalog version history (paginated) |
-| POST | `/activities` | user | Log activity; auto-awards points if catalog entry has auto_award=true and budget allows |
-| GET | `/activities/me` | user | Own activity log |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /catalog | public | — | Active reward catalog; `{version, effective_from, activities:[]}` |
+| GET | /changelog | public | — | Catalog change history |
+| POST | /activities | member | activity_code, entity_ref, metadata? | Log activity; auto-awards points if budget available |
+| GET | /activities/me | member | — | Member's activity log |
+| POST | /admin/catalog | admin | activity_code, default_reward, provision_type, auto_award, active | Create catalog entry |
+| PATCH | /admin/catalog/{id} | admin | id, ... | Update entry |
+| DELETE | /admin/catalog/{id} | admin | id | Delete entry |
 
 ---
 
-## Notifications
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:dID-7x7G`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/notifications` | user | List notifications (unread_only? filter, paginated) |
-| POST | `/notifications/{id}/read` | user | Mark one notification read |
-| POST | `/notifications/read-all` | user | Mark all unread read |
-| GET | `/notifications/preferences` | user | Per-event preferences (defaults: in_app=true, email=true) |
-| PATCH | `/notifications/preferences` | user | Update per-event preferences |
-
----
-
-## Marketplace
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:EiCwBjsO`
-
-Two-phase escrow (D5): buyer debited on order → POD → settle or dispute.
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/marketplace/categories` | public | Category list |
-| GET | `/marketplace/categories/tree` | public | Nested category tree up to 8 levels (`max_depth?=8`, `root_id?`) |
-| GET | `/marketplace/items` | user | Item listing (filters: category, search) |
-| POST | `/marketplace/items` | admin | Create item (admin only; revenue_share, buyer_info_schema) |
-| GET | `/marketplace/items/{id}` | user | Item detail |
-| PATCH | `/marketplace/items/{id}` | admin | Update item |
-| DELETE | `/marketplace/items/{id}` | admin | Remove item |
-| POST | `/marketplace/orders` | user | Place order (buyer debited to escrow; idempotency_key) |
-| GET | `/marketplace/orders` | user | Own orders |
-| GET | `/marketplace/orders/{id}` | user | Order detail (lazy auto-settle on read if dispute window expired) |
-| POST | `/marketplace/orders/{id}/proof-of-delivery` | user | Proposer submits POD; opens dispute window |
-| POST | `/marketplace/orders/{id}/mark-received` | user | Buyer confirms receipt; immediate settle |
-| POST | `/marketplace/orders/{id}/dispute` | user | Buyer disputes within window |
-| POST | `/marketplace/orders/{id}/settle-request` | user | Proposer requests early settle |
-| POST | `/marketplace/orders/{id}/cancel` | user | Cancel pre-POD; refunds buyer + restores stock |
-| GET | `/marketplace/sales` | user | Proposer's sales history |
-| GET | `/admin/orders` | admin | All orders (admin view) |
-| PATCH | `/admin/orders/{id}/fulfill` | admin | Mark order fulfilled |
-
----
-
-## Cart
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:O-OY5IE_`
-
-Same-vendor constraint. Stale items excluded at checkout.
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/cart/items` | user | Add item (find-or-create cart per vendor; idempotent qty increment) |
-| GET | `/cart` | user | All active carts with enriched items and line totals |
-| DELETE | `/cart/items/{id}` | user | Remove cart item |
-| POST | `/cart/checkout` | user | Atomic checkout (stale-item exclusion, balance check, escrow per valid item) |
-
----
-
-## Proposals
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:proposals`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/proposals` | user | Submit proposal (ref_blog_id optional for RG ticket) |
-| GET | `/proposals` | user | Own proposals |
-| GET | `/proposals/{id}` | user | Proposal detail |
-| PATCH | `/proposals/{id}` | user | Edit pending proposal |
-| POST | `/proposals/{id}/withdraw` | user | Withdraw proposal |
-
----
-
-## Financial Donors
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:fin-donor`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/donors` | public | Donor feed (anonymous → "Anonymous"; paginated with total_count) |
-| GET | `/donors/{id}` | public | Named donor detail (404 if anonymous) |
-
----
-
-## Financial Investments
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:fin-invest`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/investments` | user/public | Invest (Option A: 1×1.10 lumpsum at 365d; Option B: 4 quarterly Q1-Q3×0.02/Q4×1.02); unauthenticated requires investor_email |
-| GET | `/investments/me` | user | Own investments with lazy Y2/Y3+ debit schedule |
-| GET | `/investments/overdue-count` | public | Count of distinct investments with ≥1 overdue payout (lazy) |
-| GET | `/investments/{id}` | user | Investment + payout schedule (owner or admin) |
-| POST | `/investments/{id}/overdue-request` | user | File overdue-payout request (>30 days past due) |
-
----
-
-## Financial Sponsors
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:fin-sponsor`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/sponsorships` | user/public | Create sponsorship + linked declaration; unauthenticated requires sponsor_email |
-| GET | `/sponsorships` | public | Sponsorship feed |
-| GET | `/sponsorships/{id}` | public | Detail with conditions_met_pct and recognition |
-| POST | `/sponsorships/{id}/dispute` | public | Dispute (7-day window from documented_at; member or email-verified sponsor) |
-
----
-
-## Loans
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:ZR6bC4we`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/loans/request` | user | Request loan (pending admin approval) |
-| GET | `/loans/me` | user | Own loans with lazy Y2 consequence + Y3–Y7 debit schedule |
-| POST | `/loans/{id}/repay` | user | Repay tokens (auto-settles when outstanding reaches 0) |
-
----
-
-## Expenses
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:XcifSN8G`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/expenses` | user | Log expense (Personal or admin Platform_Outflow; Platform_Outflow debits Admin INR wallet) |
-| GET | `/expenses/me` | user | Own expenses (filters + dashboard aggregates: totals, by_category, by_month) |
-| POST | `/expenses/{id}/settle` | user | Permanently settle-lock an expense |
-| GET | `/platform-financial-ledger` | user | Platform Outflow entries (admin-only Private remarks masked) |
-
----
-
-## Contracts
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:sXgmF9KL`
-
-VGC-Administrated: 105% escrow at listing. 95% to Taker + 5% retained on release. Giver cap ≤10. Non-VGC: direct transfer, Taker cap ≤2. Lazy listing auto-expire on read.
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/contracts` | user | Create contract listing |
-| GET | `/contracts` | public | Browse contracts |
-| GET | `/contracts/{id}` | public | Contract detail (lazy auto-expire + escrow refund on read if past deadline) |
-| PATCH | `/contracts/{id}` | user | Edit pending contract |
-| POST | `/contracts/{id}/apply` | user | Apply to contract (Taker) |
-| POST | `/contracts/{id}/assign` | user | Assign application (Giver) |
-| POST | `/contracts/{id}/mark-complete` | user | Taker marks work complete |
-| POST | `/contracts/{id}/release` | user | Giver releases payment |
-| POST | `/contracts/{id}/dispute` | user | Raise dispute |
-| POST | `/contracts/{id}/escalate` | user | Escalate to admin |
-| POST | `/contracts/{id}/cancel` | user | Cancel (refunds escrow if VGC) |
-| POST | `/contracts/{id}/force-close-request` | user | Request admin force-close |
-| POST | `/contracts/{id}/rate` | user | Rate counterparty |
-
----
-
-## Gaming Community
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:gaming-community`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/games` | public | Game catalog |
-| GET | `/games/{id}` | public | Game detail |
-| POST | `/games/{id}/groups` | user | Create group for game (auto-joins creator) |
-| GET | `/games/{id}/groups` | public | Groups for game |
-| POST | `/groups/{id}/join` | user | Join group (idempotent) |
-| POST | `/groups/{id}/leave` | user | Leave group (idempotent) |
-
----
-
-## Gaming Elections
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:gaming-elections`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/pioneer-candidates` | user | Register as pioneer candidate |
-| GET | `/pioneer-candidates` | public | List candidates |
-| PATCH | `/pioneer-candidates/{id}` | user | Edit candidate profile (locked when voting open) |
-| POST | `/elections` | admin | Create election (sets candidates in_election) |
-| GET | `/elections/{id}` | public | Election detail with candidates + tallies (lazy close on read when window expires) |
-| GET | `/elections/me/eligibility` | user | Check voting eligibility |
-| POST | `/elections/{id}/vote` | user | Cast vote (voting-right guard, 1 per member) |
-
----
-
-## Gaming Seasons
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:gaming-seasons`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/seasons` | public | Seasons list (lazy archive of past-end-date active seasons on read) |
-| GET | `/seasons/{id}` | public | Season detail (lazy archive + re-fetch) |
-| POST | `/seasons/{id}/committee` | user | Join committee (pioneer only, upsert) |
-| GET | `/seasons/{id}/events` | public | Events for season |
-| POST | `/events/{id}/submissions` | user | Submit event entry |
-| GET | `/events/{id}/submissions` | user | View submissions (pioneer/admin) |
-| POST | `/events/{id}/results` | user | Post results (credits points per entry, closes event) |
-| POST | `/seasons/{id}/secure-funding/deposit` | user | Deposit 50% admin tokens + 50% points to pool |
-| GET | `/seasons/{id}/ledger` | user | Season funding ledger |
-| POST | `/seasons/{id}/distribution-records` | user | Pioneer logs a distribution record (counts toward 80% target at close-and-settle) |
-
----
-
-## Search
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:search`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/search` | user | Cross-module search (inputs: `q`, `sector?`, `category?`, `limit?=20`). Returns `{marketplace:[], groups:[], blog:[]}`. Visibility-filtered: private groups excluded unless caller is member; RG blogs excluded unless caller has purchased or grandfathered access. |
-
----
-
-## Groups
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:BiZZDMxu`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/groups` | user | Create group |
-| GET | `/groups` | user | List groups (public/private) |
-| GET | `/groups/{id}` | user | Group detail (lazy 24h delete hold on read) |
-| POST | `/groups/{id}/join` | user | Join group |
-| POST | `/groups/{id}/leave` | user | Leave group |
-| POST | `/groups/{id}/invite` | user | Invite member |
-| POST | `/groups/{id}/invites/{inv_id}/respond` | user | Accept/reject invite |
-| POST | `/groups/{id}/join-requests/{req_id}/decision` | user | Approve/reject join request |
-| POST | `/groups/{id}/promote-coadmin` | user | Promote member to co-admin |
-| POST | `/groups/{id}/transfer-admin` | user | Transfer admin role |
-| POST | `/groups/{id}/remove-member` | user | Remove member |
-| POST | `/groups/{id}/appeal-removal` | user | Appeal removal |
-| POST | `/groups/{id}/delete` | user | Delete group |
-| POST | `/groups/{id}/posts` | user | Create post |
-| GET | `/groups/{id}/posts` | user | List posts (lazy 24h delete hold) |
-| POST | `/posts/{id}/comments` | user | Comment on post |
-| POST | `/posts/{id}/react` | user | React to post |
-
----
-
-## Blog
-
+## 9 — Blog
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:blog`
 
-Revenue Generator (RG) blogs gated by blog_readers entry or settled course_ticket order.
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/blog` | user | Create blog (draft) |
-| GET | `/blog/public` | public | Published blogs feed (RG hidden for unauthenticated; filter: sector, tag, search) |
-| GET | `/blog/me` | user | Own blogs (all statuses) |
-| GET | `/blog/{id}` | user | Blog detail with like count + comments |
-| PATCH | `/blog/{id}` | user | Edit own blog |
-| DELETE | `/blog/{id}` | user | Delete own blog |
-| POST | `/blog/{id}/submit` | user | Submit for review |
-| POST | `/blog/{id}/abandon` | user | Abandon submission |
-| POST | `/blog/{id}/like` | user | Like (Promotional 600pts auto-award via activity_catalog) |
-| POST | `/blog/{id}/comments` | user | Comment |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /blog/public | public | sector?, tag?, search?, page?, per_page? | Published blogs; enriched with `author_name`, `is_rg`, `published_at`, `like_count`, `comment_count` |
+| GET | /blog/me | member | status?, page?=1, per_page?=20 | Author's own blogs (all statuses except abandoned) |
+| POST | /blog | member | title, content, sector?, tags?, comments_enabled?, revenue_generator?, ticket_price_tokens? | Create draft |
+| GET | /blog/{id} | member | id | Full blog; returns `is_locked`, `is_author`, `is_admin`, `user_vote`, `like_count`, `dislike_count`, `comments[]` (enriched with `member_name`). RG lock logic: locked if `revenue_generator=true` AND (`marketplace_item_id=null` OR no settled order/blog_readers entry) |
+| PATCH | /blog/{id} | member | id, title?, content?, sector?, tags?, comments_enabled?, revenue_generator?, ticket_price_tokens? | Edit (draft or rejected only) |
+| DELETE | /blog/{id} | member | id | Delete (never-published, 0 points only) |
+| POST | /blog/{id}/publish | member | id | Self-publish; if RG + ticket_price_tokens > 0: auto-creates `marketplace_items` row under "Blog Tickets" category, sets `blog.marketplace_item_id`. Atomic transaction. Returns `{status, ticket_item_id}` |
+| POST | /blog/{id}/submit | member | id | Submit for admin review; enforces 1-in-review slot limit (config: `blog_in_review_default_limit`) |
+| POST | /blog/{id}/abandon | member | id, allow_monetisation | Transfer blog to VGC Admin control; removed from feed |
+| POST | /blog/{id}/like | member | id | Like; first vote awards `blog_vote_voter_pts` to voter + `blog_like_author_pts` to author; vote switch: no points; self-vote blocked (400) |
+| POST | /blog/{id}/dislike | member | id | Dislike; same points logic as like; self-vote blocked |
+| POST | /blog/{id}/comments | member | id, content | Post comment on published, unlocked blog |
+| GET | /admin/blog | admin | status?, sector?, page?, per_page? | Admin: list blogs by status and optional sector (Gaming/Education/Financial/General) |
+| POST | /admin/blog/{id}/approve | admin | id, points_awarded | Approve blog → published; awards Constitutional points to author (+ 30% to admin); if RG + ticket_price_tokens > 0: auto-creates marketplace ticket under "Blog Tickets" category. Returns `{status, points_awarded, ticket_item_id}` |
+| POST | /admin/blog/{id}/reject | admin | id, reject_reason | Reject blog; returns to draft with reason |
+| POST | /admin/blog/{id}/takedown | admin | id, takedown_reason | Take down published blog |
 
 ---
 
-## Education
+## 10 — Notifications
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:dID-7x7G`
 
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /notifications | member | unread_only?, page?, per_page? | Paginated inbox; newest first |
+| POST | /notifications/{id}/read | member | id | Mark single notification read |
+| POST | /notifications/read-all | member | — | Mark all unread read; returns count |
+| GET | /notifications/preferences | member | — | Per-event in_app + email preferences |
+| PATCH | /notifications/preferences | member | email?, in_app?, per_event? | Update preferences |
+
+---
+
+## 11 — Search
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:search`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /search | member | q, sector?, category?, limit?=20 | Cross-module: marketplace items (active), discoverable groups, published blogs. Respects visibility rules |
+
+---
+
+## 12 — Marketplace
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:EiCwBjsO`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /marketplace/categories | public | — | Flat list of active categories |
+| GET | /marketplace/categories/tree | public | root_id?, max_depth?=8 | Nested tree (max 8 levels) |
+| GET | /marketplace/items | member | category_id?, search?, page?, per_page? | Active items; use `title` field for display name |
+| POST | /marketplace/items | admin | seller_id, category_path_ids[], title, description, price, currency, stock, item_type?, proposing_member_id?, revenue_share_proposer_pct, revenue_share_admin_pct, buyer_info_schema? | Admin: create item directly |
+| GET | /marketplace/items/{id} | member | id | Item detail; `title` is the display name |
+| PATCH | /marketplace/items/{id} | member | id, title?, description?, price?, stock?, status? | Seller update |
+| DELETE | /marketplace/items/{id} | member | id | Seller delete |
+| GET | /marketplace/orders | member | — | Buyer's orders |
+| POST | /marketplace/orders | member | item_id, quantity, buyer_info, idempotency_key? | Place order; debit buyer (escrow). For `blog_rg_ticket`: quantity must be 1; 400 if member has an existing active order for the same item. |
+| GET | /marketplace/orders/{id} | member | id | Order detail; lazy auto-settle if dispute window expired |
+| GET | /marketplace/sales | member | — | Seller's sales with order counts |
+| POST | /marketplace/orders/{id}/cancel | member | id | Cancel pending order; reverses hold |
+| POST | /marketplace/orders/{id}/proof-of-delivery | member | id, proof_url?, notes? | Submit proof of delivery |
+| POST | /marketplace/orders/{id}/mark-received | member | id | Mark received; starts dispute window |
+| POST | /marketplace/orders/{id}/dispute | member | id, reason | Dispute delivered order |
+| POST | /marketplace/orders/{id}/settle-request | member | id | Request settlement after window |
+| GET | /admin/marketplace/orders | admin | — | Admin: all orders |
+| PATCH | /admin/marketplace/orders/{id}/fulfill | admin | id | Admin: fulfill order |
+| POST | /admin/marketplace/orders/{id}/resolve-dispute | admin | id | Admin: resolve dispute |
+| POST | /admin/marketplace/orders/{id}/settle | admin | id | Admin: force settle |
+| POST | /admin/marketplace/orders/auto-settle | admin | — | Admin: batch settle all past-window orders |
+| GET | /admin/marketplace/items | admin | — | Admin: all items |
+| PATCH | /admin/marketplace/items/{id} | admin | id, ... | Admin: update any item |
+| GET | /admin/marketplace/categories | admin | — | Admin: list categories |
+| POST | /admin/marketplace/categories | admin | name, description?, parent_id?, sector?, active?, status? | Admin: create category |
+| PATCH | /admin/marketplace/categories/{id} | admin | id, ... | Admin: update category |
+| DELETE | /admin/marketplace/categories/{id} | admin | id | Admin: delete category |
+
+---
+
+## 13 — Cart
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:O-OY5IE_`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /cart | member | — | Carts grouped by vendor; includes enriched items and totals |
+| POST | /cart/items | member | item_id, quantity | Add to cart; one cart per vendor; upserts if item already in cart. For `blog_rg_ticket`: quantity must be 1; 400 if member has an existing active order for the same item. |
+| DELETE | /cart/items/{id} | member | id | Remove from cart |
+| POST | /cart/checkout | member | cart_id, buyer_info? | Atomic checkout; removes stale items, re-checks balance, creates orders |
+
+---
+
+## 14 — Proposals
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:proposals`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /proposals | member | status?, page?, per_page? | Member's proposals (draft/submitted/changes_requested/accepted/rejected/withdrawn) |
+| POST | /proposals | member | item_name, description, sector, suggested_category_path, item_type, suggested_price_tokens, proposed_revenue_share_pct, buyer_info_schema, attachments?, ref_blog_id? | Submit proposal; status set to `submitted` automatically |
+| GET | /proposals/{id} | member | id | Get proposal |
+| PATCH | /proposals/{id} | member | id, ... | Update draft/rejected proposal |
+| POST | /proposals/{id}/withdraw | member | id | Withdraw submitted proposal |
+| POST | /admin/proposals/{id}/decision | admin | id, decision (accept/request_changes/reject), reason?, category_path_ids?, revenue_share_proposer_pct?, revenue_share_admin_pct? | Admin: action proposal; `accept` creates marketplace item and notifies proposer |
+
+---
+
+## 15 — Groups
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:BiZZDMxu`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /groups | member | — | Discoverable groups |
+| POST | /groups | member | name, description, group_type (public/private), sector? | Create group |
+| GET | /groups/{id} | member | id | Group details |
+| POST | /groups/{id}/join | member | id | Join public group or send join request (private) |
+| POST | /groups/{id}/leave | member | id | Leave group. Returns `{left:true, group_deleted:bool}`. Sole admin → group auto-deleted (`group_deleted:true`). Admin with other members → 400. |
+| POST | /groups/{id}/invite | member | id, member_id | Invite to private group (admin/co-admin only) |
+| POST | /groups/{id}/invites/{inv_id}/respond | member | inv_id, decision (accept/decline) | Respond to invite |
+| POST | /groups/{id}/join-requests/{req_id}/decision | member | req_id, decision (approve/reject) | Group admin: action join request |
+| POST | /groups/{id}/promote-coadmin | member | id, member_id | Promote to co-admin |
+| POST | /groups/{id}/transfer-admin | member | id, member_id | Transfer group admin |
+| POST | /groups/{id}/remove-member | member | id, member_id | Remove member |
+| POST | /groups/{id}/appeal-removal | member | id | Appeal removal |
+| POST | /groups/{id}/delete | member | id | Delete group (24h hold) |
+| GET | /groups/{id}/posts | member | id | List posts |
+| POST | /groups/{id}/posts | member | id, content | Post in group |
+| GET  | /groups/posts/{id}/comments | member | id, page?, per_page? | List all comments (enriched, oldest-first) |
+| POST | /groups/posts/{id}/comments | member | id, content | Comment on post |
+| POST | /groups/posts/{id}/react | member | id, reaction | React to post |
+| POST | /admin/groups/{id}/moderate | admin | id, action | Admin: moderate group |
+
+---
+
+## 16 — Gaming Community
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:gaming-community`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /games | member | — | Games catalogue |
+| GET | /games/{id} | member | id | Game details |
+| GET | /games/{id}/groups | member | id | Groups for this game |
+| POST | /games/{id}/groups | member | id, group_name | Create gaming group |
+| POST | /groups/{id}/join | member | id | Join gaming group |
+| POST | /groups/{id}/leave | member | id | Leave gaming group |
+| POST | /admin/games | admin | title, description, icon_file_id?, rules? | Admin: create game |
+| PATCH | /admin/games/{id} | admin | id, ... | Admin: update game |
+
+---
+
+## 17 — Gaming Elections
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:gaming-elections`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /pioneer-candidates | member | — | List pioneer candidates |
+| POST | /pioneer-candidates | member | candidate_name, platform, avatar_file_id? | Register as pioneer candidate |
+| PATCH | /pioneer-candidates/{id} | member | id, ... | Edit candidacy |
+| GET | /elections/{id} | member | id | Election details + candidates |
+| GET | /elections/me/eligibility | member | — | Check if member can vote |
+| POST | /elections/{id}/vote | member | id, candidate_id | Cast vote |
+| POST | /admin/elections | admin | title, description, start_date, end_date | Admin: create election |
+| POST | /admin/elections/{id}/cast-tiebreak | admin | id, candidate_id | Admin: tiebreaker vote |
+| POST | /admin/elections/{id}/close | admin | id | Admin: close election |
+| POST | /admin/elections/{id}/voting-rights-price | admin | id, price_in_points | Admin: set voting rights price |
+
+---
+
+## 18 — Gaming Seasons
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:gaming-seasons`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /seasons | member | — | All seasons |
+| GET | /seasons/{id} | member | id | Season detail |
+| GET | /seasons/{id}/events | member | id | Season events |
+| GET | /seasons/{id}/ledger | member | id | Season ledger |
+| POST | /seasons/{id}/committee | member | id | Join season committee (Pioneer) |
+| POST | /seasons/{id}/distribution-records | member | id, records[] | Log distribution (Pioneer) |
+| POST | /seasons/{id}/secure-funding/deposit | member | id, amount | Deposit secure funding |
+| GET | /events/{id}/submissions | member | id | List event submissions |
+| POST | /events/{id}/submissions | member | id, submission_content, file_ids? | Submit entry |
+| POST | /events/{id}/results | member | id, results[] | Post results (Pioneer) |
+| POST | /admin/seasons/{id}/start | admin | id | Admin: start season |
+| POST | /admin/seasons/{id}/close-and-settle | admin | id | Admin: close + settle |
+| POST | /admin/seasons/{id}/archive | admin | id | Admin: archive |
+| POST | /admin/student-submissions/{id}/review | admin | id | Admin: review submission |
+
+---
+
+## 19 — Education (Courses & Sessions)
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:education`
 
-Course-ticket model (D10): any member proposes a course via Proposals; on admin approval the course is listed as a marketplace item. Enrollment auto-created on order purchase.
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/courses` | user | Create course (links to approved proposal) |
-| GET | `/courses/me` | user | Own courses (as teacher) |
-| GET | `/courses/{id}` | public | Course detail + sessions (lazy: auto-hide after last session, auto-approve urgent amendments >6h) |
-| POST | `/courses/{id}/amendments` | user | Propose course amendment |
-| POST | `/courses/{id}/payout-request` | user | Request payout (all sessions Completed; default 90/10 split) |
-| GET | `/enrollments/me` | user | Own enrollments (as student) |
-| POST | `/sessions/{id}/start` | user | Teacher starts session → Live |
-| POST | `/sessions/{id}/end` | user | Teacher ends session → Completed |
-| POST | `/sessions/{id}/cancel` | user | Teacher cancels session |
-| POST | `/sessions/{id}/checkin` | user | Student checks in (QR token) |
-| POST | `/sessions/{id}/verify/{enrollment_id}` | user | Teacher manually verifies attendance |
-| GET | `/sessions/{id}/attendance` | user | Session attendance (lazy auto-end 4h; lazy zero-attendance) |
-| POST | `/sessions/{id}/rate-teacher` | user | Student rates teacher (2400 Constitutional Points auto-credit) |
-| POST | `/sessions/{id}/rate-student/{enrollment_id}` | user | Teacher rates student (1200 Constitutional Points) |
-| GET | `/teachers/{member_id}/ratings` | public | Teacher public ratings |
-
----
-
-## Event Logs
-
-**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:7KKtC-3r`
-
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/logs/user/my_events` | user | Own event log |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /courses | member | — | All courses |
+| POST | /courses | member | title, description, sector, course_type, item_id | Create course (links to marketplace item) |
+| GET | /courses/{id} | member | id | Course detail + sessions + ratings |
+| GET | /courses/me | member | — | Teacher's own courses |
+| POST | /courses/{id}/amendments | member | id, amendment_title, amendment_content | Request course amendment |
+| POST | /courses/{id}/payout-request | member | id | Teacher: request payout |
+| GET | /enrollments/me | member | — | Student's enrollments |
+| GET | /sessions/{id}/attendance | member | id | Session attendance |
+| POST | /sessions/{id}/start | member | id | Teacher: start session |
+| POST | /sessions/{id}/end | member | id | Teacher: end session |
+| POST | /sessions/{id}/cancel | member | id | Teacher: cancel session |
+| POST | /sessions/{id}/checkin | member | id, qr_token | Student: check in with QR token |
+| POST | /sessions/{id}/verify/{enrollment_id} | member | enrollment_id | Teacher: verify attendance manually |
+| POST | /sessions/{id}/rate-teacher | member | id, rating, comments? | Student: rate teacher |
+| POST | /sessions/{id}/rate-student/{enrollment_id} | member | enrollment_id, rating, comments? | Teacher: rate student |
+| GET | /teachers/{member_id}/ratings | public | member_id | Public teacher ratings |
+| POST | /admin/courses/{id}/payout | admin | id | Admin: approve payout |
+| POST | /admin/courses/amendments/{id}/decision | admin | id, decision, reason? | Admin: action amendment |
+| POST | /admin/courses/{proposal_id}/list | admin | proposal_id | Admin: list course |
 
 ---
 
-## Admin
+## 20 — Financial Donors
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:fin-donor`
 
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /donors | public | — | Public donor wall |
+| GET | /donors/{id} | public | id | Donor profile |
+| PATCH | /admin/donors/{id} | admin | id, ... | Admin: update donor |
+
+---
+
+## 21 — Financial Investments
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:fin-invest`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| POST | /investments | member | investment_type (Option A/B), amount, email? | Create investment |
+| GET | /investments/me | member | — | Member's investments |
+| GET | /investments/{id} | member | id | Investment detail + payout schedule |
+| GET | /investments/overdue-count | public | — | Platform overdue count (transparency) |
+| POST | /investments/{id}/overdue-request | member | id | Request overdue payment (after 30 days) |
+| GET | /admin/investments | admin | — | Admin: all investments |
+| GET | /admin/investments/due | admin | — | Admin: due investments |
+| POST | /admin/investments/{id}/payouts/{payout_id}/mark-paid | admin | payout_id | Admin: mark payout paid |
+
+---
+
+## 22 — Financial Sponsors
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:fin-sponsor`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /sponsorships | member | — | Active sponsorships |
+| POST | /sponsorships | member | recipient_member_id, amount, conditions?, upi_id | Create sponsorship |
+| GET | /sponsorships/{id} | member | id | Sponsorship detail |
+| POST | /sponsorships/{id}/dispute | member | id | Dispute (within 7-day window) |
+| POST | /admin/sponsorships/{id}/recognize | admin | id | Admin: recognize sponsorship |
+| POST | /admin/sponsorships/{id}/progress | admin | id | Admin: update progress |
+| POST | /admin/sponsorships/{id}/refund | admin | id | Admin: refund |
+
+---
+
+## 23 — Contracts
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:sXgmF9KL`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /contracts | member | contract_type?=VGC, search? | List contracts |
+| POST | /contracts | member | contract_title, description, contract_type (VGC/Non-VGC), terms?, payment_terms?, assignment_requirements? | Create contract |
+| GET | /contracts/{id} | member | id | Contract detail |
+| PATCH | /contracts/{id} | member | id, ... | Update (draft only) |
+| POST | /contracts/{id}/apply | member | id | Apply for contract |
+| POST | /contracts/{id}/assign | member | id, assignee_member_id | Proposer: assign |
+| POST | /contracts/{id}/mark-complete | member | id | Assignee: mark complete |
+| POST | /contracts/{id}/release | member | id | Proposer: release escrow to assignee |
+| POST | /contracts/{id}/dispute | member | id, dispute_reason | File dispute |
+| POST | /contracts/{id}/escalate | member | id | Escalate to admin |
+| POST | /contracts/{id}/force-close-request | member | id | Request force close |
+| POST | /contracts/{id}/rate | member | id, rating, comments? | Rate other party |
+| POST | /contracts/{id}/cancel | member | id | Cancel contract |
+| POST | /admin/contracts/{id}/resolve | admin | id | Admin: resolve dispute |
+
+---
+
+## 24 — Loans
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:ZR6bC4we`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| POST | /loans/request | member | amount, purpose, term_months, collateral_description? | Request loan |
+| GET | /loans/me | member | — | Member's loans |
+| POST | /loans/{id}/repay | member | id, amount | Repay loan |
+| POST | /admin/loans/{id}/approve | admin | id, approved_amount?, interest_rate? | Admin: approve |
+| POST | /admin/loans/{id}/reject | admin | id, reason? | Admin: reject |
+| POST | /admin/loans/{id}/write-off | admin | id | Admin: write off |
+
+---
+
+## 25 — Expenses
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:XcifSN8G`
+
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /expenses/me | member | main_category?, settlement_status?, from?, to?, q?, page?=1, per_page?=50 | Member's expenses. **Note:** `main_category` must NOT be marked Required in XANO UI (fix BG-6) |
+| POST | /expenses | member | description, amount, main_category, specific_category?, payment_mode, receipt_file_id?, platform_reference? | Log expense |
+| POST | /expenses/{id}/settle | member | id | Settle expense |
+| GET | /platform-financial-ledger | admin | page?=1 | Admin: platform outflow ledger |
+
+---
+
+## 26 — Admin
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:EOOlx4pf`
 
-All endpoints require `require_admin` guard (is_admin role flag). Audit-logged via `log_admin_action`.
-
-### 2FA / Auth
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/2fa/setup` | admin | Generate TOTP secret + recovery codes + OTP challenge |
-| POST | `/admin/2fa/verify-setup` | admin | Confirm OTP → enable TOTP |
-| POST | `/admin/2fa/login` | public | Admin login step 1 (email+pw); issues OTP challenge (3-strike lockout) |
-| POST | `/admin/2fa/verify` | public | Verify OTP → auth token |
-| POST | `/admin/2fa/recover` | public | One-time recovery code → auth token |
-| GET | `/admin/backup-admin/status` | public | Lazy 72h backup-admin eligibility check |
-
-### PTS Management
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/admin/pts/components` | admin | View R, A, θ, last_conversion_at |
-| PATCH | `/admin/pts/reserve-assets` | admin | Update R (reserve_inr) and A (hard_assets_inr) with audit |
-| POST | `/admin/pts/theta-adjust` | admin | Adjust θ time-decay coefficient with audit |
-| POST | `/admin/pts/bootstrap` | admin | Initialize pts_components singleton |
-| GET | `/pts/audit-log` | admin | PTS admin action history |
-
-### Activity Rewards Catalog
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/activity-rewards/catalog` | admin | Create catalog entry (writes changelog) |
-| PATCH | `/admin/activity-rewards/catalog/{id}` | admin | Update catalog entry (writes changelog) |
-| DELETE | `/admin/activity-rewards/catalog/{id}` | admin | Delete catalog entry (writes changelog) |
-
-### Points / Wallets / Budget
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/points/award` | admin | Award points (Constitutional/Promotional; budget-checked for Promotional) |
-| POST | `/admin/wallets/mint` | admin | Mint points to any member wallet |
-| GET | `/admin/wallets/{member_id}` | admin | Get all 3 wallets for a member |
-| POST | `/admin/wallets/adjust` | admin | Adjust wallet balance (atomic; any currency) |
-| POST | `/points/budget` | admin | Set/raise monthly minting budget (no mid-month reduction) |
-| GET | `/points/budget` | admin | Live budget remaining for any month |
-
-### Rates & System
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/rates/announce-change` | admin | Announce rate change (30-day notice; broadcasts notifications) |
-| POST | `/admin/vacation-mode` | admin | Set vacation_mode_end_date; notifies backup admin |
-| POST | `/admin/backup-admin/designate` | admin | Set backup_admin_member_id in system_config |
-| PATCH | `/admin/system/config` | admin | Update platform system configuration |
-| GET | `/admin/audit-log` | admin | Platform-wide admin audit log (from/to/action_type filters) |
+### Admin Auth
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| POST | /admin/2fa/login | public | email, password | Returns `{challenge_token}`; sends OTP (36-char UUID) to admin email |
+| POST | /admin/2fa/verify | public | challenge_token, otp | Returns admin Bearer token |
+| POST | /admin/2fa/setup | admin | — | Initiate TOTP setup; returns secret + otpauth URI + 8 recovery codes |
+| POST | /admin/2fa/verify-setup | admin | verification_code | Confirm TOTP setup |
+| POST | /admin/2fa/recover | public | recovery_code | Login with recovery code |
 
 ### Members
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/admin/members` | admin | List all members (search by name/email) |
-| PATCH | `/admin/members/{id}` | admin | Update member details (name, email, mobile, suspended) |
-| POST | `/admin/members/{id}/impersonate` | admin | Issue 24h auth token for any member |
-| POST | `/admin/members/{id}/process-erasure` | admin | Anonymise member data (DPDP) |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /admin/members | admin | search?, page?, per_page? | All members |
+| PATCH | /admin/members/{id} | admin | id, role?, is_suspended?, ... | Update member |
+| POST | /admin/members/{id}/impersonate | admin | id | Impersonate member |
+| POST | /admin/members/{id}/process-erasure | admin | id | Execute DPDP erasure |
 
-### Proposals
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/proposals/{id}/decision` | admin | Accept (creates marketplace item) / request_changes / reject |
+### Wallets & Points
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /admin/wallets/{member_id} | admin | member_id | View member wallet |
+| POST | /admin/wallets/adjust | admin | member_id, currency, amount, reason | Adjust balance |
+| POST | /admin/wallets/mint | admin | amount, currency, description | Mint new points/tokens |
+| POST | /admin/points/award | admin | member_id, amount, reason | Award points to member |
+| GET | /admin/points/budget | admin | — | Points budget summary |
+| POST | /admin/points/budget | admin | provision_type, amount, period | Create budget entry |
 
-### Marketplace
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/marketplace/orders/auto-settle` | admin | Batch settle pod_submitted orders past dispute window |
-| POST | `/admin/marketplace/orders/{id}/resolve-dispute` | admin | Resolve dispute (full_refund / partial_refund / vendor_favour) |
-| POST | `/admin/marketplace/orders/{id}/settle` | admin | Manually settle pod_submitted or disputed order |
-| GET | `/admin/marketplace/items` | admin | All items |
-| PATCH | `/admin/marketplace/items/{id}` | admin | Moderate item (update status/fields) |
-| GET | `/admin/marketplace/categories` | admin | All categories |
-| POST | `/admin/marketplace/categories` | admin | Create category |
-| PATCH | `/admin/marketplace/categories/{id}` | admin | Update category |
-| DELETE | `/admin/marketplace/categories/{id}` | admin | Delete category |
+### PTS (Points Token Scheme)
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /admin/pts/components | admin | — | View PTS rate components (r_eq, r_published, r_user, p_net; θ hidden) |
+| PATCH | /admin/pts/reserve-assets | admin | reserve_amount | Update reserve |
+| POST | /admin/pts/theta-adjust | admin | theta_value | Adjust θ |
+| POST | /admin/pts/bootstrap | admin | initial_reserve | Bootstrap PTS |
+| GET | /admin/pts/audit-log | admin | — | PTS audit log |
+| POST | /admin/rates/announce-change | admin | new_rate, effective_date | Announce rate change |
 
-### Blog
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/blog/{id}/approve` | admin | Approve blog (Constitutional pts + 30% admin share) |
-| POST | `/admin/blog/{id}/reject` | admin | Reject blog |
-| POST | `/admin/blog/{id}/takedown` | admin | Takedown RG blog (close ticket + refund buyers) |
+### System & Config
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| PATCH | /admin/system/config | admin | inr_per_token?, surrender_rate?, blog_in_review_default_limit?, blog_ticket_author_pct?, blog_ticket_admin_pct?, ... | Update system config |
+| GET | /admin/audit-log | admin | — | Platform-wide admin audit log |
+| POST | /admin/vacation-mode | admin | member_id, enabled | Enable/disable vacation mode |
+| GET | /admin/backup-admin/status | admin | — | Backup admin status |
+| POST | /admin/backup-admin/designate | admin | member_id | Designate backup admin |
 
-### Contracts
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/contracts/{id}/resolve` | admin | Resolve contract (conditions_met / conditions_not_met / split / penalty_cascade / no_action) |
+### Declarations & Surrenders (Admin)
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /admin/declarations/{id}/verify | admin | id | Verify declaration |
+| GET | /admin/declarations/{id}/reject | admin | id | Reject declaration |
+| PATCH | /admin/token-surrenders/{id}/complete | admin | id | Complete token surrender |
 
-### Groups
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/groups/{id}/moderate` | admin | Moderate group (remove_post / remove_member / delete_group) |
-
-### Games
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/games` | admin | Create game |
-| PATCH | `/admin/games/{id}` | admin | Update game |
-
-### Seasons & Elections
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/seasons/{id}/start` | admin | Lock + activate season |
-| POST | `/admin/seasons/{id}/archive` | admin | Archive season |
-| POST | `/admin/seasons/{id}/close-and-settle` | admin | Close and distribute 10/8/8% committee split |
-| POST | `/admin/elections/{id}/close` | admin | Close election (tally, refund ≥3-vote deposits) |
-| POST | `/admin/elections/{id}/cast-tiebreak` | admin | Cast tiebreak vote |
-| POST | `/admin/elections/{id}/voting-rights-price` | admin | Update voting rights price in linked marketplace item |
-
-### Financial
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/donations/{declaration_id}/publish` | admin | Publish verified Donation/Grant to donor feed |
-| PATCH | `/admin/donors/{id}` | admin | Update donor display fields |
-| POST | `/admin/sponsorships/{id}/progress` | admin | Update sponsorship progress (auto-complete at 100%; sets documented_at) |
-| POST | `/admin/sponsorships/{id}/refund` | admin | Refund sponsorship |
-| POST | `/admin/sponsorships/{id}/recognize` | admin | Upsert recognition record |
-| GET | `/admin/investments` | admin | All investments (status + due_within_days filters) |
-| GET | `/admin/investments/due` | admin | Pending payouts by date range |
-| POST | `/admin/investments/{id}/payouts/{payout_id}/mark-paid` | admin | Mark payout paid (auto-completes investment when all paid) |
-| POST | `/admin/loans/{id}/approve` | admin | Approve loan (Y1 debit + INR credit) |
-| POST | `/admin/loans/{id}/reject` | admin | Reject loan |
-| POST | `/admin/loans/{id}/write-off` | admin | Write off loan |
-
-### Education
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/admin/courses/{proposal_id}/list` | admin | List course from approved proposal |
-| POST | `/admin/courses/amendments/{id}/decision` | admin | Approve/reject course amendment |
-| POST | `/admin/courses/{id}/payout` | admin | Execute teacher payout |
-| POST | `/admin/student-submissions/{id}/review` | admin | Review student submission (legacy; kept for historical records) |
-
-### Declarations & Token Surrenders
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| PATCH | `/declarations/{id}/verify` | admin | Verify declaration; credits member wallet |
-| PATCH | `/declarations/{id}/reject` | admin | Reject declaration |
-| PATCH | `/token-surrenders/{id}/complete` | admin | Complete token surrender (debits member wallet) |
+### Donations (via Financial Donors admin)
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| POST | /admin/donations/{declaration_id}/publish | admin | declaration_id | Publish donation to donor wall |
 
 ---
 
-## Admin Reports
-
+## 27 — Admin Reports
 **Base:** `https://x8ki-letl-twmt.n7.xano.io/api:admin-reports`
 
-| Verb | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/admin/reports/financial-summary` | admin | Ledger aggregation by currency/side in date range + declaration counts |
-| GET | `/admin/reports/wallet-balances` | admin | Top N wallets by balance (currency filter) |
-| GET | `/admin/reports/activity` | admin | Activity counts by type |
-| GET | `/admin/reports/marketplace` | admin | GMV tokens + order counts + dispute rate |
-| GET | `/admin/reports/gaming` | admin | Season-scoped: submissions, results, points awarded, tokens deposited |
-| GET | `/admin/reports/education` | admin | Sessions completed, enrollments, ratings |
+Admin-only reporting endpoints. Exact paths TBC from live API — endpoints are in this group's canonical. Typical inputs: `from` (date), `to` (date).
 
 ---
 
-## Functions (Internal)
+## 28 — Event Logs
+**Base:** `https://x8ki-letl-twmt.n7.xano.io/api:7KKtC-3r`
 
-Not callable via HTTP. Called by `function.run` inside endpoint stacks.
-
-| Name | Description |
-|---|---|
-| `require_admin` | Guard: verifies is_admin role flag; throws 403 |
-| `mutate_wallet` | Atomic wallet mutation + ledger write + transaction record |
-| `mutate_wallet_unchecked` | Like mutate_wallet but allows negative balance (loan debits) |
-| `emit_notification` | Insert notification respecting per-event preferences |
-| `idempotency_lookup` | Check idempotency key; returns prior response if found |
-| `idempotency_store` | Store idempotency key + response |
-| `log_admin_action` | Append row to admin_audit_log |
-| `pts_compute_rate` | Full PTS formula (r_eq, r_published, r_user, conversion_suspended) |
-| `create_declaration` | Create declaration record (used by public onramp endpoints) |
-| `check_rate_limit` | Rolling counter; returns blocked=true when max_hits exceeded |
+| Method | Path | Auth | Key Inputs | Notes |
+|---|---|---|---|---|
+| GET | /logs/user/my-events | member | — | Member's event log (logins, actions) |
 
 ---
 
-## Key Tables
+## Known Schema Notes
 
-| Table | Purpose |
-|---|---|
-| `user` | Members (auth table) |
-| `wallets` | One per member per currency (INR/token/points) |
-| `ledger` | Immutable balance mutation log |
-| `wallet_transactions` | Wallet operation log (links ledger + operation) |
-| `system_config` | Singleton: rates, limits, admin_member_id, backup_admin, vacation_mode |
-| `pts_components` | Singleton: R, A, θ, last_conversion_at |
-| `declarations` | Donation/Grant/Sponsorship/Investment INR forms |
-| `marketplace_items` | Items for sale (course tickets, blog RG tickets, etc.) |
-| `orders` | Marketplace orders (two-phase escrow) |
-| `marketplace_settlements` | Settlement records per settled order |
-| `marketplace_proposals` / `proposals` | Member-submitted proposals |
-| `notifications` / `notification_preferences` | Notification system |
-| `activity_catalog` / `activities` | Activity reward catalog + member log |
-| `points_minting_budget` / `points_minting_log` | Monthly minting budget enforcement |
-| `activity_catalog_changelog` | Catalog version history |
-| `investments` / `investment_payouts` | Investment records + payout schedule |
-| `sponsorships` / `sponsorship_disputes` | Sponsor records + disputes |
-| `loans` / `loan_debits` / `loan_repayments` | Loan lifecycle |
-| `expenses` | Personal + platform outflow expense tracking |
-| `contracts` / `contract_applications` / `contract_ratings` / `contract_disputes` | Contract lifecycle |
-| `blogs` / `blog_likes` / `blog_comments` / `blog_readers` | Blog module |
-| `courses` / `sessions` / `enrollments` / `session_ratings` / `course_amendments` | Education (course-ticket model) |
-| `member_groups` / `group_posts` / `group_post_comments` / `group_post_reactions` / `group_invites` | Groups module |
-| `carts` / `cart_items` | Shopping cart |
-| `games` / `game_groups` / `game_group_members` | Gaming community |
-| `elections` / `pioneer_candidates` / `votes` | Gaming elections |
-| `seasons` / `season_committee` / `events` / `event_submissions` / `event_results` / `season_funding` | Gaming seasons |
-| `donors` / `donor_recognitions` | Donor feed |
-| `rate_announcements` | INR rate change announcements |
-| `admin_totp` / `admin_login_events` / `admin_mfa_challenges` | Admin 2FA |
-| `guardian_approvals` / `rate_limit_counters` / `data_erasure_requests` | Phase-1 hardening |
-| `pts_rate_current` / `pts_rate_history` / `pts_conversions` | PTS passbook + rate history |
-| `idempotency` | Idempotency key store |
-| `admin_audit_log` | Admin action audit trail |
+### `blogs` table
+Key fields: `id`, `author_member_id` (FK→user), `title`, `content`, `sector`, `tags` (json), `status` (draft/in_review/published/rejected/abandoned/taken_down), `revenue_generator` (bool), `ticket_price_tokens` (decimal), `marketplace_item_id` (FK→marketplace_items), `points_awarded`, `reject_reason`, `takedown_reason`
+
+### `marketplace_items` table
+Key fields: `id`, `seller_id` (FK→user), `category_id` (FK→categories), `item_type`, `title`, `description`, `price` (decimal), `currency` (INR/VGC_TOKEN/VGC_POINTS), `stock`, `status` (active/sold_out/inactive), `proposing_member_id`, `revenue_share_proposer_pct`, `revenue_share_admin_pct`, `buyer_info_schema` (json), `category_path_ids` (json)
+
+### `wallets` table
+`type` field is **lowercase**: `inr`, `token`, `points` — frontend maps these to `INR`, `VGC_TOKEN`, `VGC_POINTS` via `normaliseWallet()` in `getWallets()`.
+
+### RG Blog Ticket Auto-Creation (TR-037)
+Triggered at `POST /blog/{id}/publish` (self-publish) and `POST /admin/blog/{id}/approve`. Conditions: `revenue_generator = true`, `marketplace_item_id = null`, `ticket_price_tokens > 0`. Creates item under "Blog Tickets" category (created on first use). `item_type = "blog_rg_ticket"`, `currency = VGC_TOKEN`, `stock = 999999`, revenue split from `system_config.blog_ticket_author_pct` (default 85%) / `blog_ticket_admin_pct` (default 15%).
+
+---
+
+## Known Issues / Deferred
+
+| ID | Area | Issue |
+|---|---|---|
+| BG-7 | Email | XANO free plan sandbox only delivers to workspace owner (`seekingj01@gmail.com`). OTP/notification emails to regular members don't arrive. SendGrid key obtained but requires paid plan. |
+| DOC-3 | Points Transfer | Live transfer is escrow + 10-min accept window (not instant/atomic as SRS §5.5 describes). FE is built to live API. |
+| Admin-OTP | Admin 2FA | Admin OTP is a 36-char UUID — candidate to replace with 6-digit numeric code. |
