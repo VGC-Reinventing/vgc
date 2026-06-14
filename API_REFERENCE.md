@@ -293,6 +293,9 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 | POST | /groups/{id}/remove-member | member | id, member_id | Remove member |
 | POST | /groups/{id}/appeal-removal | member | id | Appeal removal |
 | POST | /groups/{id}/delete | member | id | Delete group (24h hold) |
+| GET | /groups/{id}/members | member | id | Active members with roles + names (admin/co-admin only). Returns `{members:[{id,member_id,name,member_id_str,role,joined_at}]}` |
+| GET | /groups/{id}/join-requests | member | id | Pending join requests with names (admin/co-admin only). Returns `{requests:[{id,member_id,name,member_id_str,requested_at}]}` |
+| GET | /groups/{id}/pending-invites | member | id | Pending invites with invitee + inviter names (admin/co-admin only). Returns `{invites:[{id,invitee_member_id,invitee_name,invitee_member_id_str,invited_by_name,created_at}]}` |
 | GET | /groups/{id}/posts | member | id | List posts |
 | POST | /groups/{id}/posts | member | id, content | Post in group |
 | GET  | /groups/posts/{id}/comments | member | id, page?, per_page? | List all comments (enriched, oldest-first) |
