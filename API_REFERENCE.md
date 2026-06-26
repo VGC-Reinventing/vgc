@@ -173,7 +173,7 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 
 | Method | Path | Auth | Key Inputs | Notes |
 |---|---|---|---|---|
-| GET | /blog/public | public | sector?, tag?, search?, page?, per_page? | Published blogs; enriched with `author_name`, `is_rg`, `published_at`, `like_count`, `comment_count`. `search` matches title (partial, ==?) and author name (partial, ==?) via pre-pass DB queries, plus exact tag match (expression `contains`). |
+| GET | /blog/public | public | sector?, tag? | Published blogs; enriched with `author_name`, `is_rg`, `published_at`, `like_count`, `comment_count`. `sector` and `tag` are server-side exact filters. Text search (title/author/tags) is applied client-side — no `search` param accepted. |
 | GET | /blog/me | member | status?, page?=1, per_page?=20 | Author's own blogs (all statuses except abandoned) |
 | POST | /blog | member | title, content, sector?, tags?, comments_enabled?, revenue_generator?, ticket_price_tokens? | Create draft |
 | GET | /blog/{id} | member | id | Full blog; returns `is_locked`, `is_author`, `is_admin`, `user_vote`, `like_count`, `dislike_count`, `comments[]` (enriched with `member_name`). RG lock logic: locked if `revenue_generator=true` AND (`marketplace_item_id=null` OR no settled order/blog_readers entry) |
@@ -185,6 +185,8 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 | POST | /blog/{id}/like | member | id | Like; first vote awards `blog_vote_voter_pts` to voter + `blog_like_author_pts` to author; vote switch: no points; self-vote blocked (400) |
 | POST | /blog/{id}/dislike | member | id | Dislike; same points logic as like; self-vote blocked |
 | POST | /blog/{id}/comments | member | id, content | Post comment on published, unlocked blog |
+| POST | /blog/{id}/bookmark | member | id | Toggle bookmark — adds row if not bookmarked, deletes if already saved; returns `{bookmarked: bool}` |
+| GET | /blog/bookmarks/me | member | — | Current member's bookmarked blogs (newest first); enriched with `author_name`, `like_count`, `comment_count`, `is_rg`, `published_at`; published-only (drafts/taken-down skipped) |
 | GET | /admin/blog | admin | status?, sector?, page?, per_page? | Admin: list blogs by status and optional sector (Gaming/Education/Financial/General) |
 | POST | /admin/blog/{id}/approve | admin | id, points_awarded | Approve blog → published; awards Constitutional points to author (+ 30% to admin); if RG + ticket_price_tokens > 0: auto-creates marketplace ticket under "Blog Tickets" category. Returns `{status, points_awarded, ticket_item_id}` |
 | POST | /admin/blog/{id}/reject | admin | id, reject_reason | Reject blog; returns to draft with reason |
@@ -296,11 +298,13 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 | GET | /groups/{id}/members | member | id | Active members with roles + names (admin/co-admin only). Returns `{members:[{id,member_id,name,member_id_str,role,joined_at}]}` |
 | GET | /groups/{id}/join-requests | member | id | Pending join requests with names (admin/co-admin only). Returns `{requests:[{id,member_id,name,member_id_str,requested_at}]}` |
 | GET | /groups/{id}/pending-invites | member | id | Pending invites with invitee + inviter names (admin/co-admin only). Returns `{invites:[{id,invitee_member_id,invitee_name,invitee_member_id_str,invited_by_name,created_at}]}` |
+| GET | /groups/invites/me | member | — | All pending group invitations addressed to the caller. Returns `{invites:[{id,group_id,group_name,group_type,invited_by_name,created_at}]}` |
 | GET | /groups/{id}/posts | member | id | List posts |
 | POST | /groups/{id}/posts | member | id, content | Post in group |
 | GET  | /groups/posts/{id}/comments | member | id, page?, per_page? | List all comments (enriched, oldest-first) |
 | POST | /groups/posts/{id}/comments | member | id, content | Comment on post |
 | POST | /groups/posts/{id}/react | member | id, reaction | React to post |
+| POST | /groups/posts/{id}/vote | member | id, option_index | Cast or change poll vote; returns `{post_id, my_vote_index, vote_counts:[{option_index}], total_votes}` |
 | POST | /admin/groups/{id}/moderate | admin | id, action | Admin: moderate group |
 
 ---
