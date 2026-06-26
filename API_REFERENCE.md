@@ -173,7 +173,7 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 
 | Method | Path | Auth | Key Inputs | Notes |
 |---|---|---|---|---|
-| GET | /blog/public | public | sector?, tag?, search?, page?, per_page? | Published blogs; enriched with `author_name`, `is_rg`, `published_at`, `like_count`, `comment_count` |
+| GET | /blog/public | public | sector?, tag?, search?, page?, per_page? | Published blogs; enriched with `author_name`, `is_rg`, `published_at`, `like_count`, `comment_count`. `search` matches title (partial, ==?) and author name (partial, ==?) via pre-pass DB queries, plus exact tag match (expression `contains`). |
 | GET | /blog/me | member | status?, page?=1, per_page?=20 | Author's own blogs (all statuses except abandoned) |
 | POST | /blog | member | title, content, sector?, tags?, comments_enabled?, revenue_generator?, ticket_price_tokens? | Create draft |
 | GET | /blog/{id} | member | id | Full blog; returns `is_locked`, `is_author`, `is_admin`, `user_vote`, `like_count`, `dislike_count`, `comments[]` (enriched with `member_name`). RG lock logic: locked if `revenue_generator=true` AND (`marketplace_item_id=null` OR no settled order/blog_readers entry) |
