@@ -86,15 +86,15 @@ Both backend and frontend are **fully built and deployed**.
 
 These were unresolved at end of last session. Check `TEST_REGISTER.md` first for the latest status.
 
-**Session 2026-06-27 (earlier):** TR-078–TR-082 fixed (Points Transfer full flow, Contracts create form rebuilt). 414 docs confirmed.
+**Session 2026-06-27 (earlier):** TR-078–TR-087 fixed (Points Transfer full flow, Contracts create/list/detail). 414 docs confirmed.
 
-**Session 2026-06-27 (this session):** TR-083 (Missing param: conditions + notes on POST /contracts — XANO UI Required flags unchecked by user + FE Conditions/Notes fields added). TR-084 (Contract #undefined after post — `var.update` inside `db.transaction` does not propagate to outer scope; restructured contracts_POST.xs to create row outside transaction. Missing param: status on GET /contracts — XANO UI action still pending). Build green (1,968 KB), pushed → Vercel deployed. 414 docs confirmed.
+**Session 2026-06-27 (latest):** TR-089 FIXED — Contract requirements field was rendering raw HTML tags instead of formatted rich text. `ContractDetailScreen` switched from plain `<p>` to `dangerouslySetInnerHTML` with `blog-content` CSS class. FE build green (1,972 KB), commit 9935533, pushed → Vercel deploying.
 
 | ID | Area | Issue | Status |
 |---|---|---|---|
 | BG-7 | Email | XANO free plan email sandbox only delivers to workspace owner (`seekingj01@gmail.com`). OTP emails for regular members don't arrive. External provider (SendGrid key obtained: `SG.Rf5Q…`) deferred until XANO plan upgrade. | Deferred |
 | Admin OTP | Admin 2FA | Admin OTP is a 36-char UUID — clunky to copy from email. Candidate to shorten to 6-digit code. | Deferred |
-| XANO-UI-1 | Contracts / List | GET /contracts: `status`, `contract_type`, `sector`, `page`, `per_page` all have Required checked in XANO UI despite being `text?`/`int?` in XanoScript. User must uncheck Required for all 5 fields on GET /contracts in XANO UI → Inputs tab → each field → uncheck Required → Save. Until done, visiting the Contracts screen fails with "Missing param: status". | Pending user action |
+| Lazy Expiry | Contracts | Lazy contract expiry (marking "listed" contracts with past deadline as "expired") was removed to fix TR-087 runtime crash. Needs proper implementation: compute cutoff WITHOUT negative integers in `add_secs_to_timestamp`. | Deferred |
 
 ---
 
@@ -122,7 +122,7 @@ These were unresolved at end of last session. Check `TEST_REGISTER.md` first for
 - Respect the SRS. If a fix contradicts the SRS, raise it as a decision rather than silently diverging.
 - For XANO changes: validate every `.xs` file with `xano_validate_xanoscript` before push. Zero errors; resolve/justify warnings.
 - For XANO push: `xano workspace push -w 161992 -b v1 -d C:\Users\VGC-ADMIN\Documents\VGC\XANO --dry-run` first, then without `--dry-run`. Re-pull and diff to confirm.
-- After every XANO pull: delete the duplicate normalization dirs that Xano pull restores (`api/financial_donors/`, `api/financial_investments/`, `api/financial_sponsors/`, `api/point_token_scheme/`, `api/admin_reports/admin/`) before pushing.
+- After every XANO pull: delete the duplicate dirs that Xano pull restores before pushing. Known duplicates (2026-06-27): `api/financial_donors/`, `api/financial_investments/`, `api/financial_sponsors/`, `api/point_token_scheme/`, `api/admin_reports/`, `api/blog/blog/bookmarks_GET.xs`, `api/groups/groups/invites_me_GET.xs`, `api/admin/admin/2_fa/`. Run the PowerShell scanner from XANO/SESSION_LOG to catch new ones.
 - Never use `--no-verify`, `--force`, or `--delete` on XANO push without explicit user confirmation.
 - For FE changes: `npm run build` must stay green (tsc + vite) before committing. Then `git push origin main` to trigger Vercel auto-deploy.
 - For budget-linked SRS sections (wallet math, PTS formula, loan phases, contract escrow): triple-check against SRS before implementing. Ask if any ambiguity.
