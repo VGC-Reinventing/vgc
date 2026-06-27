@@ -82,7 +82,7 @@ Both backend and frontend are **fully built and deployed**.
 
 ---
 
-## Known Open Issues (as of last session, 2026-06-26)
+## Known Open Issues (as of last session, 2026-06-27)
 
 These were unresolved at end of last session. Check `TEST_REGISTER.md` first for the latest status.
 
