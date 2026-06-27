@@ -86,10 +86,12 @@ Both backend and frontend are **fully built and deployed**.
 
 These were unresolved at end of last session. Check `TEST_REGISTER.md` first for the latest status.
 
+**Session 2026-06-27 fixes:** TR-078 (recipient search empty — `lambda_map` invalid), TR-079 (Confirm & Send errors — `$headers` invalid + `now` arithmetic + idempotency_lookup broken), TR-080 (pending screen crash — `addon`/`$output` and backtick push invalid). TR-081 (points transfer redesigned as instant atomic settlement — escrow model removed, DOC-3 resolved, passbook enrichment loop fixed). All Points Transfer flow bugs resolved. 414 docs confirmed.
+
 | ID | Area | Issue | Status |
 |---|---|---|---|
 | BG-7 | Email | XANO free plan email sandbox only delivers to workspace owner (`seekingj01@gmail.com`). OTP emails for regular members don't arrive. External provider (SendGrid key obtained: `SG.Rf5Q…`) deferred until XANO plan upgrade. | Deferred |
-| DOC-3 | Points Transfer | Live points transfer is an escrow + 10-min accept window — not the instant/atomic/final flow SRS §5.5 describes. FE is built to the live API. SRS may need update. | Needs decision |
+| ~~DOC-3~~ | ~~Points Transfer~~ | ~~Escrow model vs SRS §5.5~~ | **Resolved — TR-081 (2026-06-27)** |
 | Admin OTP | Admin 2FA | Admin OTP is a 36-char UUID — clunky to copy from email. Candidate to shorten to 6-digit code. | Deferred |
 
 ---

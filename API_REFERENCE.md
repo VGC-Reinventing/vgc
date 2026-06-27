@@ -82,7 +82,7 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 |---|---|---|---|---|
 | GET | /profile | member | — | Full profile + wallet balances |
 | PATCH | /profile | member | name?, mobile?, city?, state?, country?, dob?, avatar_file_id? | Update profile; changing mobile clears mobile_verified_at |
-| GET | /lookup | member | query (min 3 chars) | Search members by member_id / name / email |
+| GET | /lookup | member | query (min 3 chars) | Search members by member_id / name / email. Returns `[{id, member_id, name, city, avatar_url}]` up to 20 results. `id` is the numeric row id (use as `to_member_id` in points transfer). |
 | GET | /roles | member | — | Returns roles and restrictions |
 | GET | /erasure-request | member | — | DPDP 2023: check erasure status |
 | POST | /erasure-request | member | request_reason? | DPDP 2023: request personal data erasure (ledger retained) |
@@ -143,13 +143,13 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 
 | Method | Path | Auth | Key Inputs | Notes |
 |---|---|---|---|---|
-| POST | /points-transfer | member | to_member_id, amount, remark? | Initiate transfer; sender points escrowed immediately; 10-min accept window |
-| GET | /pending | member | direction? (incoming/outgoing) | Pending transfers; lazy-expires past-window |
-| GET | /passbook | member | page?, per_page? | Paginated points transfer history |
-| POST | /{id}/accept | member | id | Accept transfer (receiver only) |
-| POST | /{id}/cancel | member | id | Cancel transfer (sender only) |
-| POST | /{id}/dispute | member | id | Dispute transfer |
-| POST | /admin/points/transfer/{id}/resolve-dispute | admin | id | Admin: resolve dispute |
+| POST | /points-transfer | member | to_member_id (int row id), amount, remark?, idempotency_key? | **Instant, atomic.** Single transaction: debits sender, credits receiver, writes passbook entries for both. Returns `{transfer_id, status:"completed", amount}`. |
+| GET | /passbook | member | page?=1, per_page?=50 | Paginated passbook. Returns `{items:[{id, timestamp, entry_type, amount, debit_credit, related_member_id, remark, related_member:{full_name,member_id_code}}], itemsTotal, curPage, nextPage}`. |
+| GET | /pending | member | direction? | Legacy endpoint — returns empty list (no transfers are ever in pending state). |
+| POST | /{id}/accept | member | id | Legacy — not used. |
+| POST | /{id}/cancel | member | id | Legacy — not used. |
+| POST | /{id}/dispute | member | id | Legacy — not used. |
+| POST | /admin/points/transfer/{id}/resolve-dispute | admin | id | Admin: resolve dispute (legacy). |
 
 ---
 
@@ -582,5 +582,5 @@ Triggered at `POST /blog/{id}/publish` (self-publish) and `POST /admin/blog/{id}
 | ID | Area | Issue |
 |---|---|---|
 | BG-7 | Email | XANO free plan sandbox only delivers to workspace owner (`seekingj01@gmail.com`). OTP/notification emails to regular members don't arrive. SendGrid key obtained but requires paid plan. |
-| DOC-3 | Points Transfer | Live transfer is escrow + 10-min accept window (not instant/atomic as SRS §5.5 describes). FE is built to live API. |
+| DOC-3 | Points Transfer | ~~Live transfer was escrow + 10-min accept window~~ — **Resolved TR-081 (2026-06-27)**. Backend rewritten to instant atomic model matching SRS §5.5. |
 | Admin-OTP | Admin 2FA | Admin OTP is a 36-char UUID — candidate to replace with 6-digit numeric code. |
