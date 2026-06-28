@@ -1,7 +1,7 @@
 # VGC Reinventing — API Reference
 
-**Last updated:** 2026-06-13  
-**Source:** XANO workspace 161992, branch `v1`, 403 documents  
+**Last updated:** 2026-06-28  
+**Source:** XANO workspace 161992, branch `v1`, 420 documents  
 **Instance:** `https://x8ki-letl-twmt.n7.xano.io`  
 **Base URL pattern:** `https://x8ki-letl-twmt.n7.xano.io/api:<canonical>/<path>`
 
@@ -441,7 +441,7 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 |---|---|---|---|---|
 | GET | /contracts | public | contract_type? (vgc_administrated\|non_vgc), status?, sector?, page?, per_page? | List contracts. Response: `{items, curPage, nextPage}`. Each item enriched with `giver_name`. Lazy-expires listed contracts past `application_deadline` (VGC: escrow refund). |
 | POST | /contracts | member | title, requirements, budget_points, contract_type (vgc_administrated\|non_vgc), sector, application_deadline, requested_completion_date, conditions? (required for VGC), notes? | Create contract. VGC: debits 105% (100% escrow + 5% fee). Cap: Giver ≤10 active VGC. |
-| GET | /contracts/{id} | public | id | Contract detail. Returns flat object: all contract fields + `giver_name`, `taker_name`, `applications[]` (each with `member_id`, `member_name`, `message`, `proposed_price_points`, `proposed_completion_date`, `status`, `giver_message_count`), `applicant_count`. Lazy-expires if listed and past deadline. |
+| GET | /contracts/{id} | public | id | Contract detail. Returns flat object: all contract fields + `giver_name`, `taker_name`, `applications[]` (each with `member_id`, `member_name`, `message`, `proposed_price_points`, `proposed_completion_date`, `status`, `giver_message_count`, `giver_requested_detail`, `detailed_proposal`), `applicant_count`. Lazy-expires if listed and past deadline. |
 | PATCH | /contracts/{id} | member | id, title?, requirements?, budget_points?, deadline_days? | Update contract |
 | POST | /contracts/{id}/apply | member | id, application_text, proposed_price_points? (int), proposed_completion_date? (date) | Apply for contract. Candidate may optionally propose a counter-price and/or alternative completion date. Both visible to Giver on application review. |
 | POST | /contracts/{id}/assign | member | id, taker_member_id | Giver: assign taker. `taker_member_id` must be the user.id of an applicant with status=pending. |
@@ -454,8 +454,9 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 | POST | /contracts/{id}/cancel | member | id | Cancel contract |
 | GET | /contracts/applications/{app_id}/messages | member | app_id | Fetch private chat thread for an application. Only the Giver and the specific Applicant have access. Response: `{messages[], is_read_only, other_member_name, contract_title, application_status}`. Each message: `{id, sender_member_id, sender_name, message_text, created_at}`. `is_read_only=true` once application is assigned or rejected. |
 | POST | /contracts/applications/{app_id}/messages | member | app_id, message_text | Send a message in the private chat thread. Blocked when `application.status != "pending"` (read-only state). Emits `contract_message` notification to the other party. |
-| PATCH | /contracts/applications/{app_id}/update | member | app_id, application_text?, proposed_price_points?, proposed_completion_date? | Update a pending application (Update Interest / Prepare Contract Document). Applicant only. Blocked when `application.status != "pending"`. Also blocked when Giver has messaged (`giver_message_count > 0`) UNLESS `giver_requested_detail == true` — in that case the update is allowed regardless of message count. |
+| PATCH | /contracts/applications/{app_id}/update | member | app_id, application_text?, detailed_proposal?, proposed_price_points?, proposed_completion_date? | Update a pending application. Applicant only. Blocked when `application.status != "pending"`. Also blocked when Giver has messaged (`giver_message_count > 0`) UNLESS `giver_requested_detail == true`. `detailed_proposal` is stored as rich HTML (Tiptap). Null-safe: omitting `detailed_proposal` preserves the existing value. |
 | POST | /contracts/applications/{app_id}/request-detail | member | app_id | Giver requests a detailed proposal from a specific applicant. Sets `giver_requested_detail = true` on the application and emits a `contract_detail_requested` notification to the applicant. Giver-only (auth guard). Blocked if `application.status != "pending"`. Response: `{success: true}`. |
+| POST | /contracts/applications/{app_id}/confirm-assignment | member | app_id | Taker (applicant) confirms their own assignment after submitting a detailed proposal. Guards: applicant-only, `status == "pending"`, `giver_requested_detail == true`, `detailed_proposal != null`, `contract.status == "listed"`, taker active-contract cap ≤ 2. Atomic: sets contract to `active`, marks application `assigned`, rejects all other pending applications. Emits `contract_assigned` notification to Giver. Response: `{success: true}`. |
 | POST | /admin/contracts/{id}/resolve | admin | id | Admin: resolve dispute |
 
 ---
