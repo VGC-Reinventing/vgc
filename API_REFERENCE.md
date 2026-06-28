@@ -1,7 +1,7 @@
 # VGC Reinventing — API Reference
 
 **Last updated:** 2026-06-28  
-**Source:** XANO workspace 161992, branch `v1`, 420 documents  
+**Source:** XANO workspace 161992, branch `v1`, 422 documents  
 **Instance:** `https://x8ki-letl-twmt.n7.xano.io`  
 **Base URL pattern:** `https://x8ki-letl-twmt.n7.xano.io/api:<canonical>/<path>`
 
@@ -454,9 +454,11 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 | POST | /contracts/{id}/cancel | member | id | Cancel contract |
 | GET | /contracts/applications/{app_id}/messages | member | app_id | Fetch private chat thread for an application. Only the Giver and the specific Applicant have access. Response: `{messages[], is_read_only, other_member_name, contract_title, application_status}`. Each message: `{id, sender_member_id, sender_name, message_text, created_at}`. `is_read_only=true` once application is assigned or rejected. |
 | POST | /contracts/applications/{app_id}/messages | member | app_id, message_text | Send a message in the private chat thread. Blocked when `application.status != "pending"` (read-only state). Emits `contract_message` notification to the other party. |
-| PATCH | /contracts/applications/{app_id}/update | member | app_id, application_text?, detailed_proposal?, proposed_price_points?, proposed_completion_date? | Update a pending application. Applicant only. Blocked when `application.status != "pending"`. Also blocked when Giver has messaged (`giver_message_count > 0`) UNLESS `giver_requested_detail == true`. `detailed_proposal` is stored as rich HTML (Tiptap). Null-safe: omitting `detailed_proposal` preserves the existing value. |
+| PATCH | /contracts/applications/{app_id}/update | member | app_id, application_text?, detailed_proposal?, proposed_price_points?, proposed_completion_date? | Update a pending application. Applicant only. Blocked when `application.status != "pending"`. Also blocked when Giver has messaged (`giver_message_count > 0`) UNLESS `giver_requested_detail == true`. `detailed_proposal` is stored as rich HTML (Tiptap). All fields null-safe (omitting any field preserves existing value). Resets `proposal_needs_correction = false` when `detailed_proposal` is submitted. |
 | POST | /contracts/applications/{app_id}/request-detail | member | app_id | Giver requests a detailed proposal from a specific applicant. Sets `giver_requested_detail = true` on the application and emits a `contract_detail_requested` notification to the applicant. Giver-only (auth guard). Blocked if `application.status != "pending"`. Response: `{success: true}`. |
-| POST | /contracts/applications/{app_id}/confirm-assignment | member | app_id | Taker (applicant) confirms their own assignment after submitting a detailed proposal. Guards: applicant-only, `status == "pending"`, `giver_requested_detail == true`, `detailed_proposal != null`, `contract.status == "listed"`, taker active-contract cap ≤ 2. Atomic: sets contract to `active`, marks application `assigned`, rejects all other pending applications. Emits `contract_assigned` notification to Giver. Response: `{success: true}`. |
+| POST | /contracts/applications/{app_id}/confirm-assignment | member | app_id | **Deprecated — superseded by `/appoint`.** Taker-initiated assignment (no longer used by FE). |
+| POST | /contracts/applications/{app_id}/request-correction | member | app_id | Giver sends an applicant's detailed proposal back for revision. Guards: Giver-only, `application.status == "pending"`, `giver_requested_detail == true`, `detailed_proposal != null`. Sets `proposal_needs_correction = true` and emits `contract_proposal_correction` notification to candidate. Response: `{success: true}`. |
+| POST | /contracts/applications/{app_id}/appoint | member | app_id | Giver formally appoints a candidate as the Taker. Guards: Giver-only, `contract.status == "listed"`, `application.status == "pending"`, `giver_requested_detail == true`, `detailed_proposal != null`, candidate taker cap ≤ 2. For `non_vgc` contracts: checks Giver's VGC Points wallet balance ≥ agreed price (`proposed_price_points ?? budget_points`). Atomic `db.transaction`: sets contract to `active` + `taker_member_id`, marks application `assigned`, rejects all other pending applications. Emits `contract_assigned` notification to the appointed Taker. Response: `{success: true}`. |
 | POST | /admin/contracts/{id}/resolve | admin | id | Admin: resolve dispute |
 
 ---

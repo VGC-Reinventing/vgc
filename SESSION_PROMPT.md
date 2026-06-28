@@ -12,7 +12,7 @@ Both backend and frontend are **fully built and deployed**.
 
 | Layer | Status | Location |
 |---|---|---|
-| XANO Backend | ✅ 420 docs, 29 groups live | Workspace 161992, branch `v1`, instance `x8ki-letl-twmt.n7.xano.io` |
+| XANO Backend | ✅ 422 docs, 29 groups live | Workspace 161992, branch `v1`, instance `x8ki-letl-twmt.n7.xano.io` |
 | Vercel Frontend | ✅ All 14 phases complete (FE-P0…FE-P13) + all contract flows complete through TR-096 | https://frontend-kappa-mocha-30.vercel.app |
 | GitHub Repo | ✅ Private repo | VGC-Reinventing/frontend |
 | SRS | v2.2 — final | `C:\Users\VGC-ADMIN\Documents\VGC\SRS\VGC_Reinventing_SRS_v2.md` |
@@ -86,8 +86,9 @@ Both backend and frontend are **fully built and deployed**.
 
 These were unresolved at end of last session. Check `TEST_REGISTER.md` first for the latest status.
 
-**Session 2026-06-28 (AM):** TR-091–TR-096 fixed. Contract full lifecycle now complete including: Withdraw, Application Chat, Update Interest, Request Detailed Proposal, and Taker-initiated assignment with rich proposal editor. 420 XANO docs confirmed live.
-**Session 2026-06-28 (PM):** UX — "Ask for Detailed Proposal" button embedded inside ContractChatScreen. Giver can now request a formal proposal without leaving the chat. Build green (1,992 KB), commit b7ae38d, pushed → Vercel deployed.
+**Session 2026-06-28 (AM):** TR-091–TR-096 fixed. Contract full lifecycle complete including: Withdraw, Application Chat, Update Interest, Request Detailed Proposal, and assignment flow. 420 XANO docs.
+**Session 2026-06-28 (PM):** UX — "Ask for Detailed Proposal" embedded in ContractChatScreen. Build green (1,992 KB), commit b7ae38d.
+**Session 2026-06-28 (PM-2):** TR-097 — Proposal save bug fixed + full redesign to Giver-initiated Taker appointment. Two new XANO endpoints (request-correction, appoint). Removed Taker-initiated flow. 422 XANO docs. Build green (1,993 KB), commit 07a2750, pushed → Vercel deployed.
 
 | ID | Area | Issue | Status |
 |---|---|---|---|
