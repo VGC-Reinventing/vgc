@@ -1,6 +1,6 @@
 # VGC Reinventing — Software Requirements Specification
 
-> **Version 2.2 · 2026 · Confidential**
+> **Version 2.5 · 2026 · Confidential**
 
 ---
 
@@ -12,6 +12,9 @@
 | 2.0 | 2026 | Design review incorporated: free-plan tech constraints; under-18 registration; marketplace escrow wallet; manual session verification replacing timed OTP; universal paid voting; revised contract penalty; admin security; DPDP compliance; logic fixes across all sections |
 | 2.1 | 2026 | Second review pass: mobile number made optional at registration; guardian email-only verification; minor account guardian link made historically inert at age 18; active marketplace orders addressed in account closure; auto-settlement escrow split trigger corrected; Entry Type field wording clarified; Platform Outflow Reason/Remark visibility made per-entry toggle; hardcoded formula coefficient (10) documented; public group post visibility restricted to logged-in members; stale cart rule added; two Pioneer Candidacy items formalised; multi-way election tie resolution clarified; session auto-end (4 hours past scheduled end) added; contract budget field locked post-listing; force-close escrow disposition rule added; Backup Admin trigger defined (login inactivity + Vacation Mode); contract applicants notified on deadline expiry; ticket re-visibility after post-auto-hide amendment |
 | 2.2 | 2026 | Free-plan implementation strategy formalised (no functional changes): §1.4.1 extended with the architectural rule that **no feature depends on a XANO scheduled/background task** — all time-dependent behaviour is achieved via lazy evaluation on read, with an optional free external cron for push-only notifications; in-app notifications delivered via client polling (XANO Realtime is paid); email sent inline with optional external provider for volume; Cloudinary for heavy media. §4.7 and §17 updated to specify on-demand computation of L_invest and amortised values instead of a nightly batch. |
+| 2.3 | 2026-06-11 | §8.7 simplified: removed monetisation consent step at abandonment. Abandoned blog records are retained in the backend for audit purposes; VGC Admin has full discretion over abandoned content without requiring prior member consent. Member is shown a plain disclaimer before confirming abandonment. |
+| 2.4 | 2026-06-27 | §14.3 extended: contract applicants may optionally submit a proposed price (counter-offer in VGC Points) and a proposed completion date alongside their pitch. These are visible to the Giver when reviewing applications. Both fields are optional — omitting either means the applicant accepts the Giver's posted budget or requested date. |
+| 2.5 | 2026-06-28 | §14.11 added: Contract Application Chat. Private 1-to-1 messaging between a Giver and each individual Applicant, accessible before assignment to clarify requirements and negotiate terms. Chat thread becomes read-only once the application is assigned or rejected. |
 
 ---
 
@@ -788,12 +791,7 @@ There is no cap on the number of blogs a member may write or hold.
 
 A Published blog — regardless of points awarded — cannot be permanently deleted by the member. This protects content the community has already engaged with.
 
-**Abandonment consent for monetisation:** At the time of abandonment, the member is shown a consent choice:
-
-| Option | Consequence |
-| --- | --- |
-| Consent to monetisation | VGC Admin may create a marketplace view ticket for the abandoned blog. Revenue goes entirely to VGC Admin. |
-| No monetisation consent | VGC Admin may publish, edit or permanently delete the blog but may not create a revenue-generating ticket for it. |
+Before confirming abandonment the member is shown a plain disclaimer: ownership will be permanently transferred to VGC Admin, the blog will be removed from the public feed, and the record is retained in the backend for audit purposes. VGC Admin has full discretion over the abandoned content.
 
 ### 8.8 Engagement
 
@@ -1574,10 +1572,20 @@ Any logged-in member can create a contract and become the Contract Giver.
 
 ### 14.3 Application and Assignment
 
+**Application fields (all submitted by the candidate):**
+
+| Field | Required | Details |
+| --- | --- | --- |
+| Pitch / Qualifications | Yes | Free-text statement of why the candidate should be selected, including relevant experience and qualifications |
+| Proposed Price | No | Counter-offer in VGC Points. If omitted, the candidate accepts the Giver's posted budget. Visible to the Giver on the application card alongside the posted budget for comparison. |
+| Proposed Completion Date | No | The date by which the candidate estimates they can deliver. If omitted, the candidate accepts the Giver's requested completion date. Visible to the Giver on the application card. |
+
+**Flow:**
+
 | Step | Actor | Action |
 | --- | --- | --- |
-| 1 | Any Member | Submits application stating why they should be selected |
-| 2 | Contract Giver | Reviews applicants. May contact them. |
+| 1 | Any Member | Submits application with pitch, and optionally a proposed price and/or proposed completion date |
+| 2 | Contract Giver | Reviews applicants — sees each candidate's pitch, proposed price (vs posted budget), and proposed completion date |
 | 3 | Contract Giver | Assigns contract to one applicant. That member becomes Contract Taker. Status: Active. |
 | 4 | System | Taker notified of assignment. All other applicants notified of rejection. Listing removed from public view. |
 
@@ -1641,6 +1649,22 @@ This applies exclusively to Non-VGC Administrated contracts where the Taker clai
 | Visibility | Ratings visible on each member's public profile |
 | Non-VGC purpose | In Non-VGC Administrated contracts, ratings are the primary accountability mechanism |
 | Manipulation | False or malicious reviews may be reported to VGC Admin who can remove them at sole discretion |
+
+### 14.11 Contract Application Chat
+
+Each contract application has a private, 1-to-1 message thread between the Giver and that specific Applicant. Threads are completely isolated — no applicant can see the Giver's conversation with any other applicant.
+
+| Attribute | Detail |
+| --- | --- |
+| Participants | The Giver and the specific Applicant only. No other member has access to the thread. |
+| Purpose | Allow both parties to discuss requirements, negotiate terms, and remove ambiguity before the Giver makes an assignment decision. |
+| Access trigger | The thread is available as soon as an application is submitted. The Giver sees a "Chat" button on each application card. The Applicant sees a "Chat with Giver" button on the contract detail screen. |
+| Write access | Both parties may send messages while the application status is `pending`. |
+| Read-only state | Once the application moves to `assigned` or `rejected`, the thread becomes read-only. Existing messages remain visible so both parties can reference prior discussions (e.g. agreed scope, price, or timeline). |
+| Notifications | The receiving party is notified via an in-app notification when a new message is sent. |
+| Persistence | Chat history is retained indefinitely for reference and dispute evidence. |
+
+---
 
 ### 14.10 Active Contract Limit
 

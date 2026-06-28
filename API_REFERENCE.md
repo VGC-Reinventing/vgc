@@ -439,12 +439,12 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 
 | Method | Path | Auth | Key Inputs | Notes |
 |---|---|---|---|---|
-| GET | /contracts | member | contract_type?=VGC, search? | List contracts |
-| POST | /contracts | member | contract_title, description, contract_type (VGC/Non-VGC), terms?, payment_terms?, assignment_requirements? | Create contract |
-| GET | /contracts/{id} | member | id | Contract detail |
-| PATCH | /contracts/{id} | member | id, ... | Update (draft only) |
-| POST | /contracts/{id}/apply | member | id | Apply for contract |
-| POST | /contracts/{id}/assign | member | id, assignee_member_id | Proposer: assign |
+| GET | /contracts | public | contract_type? (vgc_administrated\|non_vgc), status?, sector?, page?, per_page? | List contracts. Response: `{items, curPage, nextPage}`. Each item enriched with `giver_name`. Lazy-expires listed contracts past `application_deadline` (VGC: escrow refund). |
+| POST | /contracts | member | title, requirements, budget_points, contract_type (vgc_administrated\|non_vgc), sector, application_deadline, requested_completion_date, conditions? (required for VGC), notes? | Create contract. VGC: debits 105% (100% escrow + 5% fee). Cap: Giver ≤10 active VGC. |
+| GET | /contracts/{id} | public | id | Contract detail. Returns flat object: all contract fields + `giver_name`, `taker_name`, `applications[]` (each with `member_id`, `member_name`, `message`, `proposed_price_points`, `proposed_completion_date`, `status`), `applicant_count`. Lazy-expires if listed and past deadline. |
+| PATCH | /contracts/{id} | member | id, title?, requirements?, budget_points?, deadline_days? | Update contract |
+| POST | /contracts/{id}/apply | member | id, application_text, proposed_price_points? (int), proposed_completion_date? (date) | Apply for contract. Candidate may optionally propose a counter-price and/or alternative completion date. Both visible to Giver on application review. |
+| POST | /contracts/{id}/assign | member | id, taker_member_id | Giver: assign taker. `taker_member_id` must be the user.id of an applicant with status=pending. |
 | POST | /contracts/{id}/mark-complete | member | id | Assignee: mark complete |
 | POST | /contracts/{id}/release | member | id | Proposer: release escrow to assignee |
 | POST | /contracts/{id}/dispute | member | id, dispute_reason | File dispute |
@@ -452,6 +452,8 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 | POST | /contracts/{id}/force-close-request | member | id | Request force close |
 | POST | /contracts/{id}/rate | member | id, rating, comments? | Rate other party |
 | POST | /contracts/{id}/cancel | member | id | Cancel contract |
+| GET | /contracts/applications/{app_id}/messages | member | app_id | Fetch private chat thread for an application. Only the Giver and the specific Applicant have access. Response: `{messages[], is_read_only, other_member_name, contract_title, application_status}`. Each message: `{id, sender_member_id, sender_name, message_text, created_at}`. `is_read_only=true` once application is assigned or rejected. |
+| POST | /contracts/applications/{app_id}/messages | member | app_id, message_text | Send a message in the private chat thread. Blocked when `application.status != "pending"` (read-only state). Emits `contract_message` notification to the other party. |
 | POST | /admin/contracts/{id}/resolve | admin | id | Admin: resolve dispute |
 
 ---
