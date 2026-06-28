@@ -1,7 +1,7 @@
 # VGC Reinventing — API Reference
 
 **Last updated:** 2026-06-28  
-**Source:** XANO workspace 161992, branch `v1`, 422 documents  
+**Source:** XANO workspace 161992, branch `v1`, 426 documents  
 **Instance:** `https://x8ki-letl-twmt.n7.xano.io`  
 **Base URL pattern:** `https://x8ki-letl-twmt.n7.xano.io/api:<canonical>/<path>`
 
@@ -440,6 +440,7 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 | Method | Path | Auth | Key Inputs | Notes |
 |---|---|---|---|---|
 | GET | /contracts | public | contract_type? (vgc_administrated\|non_vgc), status?, sector?, page?, per_page? | List contracts. Response: `{items, curPage, nextPage}`. Each item enriched with `giver_name`. Lazy-expires listed contracts past `application_deadline` (VGC: escrow refund). |
+| GET | /contracts/me | member | — | Member's personal contract dashboard. Response: `{as_giver[], as_taker[], as_candidate[]}`. `as_giver`: all contracts this member posted (all statuses), each enriched with `pending_applicant_count`. `as_taker`: contracts where member has an `assigned` application, enriched with `giver_name` and `agreed_price_points` (proposed_price_points ?? budget_points). `as_candidate`: contracts where member has a `pending` application, enriched with `giver_name`, `proposed_price_points`, `giver_requested_detail`. All lists newest-first. |
 | POST | /contracts | member | title, requirements, budget_points, contract_type (vgc_administrated\|non_vgc), sector, application_deadline, requested_completion_date, conditions? (required for VGC), notes? | Create contract. VGC: debits 105% (100% escrow + 5% fee). Cap: Giver ≤10 active VGC. |
 | GET | /contracts/{id} | public | id | Contract detail. Returns flat object: all contract fields + `giver_name`, `taker_name`, `applications[]` (each with `member_id`, `member_name`, `message`, `proposed_price_points`, `proposed_completion_date`, `status`, `giver_message_count`, `giver_requested_detail`, `detailed_proposal`), `applicant_count`. Lazy-expires if listed and past deadline. |
 | PATCH | /contracts/{id} | member | id, title?, requirements?, budget_points?, deadline_days? | Update contract |
@@ -459,6 +460,9 @@ Auth column legend: **public** = no token required · **member** = member Bearer
 | POST | /contracts/applications/{app_id}/confirm-assignment | member | app_id | **Deprecated — superseded by `/appoint`.** Taker-initiated assignment (no longer used by FE). |
 | POST | /contracts/applications/{app_id}/request-correction | member | app_id | **Unused by FE (TR-099 removed button).** Endpoint remains live in XANO. Originally set `proposal_needs_correction = true` and notified candidate. Givers now use application chat to communicate revision requests instead. |
 | POST | /contracts/applications/{app_id}/appoint | member | app_id | Giver appoints a candidate as a Taker. Guards: Giver-only, `contract.status == "listed"`, `application.status == "pending"`, `giver_requested_detail == true`, `detailed_proposal != null`, candidate active-assignment count < 2. For `non_vgc` contracts: checks Giver's VGC Points balance ≥ `proposed_price_points ?? budget_points`. Marks the application `assigned`. **Contract stays `"listed"` — other applications remain pending; Giver may appoint additional Takers.** Emits `contract_assigned` notification to the appointed Taker. Response: `{success: true}`. |
+| POST | /contracts/applications/{app_id}/submit-completion | member | app_id | Taker signals that their committed work is complete and requests Giver verification. **Taker-only** (`applicant_member_id == $auth.id`). Guards: `application.status == "assigned"`, deadline gate: `proposed_completion_date + 86400s > now` (gives Taker the full calendar deadline day; if deadline has passed, work can no longer be submitted and no payment is owed). Sets status → `"work_submitted"`. Emits `contract_work_submitted` notification to Giver. Response: `{success: true}`. |
+| POST | /contracts/applications/{app_id}/verify-completion | member | app_id | **Giver-only.** Verifies the Taker's submitted work and atomically releases payment. Guards: `application.status == "work_submitted"`, `agreed_price = (proposed_price_points ?? budget_points ?? 0) > 0`, Giver's VGC Points wallet balance ≥ `agreed_price`. Inside `db.transaction`: debits Giver wallet via `mutate_wallet` (ref_type `"contract_payment"`) and credits Taker wallet via `mutate_wallet` (same ref_type, ref_id = application.id). Sets status → `"completed"`. Emits `contract_completed` notification to Taker. Response: `{success: true, amount_transferred: <points>}`. |
+| POST | /contracts/applications/{app_id}/raise-dispute | member | app_id, reason? | Either the **Giver or the appointed Taker** may raise a dispute after work has been submitted. Authorization uses two sequential conditionals (`$is_authorized = true` if caller is Giver OR Taker). Guard: `application.status == "work_submitted"`. Sets status → `"disputed"`. Notifies the other party via `contract_disputed` notification. VGC Admin resolves all disputes case-by-case. Response: `{success: true}`. |
 | POST | /admin/contracts/{id}/resolve | admin | id | Admin: resolve dispute |
 
 ---
