@@ -86,7 +86,8 @@ Both backend and frontend are **fully built and deployed**.
 
 These were unresolved at end of last session. Check `TEST_REGISTER.md` first for the latest status.
 
-**Session 2026-06-28:** TR-091–TR-096 fixed. Contract full lifecycle now complete including: Withdraw, Application Chat, Update Interest, Request Detailed Proposal, and Taker-initiated assignment with rich proposal editor. 420 XANO docs confirmed.
+**Session 2026-06-28 (AM):** TR-091–TR-096 fixed. Contract full lifecycle now complete including: Withdraw, Application Chat, Update Interest, Request Detailed Proposal, and Taker-initiated assignment with rich proposal editor. 420 XANO docs confirmed live.
+**Session 2026-06-28 (PM):** UX — "Ask for Detailed Proposal" button embedded inside ContractChatScreen. Giver can now request a formal proposal without leaving the chat. Build green (1,992 KB), commit b7ae38d, pushed → Vercel deployed.
 
 | ID | Area | Issue | Status |
 |---|---|---|---|
