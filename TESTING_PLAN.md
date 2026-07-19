@@ -32,7 +32,7 @@
 
 | Account | Email | Password | Member ID | Role |
 |---|---|---|---|---|
-| Admin | seekingj01+vgcadmin@gmail.com | VgcAdmin#2026 | VGC37 | Admin |
+| Admin | seekingj01+vgcadmin@gmail.com | [REDACTED - rotate before use] | VGC37 | Admin |
 | Test Member A | seekingj01+vgc01@gmail.com | (set during signup) | — | Member |
 | Test Member B | seekingj01+vgc02@gmail.com | (set during signup) | — | Member |
 | Test Member C | seekingj01+vgc03@gmail.com | (set during signup) | — | Member |
@@ -465,7 +465,7 @@ When all modules are tested:
 |---|---|
 | App URL | https://frontend-kappa-mocha-30.vercel.app |
 | Admin email | seekingj01+vgcadmin@gmail.com |
-| Admin password | VgcAdmin#2026 |
+| Admin password | [REDACTED - rotate before use] |
 | Admin Member ID | VGC37 |
 | Admin OTP inbox | seekingj01@gmail.com (36-char UUID) |
 | Test Member pattern | seekingj01+vgcNN@gmail.com (NN = 01, 02, 03...) |

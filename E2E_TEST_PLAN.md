@@ -147,7 +147,7 @@ Examples already known at plan creation include the absent Account Closure flow,
 
 The Gmail connector is installed and authenticated to the VGC mailbox. Use unique plus-address aliases for disposable accounts, search/read only messages created by the current test run, and record delivery time, sender, subject, body, link target, spam placement and duplicate delivery. Do not modify unrelated mailbox content.
 
-The Xano MCP is installed globally and reuses the authenticated Xano CLI profile without copying the token into Codex configuration. The server and token both returned HTTP 200, and a fresh Codex process successfully called `getLoggedInUser` and `listWorkspaces`. The current workspace reports `allow_push: false`: read-only diagnostics and direct runtime testing are available, while a future backend-fix phase may need the owner to enable Xano push.
+The Xano MCP is installed globally and reuses the authenticated Xano CLI profile without copying the token into Codex configuration. The server and token both returned HTTP 200, and a fresh Codex process successfully called `getLoggedInUser` and `listWorkspaces`. Although workspace metadata reports `allow_push: false`, scoped transactional CLI pushes succeeded on 2026-07-19. A final clean pull returned 436 documents and matched the local generated tree byte-for-byte. Use targeted dry runs before every future push; never infer push availability or source parity from the metadata flag alone.
 
 ### 5.3 Environment topology
 
@@ -1346,7 +1346,7 @@ These are test hypotheses, not automatically closed defects. Reproduce them safe
 | Repeatable activity/reward farming | Activity rows lack obvious member/code/entity uniqueness; promotional budget may default open when no row exists; raw Blog dislike CRUD compounds the risk | Repeat the same activity/vote entity and race calls under missing/zero/exact budgets; award once only and enforce budget |
 | Admin member endpoint may expose secrets | Member list appears to return raw unpaged user rows rather than the defensive shape used by `/me` | Use test members and inspect keys only; password hashes, reset tokens, device/IP and other unnecessary sensitive fields must be absent |
 | System configuration fields may not exist in schema | Blog reward/split/slot inputs used by endpoints/Config appear absent from `system_config` table | Compare live schema, GET and PATCH; a partial update must not error or silently leave hard-coded defaults |
-| Divergent same-GUID financial sources | Short/long financial directory copies share GUIDs but differ in auth/logic | Test live anonymous/auth behaviour for investment/sponsorship creation and overdue count, then identify the deployed definition and remove ambiguity |
+| Divergent same-GUID financial sources | Resolved during 2026-07-19 preflight: 14 short-path aliases were consolidated into Xano's normalized `financial_*` paths; three intended fixes were pushed and a final 436-document pull matched local byte-for-byte | Revalidate anonymous/member investment and sponsorship creation plus nonzero overdue deduplication during the financial phase; see `XANO/LIVE_SYNC_STATUS.md` |
 
 Known open/deferred items TR-132 and TR-137–145 must be included in the revalidation pass. Do not spend time rediscovering them without linking the existing row.
 

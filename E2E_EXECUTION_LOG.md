@@ -11,10 +11,10 @@
 
 | Layer | Revision/environment | Initial result |
 |---|---|---|
-| Root repository | `main` at `2b7a2c1` after plan push | Remote synchronized; unrelated local modifications preserved |
-| Frontend repository | `main` at `ce7e994` | Remote synchronized; existing `session_log.md` modification preserved |
-| Xano | Workspace 161992, branch `v1` | CLI and MCP authenticated; workspace reports `allow_push: false` |
-| Browser | In-app browser; local Vite and deployed Vercel targets | Connected; guest auth routes under active DOM-level testing |
+| Root repository | `main` at `48d1194` before this closeout | Remote synchronized; unrelated local modifications preserved |
+| Frontend repository | `main` at `d5579eb` | Remote synchronized; product revision remains `ce7e994`, followed by a documentation-only closeout commit |
+| Xano | Workspace 161992, branch `v1`, 436 documents; local commit `5431123` | CLI/MCP authenticated; live/local generated trees verified byte-for-byte identical after scoped transactional pushes |
+| Browser | In-app browser; local Vite and deployed Vercel targets | Connected during runtime testing; local server stopped cleanly at closeout |
 | Mailbox | Authenticated Gmail plugin for VGC mailbox | Available; use test-run messages only |
 | Deployment | Authenticated Vercel plugin and linked `frontend` project | Latest production deployment reports Ready |
 
@@ -43,17 +43,27 @@
 | EX-019 | 2026-07-19 21:56 | GitHub plugin install/profile check | Partial | Plugin authenticated as the VGC account, but the GitHub App has zero repository installations; local Git push authentication remains operational |
 | EX-020 | 2026-07-19 22:04 | Cloudinary `vgc_blog` preset inspection | Fail hardening gate | Preset is unsigned and has no explicit format, byte/dimension ceiling, folder, moderation, access-control or transformation settings; exact asset-ID search/deletion capability is available |
 | EX-021 | 2026-07-19 22:14 | GitHub repository-scope refresh | Pending sync | User completed installation update; connector changed from empty installation lists to a temporary internal error. Retry after indexing window |
+| EX-022 | 2026-07-19 22:32 | Testing-document closeout push | Pass | Root testing artifacts pushed at commit `48d1194`; frontend product commit remained `ce7e994` |
+| EX-023 | 2026-07-19 22:53 | Isolated Xano live pull and provenance comparison | Pass | Pulled 436 live documents; all shared generated files matched; identified 14 duplicate-GUID local aliases and three newer documented behaviours requiring reconciliation |
+| EX-024 | 2026-07-19 23:18 | Scoped Xano correction pushes | Pass | Dry-run-first transactional pushes updated public investment/sponsorship creation and the overdue dedupe predicate; no records, env, deletes, truncation or force |
+| EX-025 | 2026-07-19 23:19 | Xano MCP/readback/runtime verification | Pass | Both POSTs read back public; supported overdue predicate persisted; anonymous invalid POSTs reached validation rather than auth and public count returned HTTP 200 |
+| EX-026 | 2026-07-19 23:20 | Final Xano pull and target no-op dry run | Pass | Fresh pull returned 436 documents and matched local generated source byte-for-byte; targeted dry run over all three reconciled endpoints returned `No changes to push` |
+| EX-027 | 2026-07-19 23:22 | Root/frontend Git remote refresh | Pass | Both existing remotes were 0 ahead/0 behind before closeout documentation commits; Xano confirmed to have no remote |
+| EX-028 | 2026-07-19 23:31 | Commit synchronized Xano snapshot locally | Pass | Commit `5431123` records the verified 436-document canonical tree, removes duplicate aliases, and stops tracking `.env`/`.DS_Store`; no remote exists, so no Xano Git push occurred |
+| EX-029 | 2026-07-19 23:32 | Frontend closeout-log push | Pass | Documentation-only commit `d5579eb` pushed to `VGC-Reinventing/frontend` `main`; product source remains at `ce7e994` |
+| EX-030 | 2026-07-19 23:34 | Pre-push credential scan and current-doc redaction | Partial remediation | Removed the real admin password from all current root documentation and verified zero remaining strong secret-pattern matches; historical Git exposure remains and the credential still requires rotation |
 
 ## Current blockers and limitations
 
 | Blocker | Affected tests | Status/owner | Workaround |
 |---|---|---|---|
 | Cloudinary preset restrictions and cleanup path not yet certified | Full media retention/transformation/admin-cleanup certification | MCP access complete; read-only configuration review in progress | Do not upload until preset restrictions and exact asset deletion/search capabilities are recorded |
-| GitHub App has no repository installations | Connector-level repository, issue and pull-request visibility | User GitHub authorization requested | Local Git fetch/push remains available and verified |
+| GitHub connector repository indexing not yet re-proven after installation refresh | Connector-level repository, issue and pull-request visibility | Retry at next preflight; no immediate user action | Local Git fetch/push is authenticated and both existing remotes were synchronized |
 | Tracked Xano token discovered in local `XANO/.env` history | Credential assurance and continued Xano authentication | Parked by user as low priority | Never print the token; rotate later, then re-authenticate CLI/MCP and verify the old credential is rejected |
+| Real admin password existed in tracked public-root documentation/history | Admin account assurance | Current files redacted at closeout; credential rotation still required | Rotate the admin password before production and assess Git-history purge; do not recover credentials from old docs during testing |
+| Nested Xano Git repository has no remote and legacy history contains `.env` | Remote backup of backend source | Owner must choose a new private sanitized repository or another repository architecture | Live Xano and local generated source are synchronized; never publish the legacy history |
 | Physical iOS/Android device and camera not connected | Final PWA install, mobile keyboard/safe-area and QR camera certification | User/device later | Desktop responsive checks do not close these rows |
 | Disposable role-rich account set not yet reconciled | Authenticated workflows, IDOR, destructive and financial tests | Test setup pending | Do not use real-member records |
-| Xano workspace `allow_push: false` | Future backend product-code fixes only | User/Xano setting if fixes are authorised | Does not block MCP reads, API calls or test evidence |
 
 ## Chronological execution
 
@@ -90,4 +100,4 @@
 
 ## Session checkpoint
 
-**Next exact action:** on the next session, load `E2E_TEST_SESSION_PROMPT.md`, verify GitHub connector sync, then test guardian registration/approval contracts before building the authenticated adult/second-party/admin persona set.
+**Next exact action:** on the next session, load `E2E_TEST_SESSION_PROMPT.md`, confirm the 436-document Xano checkpoint and Git state, then test guardian registration/approval contracts before building the authenticated adult/second-party/admin persona set.
