@@ -17,7 +17,7 @@ Work from:
 - Continue run `E2E-20260719-01`; do not seed a second run or overwrite its ledgers.
 - Read `E2E_EXECUTION_LOG.md`, `E2E_COVERAGE_LEDGER.md`, `E2E_FIXTURE_LEDGER.md` and `E2E_DEFECT_LOG.md` immediately after this prompt.
 - Gmail, Vercel, Xano CLI/MCP and all four Cloudinary OAuth MCP servers are authenticated.
-- GitHub user authentication is complete. Root was synchronized at the prior checkpoint and frontend closeout commit `d5579eb` is pushed; local Git fetch/push works. The Xano source snapshot is committed locally at `5431123` but that checkout has no Git remote; do not invent one or publish its legacy secret-bearing history.
+- GitHub user authentication is complete. Root was synchronized at the prior checkpoint and frontend closeout commit `d5579eb` is pushed; its Vercel production deployment is `READY` and the production alias returned HTTP 200. Local Git fetch/push works. The Xano source snapshot is committed locally at `5431123` but that checkout has no Git remote; do not invent one or publish its legacy secret-bearing history.
 - Cloudinary preset `vgc_blog` is unsigned and unrestricted by explicit format/size/dimension/moderation/folder/access/transformation settings. Exact asset-ID deletion is available. Use only tiny run-marked fixtures and ledger every asset ID before leaving a workflow.
 - Guest Login, Forgot Password, Signup, Terms and Privacy paths have partial runtime coverage. Confirmed defects are summarized in `E2E_DEFECT_LOG.md`.
 - Direct minor-signup bypass was confirmed with disposable `VGC48`; user 48 and wallet rows 75–77 were deleted and exact re-queries proved zero residue.
