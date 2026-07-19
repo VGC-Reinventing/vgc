@@ -12,6 +12,19 @@ Work from:
 /Users/boss/Documents/VGC
 ```
 
+## Resume checkpoint — 2026-07-19
+
+- Continue run `E2E-20260719-01`; do not seed a second run or overwrite its ledgers.
+- Read `E2E_EXECUTION_LOG.md`, `E2E_COVERAGE_LEDGER.md`, `E2E_FIXTURE_LEDGER.md` and `E2E_DEFECT_LOG.md` immediately after this prompt.
+- Gmail, Vercel, Xano CLI/MCP and all four Cloudinary OAuth MCP servers are authenticated.
+- GitHub user authentication is complete. The repository installation was just updated and the connector returned a temporary internal sync error; retry installation/repository enumeration before asking the user to act again. Local Git fetch/push works.
+- Cloudinary preset `vgc_blog` is unsigned and unrestricted by explicit format/size/dimension/moderation/folder/access/transformation settings. Exact asset-ID deletion is available. Use only tiny run-marked fixtures and ledger every asset ID before leaving a workflow.
+- Guest Login, Forgot Password, Signup, Terms and Privacy paths have partial runtime coverage. Confirmed defects are summarized in `E2E_DEFECT_LOG.md`.
+- Direct minor-signup bypass was confirmed with disposable `VGC48`; user 48 and wallet rows 75–77 were deleted and exact re-queries proved zero residue.
+- The next runtime case is the guardian registration/approval contract, followed by creation/reconciliation of adult A, adult B and test-admin personas.
+- Xano token rotation is deliberately parked by the user as low priority. Never print the tracked token.
+- Preserve all unrelated dirty files. The previous checkpoint intentionally did not stage credential-bearing or unrelated pre-existing diffs.
+
 Your objective is to execute the exhaustive plan in `E2E_TEST_PLAN.md` against the actual application. This is not a surface smoke test. Every page must be viewed, every conditional state exposed, every control activated, every form field filled and challenged, every workflow completed through all actors/branches, and every canonical backend endpoint/reusable function accounted for. A source-code inspection alone never counts as a runtime pass.
 
 ## Read first, completely
