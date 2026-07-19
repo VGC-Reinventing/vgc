@@ -17,16 +17,16 @@ Work from:
 - Continue run `E2E-20260719-01`; do not seed a second run or overwrite its ledgers.
 - Read `E2E_EXECUTION_LOG.md`, `E2E_COVERAGE_LEDGER.md`, `E2E_FIXTURE_LEDGER.md` and `E2E_DEFECT_LOG.md` immediately after this prompt.
 - Gmail, Vercel, Xano CLI/MCP and all four Cloudinary OAuth MCP servers are authenticated.
-- GitHub user authentication is complete. Root was synchronized at the prior checkpoint and frontend closeout commit `d5579eb` is pushed; its Vercel production deployment is `READY` and the production alias returned HTTP 200. Local Git fetch/push works. The Xano source snapshot is committed locally at `5431123` but that checkout has no Git remote; do not invent one or publish its legacy secret-bearing history.
+- GitHub user authentication and connector visibility are complete with admin/push access to all three repositories. Frontend `main`/`origin/main` is `172c8ac`; sanitized private Xano `main`/`origin/main` is `8310fc0`; root `main` was pushed at the final closeout. Confirm all three remain 0 ahead/0 behind before testing. Vercel production deployment `dpl_CiXSwZ9Dcbkja6MJxjtgPPCRNXzU` for frontend `172c8ac` is `READY`; the production alias returned HTTP 200 and the prior-hour runtime-error query was empty.
 - Cloudinary preset `vgc_blog` is unsigned and unrestricted by explicit format/size/dimension/moderation/folder/access/transformation settings. Exact asset-ID deletion is available. Use only tiny run-marked fixtures and ledger every asset ID before leaving a workflow.
 - Guest Login, Forgot Password, Signup, Terms and Privacy paths have partial runtime coverage. Confirmed defects are summarized in `E2E_DEFECT_LOG.md`.
 - Direct minor-signup bypass was confirmed with disposable `VGC48`; user 48 and wallet rows 75–77 were deleted and exact re-queries proved zero residue.
-- Xano source was synchronized after testing: workspace 161992 branch `v1` and the local generated tree contain the same 436 documents byte-for-byte. Two public-or-member financial POST auth regressions and the overdue-investment dedupe bug were corrected live, pulled back, and verified. Read `XANO/LIVE_SYNC_STATUS.md` before backend work.
+- Xano source was synchronized after testing: workspace 161992 branch `v1`, the sanitized private `VGC-Reinventing/xano` repository and the local generated tree contain the same 436 documents. Two public-or-member financial POST auth regressions and the overdue-investment dedupe bug were corrected live, pulled back, and verified. Read `XANO/README.md` and `XANO/LIVE_SYNC_STATUS.md` before backend work. Never push the retired local legacy history, which contained a Metadata API token in an old commit.
 - A targeted dry run over those three reconciled endpoints returns `No changes to push`. A whole-tree dry run has a known comparator false-positive on three untouched live-exported endpoints; never bulk-push simply to silence it.
 - The next runtime case is the guardian registration/approval contract, followed by creation/reconciliation of adult A, adult B and test-admin personas.
 - Xano token rotation is deliberately parked by the user as low priority. Never print the tracked token.
 - Current documentation no longer contains the real admin password, but older public-root Git history does. Treat that credential as exposed; ask the owner to rotate it before production and never retrieve or repeat it from history.
-- Preserve all unrelated dirty files. The previous checkpoint intentionally did not stage credential-bearing or unrelated pre-existing diffs.
+- Machine-local setup files live only in ignored local storage. Preserve them, keep secrets out of Git, and do not stage ignored material.
 
 Your objective is to execute the exhaustive plan in `E2E_TEST_PLAN.md` against the actual application. This is not a surface smoke test. Every page must be viewed, every conditional state exposed, every control activated, every form field filled and challenged, every workflow completed through all actors/branches, and every canonical backend endpoint/reusable function accounted for. A source-code inspection alone never counts as a runtime pass.
 
@@ -39,13 +39,14 @@ Read these in order before testing:
 3. `SRS/VGC_Reinventing_SRS_v2.md` — content version 2.5
 4. `SRS/API_REQUIREMENTS.md`
 5. the Active Issues and Deferred sections of `TEST_REGISTER.md`, then relevant resolved issues
-6. `SESSION_PROMPT.md`
-7. `XANO/SESSION_LOG.md`
-8. `FrontEnd/session_log.md`
-9. `FrontEnd/src/routes/router.tsx`
-10. `FrontEnd/src/api/client.ts`, `FrontEnd/src/store/auth.ts` and `FrontEnd/src/lib/queryClient.ts`
+6. `XANO/README.md`
+7. `XANO/LIVE_SYNC_STATUS.md`
+8. `XANO/SESSION_LOG.md`
+9. `FrontEnd/session_log.md`
+10. `FrontEnd/src/routes/router.tsx`
+11. `FrontEnd/src/api/client.ts`, `FrontEnd/src/store/auth.ts` and `FrontEnd/src/lib/queryClient.ts`
 
-Treat the SRS as intended behaviour, current source/runtime as implementation truth, and conflicts as defects or explicit clarification items. `API_REFERENCE.md`, `TESTING_PLAN.md`, `Frontend_Reference.md` and `development_plan.md` contain stale material; use them only as supporting history.
+Treat the SRS as intended behaviour, current source/runtime as implementation truth, and conflicts as defects or explicit clarification items. Superseded prompts, plans, references, the v1 Word SRS and the original frontend prototype are isolated under `archive/`, `FrontEnd/archive/` and `XANO/archive/`. They are optional history only and are not part of the required startup read.
 
 ## Skills and tools
 
@@ -69,7 +70,7 @@ git -C FrontEnd status --short --branch
 git -C XANO status --short --branch
 ```
 
-Never reset, discard, overwrite or include unrelated changes.
+The three repositories were clean and synchronized at closeout apart from ignored machine-local files. Never reset, discard, overwrite or include unexpected changes; investigate any drift before testing.
 
 This is a test-and-log phase:
 
@@ -83,7 +84,7 @@ This is a test-and-log phase:
 
 Verify, without printing secrets:
 
-- GitHub CLI authentication and access to both VGC repositories;
+- GitHub CLI/plugin authentication and access to all three VGC repositories;
 - Xano CLI and MCP identity, instance, workspace 161992 and branch `v1`;
 - Vercel CLI/plugin identity, linked project and production deployment;
 - Gmail profile and mailbox read access;
@@ -108,9 +109,9 @@ Start the local Vite server and keep its process/session ID in the execution log
 
 If any essential access is missing, ask straightaway and say exactly which test families it blocks. Do not vaguely say “auth is needed.”
 
-## Rebuild the inventories
+## Reconcile the existing inventories
 
-Do not trust old endpoint counts. Regenerate and reconcile:
+The ledgers for run `E2E-20260719-01` already exist and contain executed evidence. Never reseed, recreate or overwrite them. Recount from current source/runtime and reconcile the existing rows:
 
 - 87 router entries;
 - 80 current screen source files, plus shared-file exported screens;
@@ -119,15 +120,7 @@ Do not trust old endpoint counts. Regenerate and reconcile:
 - 15 reusable Xano functions;
 - 93 tables.
 
-Exclude the known local financial normalisation duplicates only after verifying matching GUIDs/canonicals. Keep legacy, raw CRUD, UI-unreachable and dead endpoints in coverage.
-
-Create with `apply_patch`:
-
-1. `E2E_EXECUTION_LOG.md`
-2. `E2E_COVERAGE_LEDGER.md`
-3. `E2E_FIXTURE_LEDGER.md`
-
-Use the schemas in §§7 and 15 of `E2E_TEST_PLAN.md`. Seed every inventory row before marking anything complete. Do not delete obsolete-looking rows; use `Dead`, `Unreachable`, `Not implemented`, `Duplicate artifact`, `Blocked` or `N/A` with evidence.
+The financial normalisation duplicates were removed during the verified live/local round trip; duplicate GUID count is zero. Keep legacy, raw CRUD, UI-unreachable and dead endpoints in coverage. Update the existing execution, coverage, fixture and defect ledgers with `apply_patch`. Do not delete obsolete-looking rows; use `Dead`, `Unreachable`, `Not implemented`, `Duplicate artifact`, `Blocked` or `N/A` with evidence.
 
 Confirm the next available defect ID from the actual register. It was `TR-163` when the plan was prepared, but another session may have advanced it.
 
@@ -338,4 +331,4 @@ Send a concise kickoff update stating:
 3. any assistance needed immediately;
 4. that pre-existing workspace changes will be preserved.
 
-Then perform preflight, create the ledgers, run the quarantine gate and continue into Phase 1 without waiting unless a real access/safety blocker requires the user.
+Then perform preflight, reconcile the existing ledgers, run the quarantine gate and continue into Phase 1 without waiting unless a real access/safety blocker requires the user.

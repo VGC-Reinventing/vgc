@@ -6,7 +6,7 @@
 **Primary frontend:** React 18 + TypeScript + Vite PWA in `FrontEnd/`
 **Primary backend:** Xano workspace 161992, branch `v1`, local source in `XANO/`
 **Primary functional environment:** local frontend against the live Xano backend
-**Production parity environment:** Vercel deployment documented in `SESSION_PROMPT.md`
+**Production parity environment:** Vercel deployment documented in `E2E_EXECUTION_LOG.md`
 **Defect register:** `TEST_REGISTER.md`; next available ID at preparation time is `TR-163`
 
 ---
@@ -22,7 +22,7 @@ This is the controlling plan for a genuinely exhaustive test of the VGC Reinvent
 
 The pass is not complete merely because each page loads. Every route, conditional page state, visible and hidden control, form field, API wrapper, callable backend endpoint, reusable backend function, role boundary, financial mutation, notification, audit event and meaningful error branch must be accounted for.
 
-This plan is intentionally stricter than the existing `TESTING_PLAN.md`. The older plan is useful historical material, but it contains known stale assumptions and does not provide a control-level or endpoint-level completion mechanism.
+This plan supersedes the historical `archive/2026-07-19-pre-e2e/TESTING_PLAN.md`, which contains stale assumptions and lacks a control-level or endpoint-level completion mechanism.
 
 ---
 
@@ -76,7 +76,7 @@ The following counts form the initial reconciliation baseline. Regenerate them a
 | Xano table definitions | 93 | Every table mapped to its owners, writes, reads, retention and integrity rules |
 | Current production bundle | about 2.04 MB JavaScript, about 503 KB gzip | Performance and code-splitting risk explicitly measured |
 
-There are 306 local query files because 11 financial endpoints are duplicated under short and long directory names with the same GUID/canonical. They are excluded once from the 295 unique count, but the copies are not textually equivalent: observed differences include authentication and overdue-count logic. Execution must determine which definition is live before asserting behaviour and must treat divergent same-GUID source as a deployment/configuration risk.
+At preparation time, 11 financial endpoints existed under duplicate short/long paths. The 2026-07-19 reconciliation removed every duplicate alias, published the three intended behavioural corrections, pulled the live workspace again and proved 436-file byte parity with zero duplicate GUIDs. The current 324 API documents comprise 29 group definitions plus 295 unique callable endpoints.
 
 Useful reconciliation commands:
 
@@ -98,8 +98,8 @@ Use these sources in this order:
 2. `SRS/API_REQUIREMENTS.md` for intended endpoint coverage and free-plan architecture.
 3. Actual frontend and Xano source for the implemented contract.
 4. Live browser, live HTTP response and live test-record state for runtime truth.
-5. `TEST_REGISTER.md`, `SESSION_PROMPT.md`, `XANO/SESSION_LOG.md` and `FrontEnd/session_log.md` for known history and prior decisions.
-6. `API_REFERENCE.md` and `TESTING_PLAN.md` as supporting references only; both contain known stale sections.
+5. `TEST_REGISTER.md`, `XANO/LIVE_SYNC_STATUS.md`, `XANO/SESSION_LOG.md` and `FrontEnd/session_log.md` for known history and prior decisions.
+6. Material under `archive/`, `FrontEnd/archive/` and `XANO/archive/` as optional historical context only; archived documents are explicitly non-authoritative.
 
 When sources disagree:
 
@@ -122,12 +122,13 @@ Examples already known at plan creation include the absent Account Closure flow,
 |---|---|---|
 | Root repository | Available | Local checkout on `main`; existing user changes preserved |
 | Nested frontend repository | Available | Local checkout on `main`; dependencies installed |
-| GitHub CLI | Authenticated | Admin access to both VGC repositories |
+| GitHub CLI | Authenticated | Access to the root, frontend and sanitized private Xano repositories |
 | Xano CLI | Authenticated | Correct profile, instance, workspace 161992 and branch `v1`; read access verified |
 | Xano MCP | Authenticated | Global Codex MCP entry installed; fresh-process handshake, logged-in-user lookup and workspace listing all succeeded for workspace 161992 |
 | Vercel CLI | Authenticated | Correct team identity; frontend project linked |
 | Vercel plugin | Authenticated | Team, linked `frontend` project and ready production deployment returned successfully |
 | Gmail plugin | Authenticated | VGC Gmail profile returned successfully; mailbox observation is available for email-channel tests |
+| Cloudinary OAuth MCPs | Authenticated | Upload preset inspection, asset management, analysis and exact asset-ID deletion are available for run-marked fixtures |
 | In-app browser control | Available | Local app opened and DOM inspected |
 | Local app | Available | Vite server starts and redirects `/` to `/login` when unauthenticated |
 | Live Vercel app | Reachable | Login route returned HTTP 200 |
@@ -140,7 +141,6 @@ Examples already known at plan creation include the absent Account Closure flow,
 
 | Dependency | Why it matters | Fallback and limitation |
 |---|---|---|
-| Cloudinary dashboard ownership or a confirmed test preset | Rich-editor/blog media upload, transformations and deletion need end-to-end validation | An unsigned upload can prove the preset works but not dashboard ownership, retention or administrative cleanup |
 | Actual iOS Safari and Android Chrome devices | PWA install, safe areas, camera-based QR scanning, keyboard behaviour and mobile browser quirks cannot be fully certified through desktop viewport emulation | Browser viewport emulation is necessary but not equivalent |
 | Camera permission on a test device | Education QR scanning workflow | Manual code entry can test backend validation but not the camera experience |
 | Controlled physical device for new-login alerts | Security notification and known-device behaviour | Gmail proves the email channel; a second physical device is still required for device-specific behaviour |

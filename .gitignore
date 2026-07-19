@@ -23,9 +23,10 @@ build/
 
 # other
 *.sqlite3
-XANO/*
-!XANO/SESSION_LOG.md
 vgc/
 
-# personal setup notes (contains credential references — never push)
-NEW_MAC_SETUP.md
+# Separate repositories and machine-local state
+/FrontEnd/
+/XANO/
+/.local-archive/
+/.claude/settings.local.json

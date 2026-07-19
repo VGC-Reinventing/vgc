@@ -11,12 +11,12 @@
 
 | Layer | Revision/environment | Initial result |
 |---|---|---|
-| Root repository | `main` at `48d1194` before this closeout | Remote synchronized; unrelated local modifications preserved |
-| Frontend repository | `main` at `d5579eb` | Remote synchronized; product revision remains `ce7e994`, followed by a documentation-only closeout commit |
-| Xano | Workspace 161992, branch `v1`, 436 documents; local commit `5431123` | CLI/MCP authenticated; live/local generated trees verified byte-for-byte identical after scoped transactional pushes |
+| Root repository | `main` at `6dcd681` before the PM-4 cleanup commit | Cleanup is documentation/structure only; final handoff requires local `main == origin/main` |
+| Frontend repository | `main` at `172c8ac` | Remote synchronized; product revision remains `ce7e994`; PM-3/PM-4 commits are documentation/archive only |
+| Xano | Workspace 161992, branch `v1`, 436 documents; sanitized Git commit `8310fc0` | Private `VGC-Reinventing/xano` `main` is synchronized; CLI/MCP and live/local generated parity verified |
 | Browser | In-app browser; local Vite and deployed Vercel targets | Connected during runtime testing; local server stopped cleanly at closeout |
 | Mailbox | Authenticated Gmail plugin for VGC mailbox | Available; use test-run messages only |
-| Deployment | Authenticated Vercel plugin and linked `frontend` project | Latest production deployment reports Ready |
+| Deployment | Authenticated Vercel plugin and linked `frontend` project | Production deployment `dpl_CiXSwZ9Dcbkja6MJxjtgPPCRNXzU` for `172c8ac` reports Ready |
 
 ## Access and tooling evidence
 
@@ -53,16 +53,21 @@
 | EX-029 | 2026-07-19 23:32 | Frontend closeout-log push | Pass | Documentation-only commit `d5579eb` pushed to `VGC-Reinventing/frontend` `main`; product source remains at `ce7e994` |
 | EX-030 | 2026-07-19 23:34 | Pre-push credential scan and current-doc redaction | Partial remediation | Removed the real admin password from all current root documentation and verified zero remaining strong secret-pattern matches; historical Git exposure remains and the credential still requires rotation |
 | EX-031 | 2026-07-19 23:36 | Vercel post-push deployment verification | Pass | Production deployment for frontend commit `d5579eb` is `READY`; production alias returned HTTP 200 and the prior-hour production error/fatal query returned no logs |
+| EX-032 | 2026-07-19 23:52 | Publish sanitized Xano repository | Pass | Created private `VGC-Reinventing/xano` from new root commit `8310fc0`: 445 files, including the exact 436 generated documents; zero duplicate GUIDs/symlinks and no high-confidence secret patterns; legacy token-bearing history was not published |
+| EX-033 | 2026-07-19 23:53 | Reconcile local Xano checkout with new remote | Pass | Local `XANO/main` now tracks `origin/main` at `8310fc0` with 0 ahead/0 behind; retired history is isolated as `legacy-local-do-not-push` plus a local stash, and the remote push refspec is restricted to `main` |
+| EX-034 | 2026-07-19 23:57 | Archive superseded frontend material and verify | Pass | Moved stale plans/reference/prompt/prototype under `FrontEnd/archive/`; redacted current-branch admin-password markers; Vitest 10/10, typecheck and production/PWA build passed; commit `172c8ac` pushed |
+| EX-035 | 2026-07-19 23:58 | GitHub connector repository verification | Pass | Connected GitHub app returned admin/push access for public `VGC-Reinventing/vgc` and private `VGC-Reinventing/frontend`/`xano`; all default branches are `main` |
+| EX-036 | 2026-07-19 23:59 | Final frontend deployment verification | Pass | Vercel production deployment `dpl_CiXSwZ9Dcbkja6MJxjtgPPCRNXzU` for `172c8ac` is `READY`; production alias returned HTTP 200 and the prior-hour runtime-error query returned none |
+| EX-037 | 2026-07-20 00:01 | Xano CLI/MCP post-migration access check | Pass | CLI profile resolves to instance 171, workspace 161992 and branch `v1`; MCP identity, workspace listing and full workspace context with XanoScript access all succeeded |
+| EX-038 | 2026-07-20 00:02 | Root documentation/workspace cleanup | Pass | Active root reduced to the E2E prompt/plan/ledgers, test register, current SRS, source checkouts and scripts; stale tracked documents moved under `archive/`, machine-specific/sensitive notes under ignored `.local-archive/`, and nested repositories/machine-local settings removed from root tracking |
 
 ## Current blockers and limitations
 
 | Blocker | Affected tests | Status/owner | Workaround |
 |---|---|---|---|
-| Cloudinary preset restrictions and cleanup path not yet certified | Full media retention/transformation/admin-cleanup certification | MCP access complete; read-only configuration review in progress | Do not upload until preset restrictions and exact asset deletion/search capabilities are recorded |
-| GitHub connector repository indexing not yet re-proven after installation refresh | Connector-level repository, issue and pull-request visibility | Retry at next preflight; no immediate user action | Local Git fetch/push is authenticated and both existing remotes were synchronized |
+| Cloudinary preset lacks explicit hardening restrictions | Full media validation and production hardening | OAuth MCP access and exact asset-ID search/deletion are available; configuration weakness is recorded | Use only tiny run-marked fixtures, ledger every asset ID, delete exactly after testing and treat unrestricted preset settings as a hardening finding |
 | Tracked Xano token discovered in local `XANO/.env` history | Credential assurance and continued Xano authentication | Parked by user as low priority | Never print the token; rotate later, then re-authenticate CLI/MCP and verify the old credential is rejected |
 | Real admin password existed in tracked public-root documentation/history | Admin account assurance | Current files redacted at closeout; credential rotation still required | Rotate the admin password before production and assess Git-history purge; do not recover credentials from old docs during testing |
-| Nested Xano Git repository has no remote and legacy history contains `.env` | Remote backup of backend source | Owner must choose a new private sanitized repository or another repository architecture | Live Xano and local generated source are synchronized; never publish the legacy history |
 | Physical iOS/Android device and camera not connected | Final PWA install, mobile keyboard/safe-area and QR camera certification | User/device later | Desktop responsive checks do not close these rows |
 | Disposable role-rich account set not yet reconciled | Authenticated workflows, IDOR, destructive and financial tests | Test setup pending | Do not use real-member records |
 

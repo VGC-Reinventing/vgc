@@ -1,7 +1,8 @@
 # VGC Reinventing — API Requirements
 
 **Source SRS:** `SRS/VGC_Reinventing_SRS_v2.md` v2.2 (2026)
-**Existing baseline:** `XANO/API_REFERENCE.md` (261 documents, 33 completed gaps — current as of 2026-05-25)
+**Historical baseline:** `XANO/archive/2026-07-19-pre-e2e/API_REFERENCE.md` (the old reference is archived and non-authoritative)
+**Current implementation truth:** the 436 generated documents under `XANO/`, verified against live workspace 161992 in `XANO/LIVE_SYNC_STATUS.md`
 **Generated:** 2026-05-30 (rev 4)
 **Purpose:** Comprehensive catalog of XANO APIs required to fully satisfy SRS v2.2. Both already-built and pending endpoints are listed so the team can see complete scope at a glance.
 
@@ -15,7 +16,7 @@
 ## Legend
 
 - **[NEW]** — endpoint to be created
-- **[EXISTS]** — already in `API_REFERENCE.md`, no work required
+- **[EXISTS]** — existed in the historical API reference when this requirements catalog was generated; still verify against current source/runtime
 - **[EXTEND]** — already exists but needs additional inputs/outputs/logic
 - **[REWORK]** — already built but **out of spec vs v2.2**; must be reworked
 - **Auth:** `member` = any authenticated user · `admin` = VGC Admin only · `public` = unauthenticated

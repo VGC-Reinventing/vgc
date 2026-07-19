@@ -18,7 +18,7 @@ No passwords, bearer tokens, OTPs, API secrets or reset links belong in this fil
 | TR-170 | Medium | Frontend | Public legal/guardian routes | Anonymous Terms and Privacy placeholders render authenticated-style Home/Wallet/Explore/Community/Profile navigation. Protected links redirect guests and discard signup context. | RUN-013–014 | Open |
 | TR-171 | Medium | Backend | API contract integrity | Parameters documented and sourced as optional remain gateway-required. Confirmed on `/contracts` filters and backup-admin `requester_member_id`. | EX-014 | Open; expand via endpoint sweep |
 | TR-172 | High | Both | Cloudinary uploads | `vgc_blog` is unsigned with no explicit format, byte/dimension, folder, moderation, access-control or transformation restrictions. App callers validate only via `accept="image/*"`, retain only URLs and have no ownership/deletion path, creating abuse, performance and orphan-asset risk. | EX-020; source caller inventory | Open |
-| TR-173 | High | DevOps | Credential hygiene | A live Xano token is stored in tracked local `XANO/.env` history and the file is mode `0666`. No token value was reproduced. XANO currently has no remote configured. | Local read-only Git/filesystem audit | Parked by user as low priority |
+| TR-173 | High | DevOps | Credential hygiene | Legacy local Xano Git history contains a Metadata API token. The current `.env` is ignored and was tightened from mode `0666` to `0600`; the new private `VGC-Reinventing/xano` remote was seeded from secret-scanned, history-free commit `8310fc0`, so the legacy credential is not in that remote. No token value was reproduced. | Local Git/filesystem audit; EX-032–033 | Partially remediated; token rotation parked by user as low priority |
 
 ## Existing defects reconfirmed
 
