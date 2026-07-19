@@ -23,5 +23,9 @@ build/
 
 # other
 *.sqlite3
-XANO/
+XANO/*
+!XANO/SESSION_LOG.md
 vgc/
+
+# personal setup notes (contains credential references — never push)
+NEW_MAC_SETUP.md
