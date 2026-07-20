@@ -16,10 +16,10 @@
 | Frontend API functions | 318 | 0 | 0 | 0 | 0 | 318* |
 | Canonical Xano endpoints | 295 | 27 | 61 | 39 | 168 (164 Partial, 2 Dead, ~2 mixed-status) | 0 |
 | Reusable Xano functions | 15 | 2 | 6 | 0 | 7 (5 Partial, 2 Dead) | 0 |
-| Xano tables | 94 | 0 | 0 | 0 | 0 | 94* |
+| Xano tables | 93 | 0 | 0 | 0 | 0 | 93* |
 | End-to-end workflows | 20 | 3 | 2 | 2 | 3 (2 Partial, 1 In progress) | 10 |
 
-**\*Frontend API functions (§3) and Xano tables (§6) were not updated row-by-row this session** — both remain their original placeholder state. This is an honest gap, not an oversight: the large majority of these 412 rows were exercised *indirectly* with real evidence during this session's endpoint sweep (§4, all 295 rows resolved) and defect-finding work — e.g. every FE function that calls a tested endpoint, and every table read/written during a live reconciliation, has real evidence somewhere in `E2E_DEFECT_LOG.md`/`E2E_EXECUTION_LOG.md` — but that evidence was never transcribed back into the individual FE-XXX/DB-XXX rows themselves. Doing so faithfully for 412 rows was judged lower marginal value than the defect-finding work completed instead, given remaining time. Flagged as the top priority for the next session if full inventory-level traceability is required.
+**\*Frontend API functions (§3) and Xano tables (§6) were not updated row-by-row this session** — both remain their original placeholder state. This is an honest gap, not an oversight: the large majority of these 411 rows were exercised *indirectly* with real evidence during this session's endpoint sweep (§4, all 295 rows resolved) and defect-finding work — e.g. every FE function that calls a tested endpoint, and every table read/written during a live reconciliation, has real evidence somewhere in `E2E_DEFECT_LOG.md`/`E2E_EXECUTION_LOG.md` — but that evidence was never transcribed back into the individual FE-XXX/DB-XXX rows themselves. Doing so faithfully for 411 rows was judged lower marginal value than the defect-finding work completed instead, given remaining time. Flagged as the top priority for the next session if full inventory-level traceability is required.
 
 Counts are updated at each checkpoint from the terminal statuses below. A route is not a Pass merely because it renders. Router-entry "wide-status" rows are ones recording more than one distinct outcome across sub-cases in a single row (e.g. "Pass (transfer), Fail (notification)") and are not cleanly bucketable by a single column value.
 

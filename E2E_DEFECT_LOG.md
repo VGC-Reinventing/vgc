@@ -4,7 +4,7 @@
 **Started:** 2026-07-19 (Australia/Melbourne)
 **Purpose:** sanitized defects confirmed during the exhaustive E2E run. This file is the run-scoped source of truth until each row is reconciled into `TEST_REGISTER.md`.
 
-**Reconciled 2026-07-20:** every row in this file (TR-163–TR-217) plus the 4 accessibility/UX observations (now TR-218–TR-221) has been merged into `TEST_REGISTER.md`'s Active Issues table. This file remains the detailed evidence record; `TEST_REGISTER.md` is now the authoritative status tracker going forward.
+**Reconciled 2026-07-21:** every row in this file (TR-163–TR-225), including the 4 accessibility/UX observations now tracked as TR-218–TR-221, has been merged into `TEST_REGISTER.md`'s Active Issues table. This file remains the detailed evidence record; `TEST_REGISTER.md` is now the authoritative status tracker going forward.
 
 No passwords, bearer tokens, OTPs, API secrets or reset links belong in this file.
 

@@ -12,18 +12,18 @@ Work from:
 /Users/boss/Documents/VGC
 ```
 
-## Resume checkpoint — 2026-07-19
+## Resume checkpoint — 2026-07-21
 
 - Continue run `E2E-20260719-01`; do not seed a second run or overwrite its ledgers.
 - Read `E2E_EXECUTION_LOG.md`, `E2E_COVERAGE_LEDGER.md`, `E2E_FIXTURE_LEDGER.md` and `E2E_DEFECT_LOG.md` immediately after this prompt.
-- Gmail, Vercel, Xano CLI/MCP and all four Cloudinary OAuth MCP servers are authenticated.
-- GitHub user authentication and connector visibility are complete with admin/push access to all three repositories. Frontend `main`/`origin/main` is `172c8ac`; sanitized private Xano `main`/`origin/main` is `8310fc0`; root `main` was pushed at the final closeout. Confirm all three remain 0 ahead/0 behind before testing. Vercel production deployment `dpl_CiXSwZ9Dcbkja6MJxjtgPPCRNXzU` for frontend `172c8ac` is `READY`; the production alias returned HTTP 200 and the prior-hour runtime-error query was empty.
+- Gmail, Vercel, Xano CLI/MCP and all four Cloudinary OAuth MCP servers were authenticated at the last checkpoint.
+- GitHub user authentication and connector visibility were complete with admin/push access to all three repositories. Current synchronized heads at the 2026-07-21 closeout were: root `main`/`origin/main` `3df49ca`, Frontend `main`/`origin/main` `40c3e75`, and sanitized private Xano `main`/`origin/main` `9b9f664`. Confirm all three remain 0 ahead/0 behind before testing. Vercel production deployment `dpl_CiXSwZ9Dcbkja6MJxjtgPPCRNXzU` for frontend `172c8ac` is `READY`; the production alias returned HTTP 200 and the prior-hour runtime-error query was empty. Later FrontEnd/XANO commits are documentation/session-log-only unless source diffs prove otherwise.
 - Cloudinary preset `vgc_blog` is unsigned and unrestricted by explicit format/size/dimension/moderation/folder/access/transformation settings. Exact asset-ID deletion is available. Use only tiny run-marked fixtures and ledger every asset ID before leaving a workflow.
-- Guest Login, Forgot Password, Signup, Terms and Privacy paths have partial runtime coverage. Confirmed defects are summarized in `E2E_DEFECT_LOG.md`.
+- Guest Login, Forgot Password, Signup, Terms, Privacy, all 87 routes, all 295 canonical endpoints and the admin/gaming/education/security sweep now have at least one ledgered pass. This is not exhaustive completion: many rows are Pass/Fail/Partial/In progress/Blocked rather than fully closed, and control-level, frontend-function and table-level traceability remains incomplete. Confirmed defects are summarized in `E2E_DEFECT_LOG.md`.
 - Direct minor-signup bypass was confirmed with disposable `VGC48`; user 48 and wallet rows 75–77 were deleted and exact re-queries proved zero residue.
 - Xano source was synchronized after testing: workspace 161992 branch `v1`, the sanitized private `VGC-Reinventing/xano` repository and the local generated tree contain the same 436 documents. Two public-or-member financial POST auth regressions and the overdue-investment dedupe bug were corrected live, pulled back, and verified. Read `XANO/README.md` and `XANO/LIVE_SYNC_STATUS.md` before backend work. Never push the retired local legacy history, which contained a Metadata API token in an old commit.
 - A targeted dry run over those three reconciled endpoints returns `No changes to push`. A whole-tree dry run has a known comparator false-positive on three untouched live-exported endpoints; never bulk-push simply to silence it.
-- The next runtime case is the guardian registration/approval contract, followed by creation/reconciliation of adult A, adult B and test-admin personas.
+- Guardian registration/rejection/expiry, adult A/B/C creation and disposable test-admin creation have already been exercised and ledgered. The guardian happy-path remains blocked by TR-185 because approval returns 500 and no approved-minor user is created. Current recommended next work is `RUN-088`: reconcile Activity Rewards frontend functions/tables first (`FE-001` through `FE-004`, `DB-001` through `DB-003`, `API-001` through `API-004`), then resume the remaining control inventory from `CTRL-UI-001-000` / `UI-001`, unless the owner explicitly switches priority to fixing defects.
 - Xano token rotation is deliberately parked by the user as low priority. Never print the tracked token.
 - Current documentation no longer contains the real admin password, but older public-root Git history does. Treat that credential as exposed; ask the owner to rotate it before production and never retrieve or repeat it from history.
 - Machine-local setup files live only in ignored local storage. Preserve them, keep secrets out of Git, and do not stage ignored material.
@@ -169,6 +169,8 @@ Before broad Admin or financial mutation testing, safely reproduce these minimum
 8. **Contracts optional gateway fields:** Call public list without optional filters and with each filter omitted separately.
 9. **Stored-XSS render paths:** Start with inert markers and non-executing payloads. Do not use data-exfiltration payloads.
 10. **Deployment headers:** Inspect CSP and related security headers without changing deployment configuration.
+
+Most quarantine-gate hypotheses already have evidence in the ledgers: admin MFA provenance TR-176, role split-brain TR-178, suspended access TR-179, cache isolation TR-180, wallet shape TR-181, public/raw exposure TR-142, contracts optional filters TR-171, stored rich-content/header coverage TR-168/TR-197, and PTS quote suspension status. Re-read the gate before retesting, update existing rows rather than duplicating them, and only add new runtime probes for sub-cases still marked pending or unclear.
 
 Record each as `Confirmed`, `Not reproduced`, `Partially reproduced` or `Blocked` with source/runtime evidence. A credible privilege bypass, cross-user disclosure, stored script execution or unexplained financial movement is a stop condition for affected destructive suites, not a reason to stop safe testing elsewhere.
 
@@ -331,4 +333,4 @@ Send a concise kickoff update stating:
 3. any assistance needed immediately;
 4. that pre-existing workspace changes will be preserved.
 
-Then perform preflight, reconcile the existing ledgers, run the quarantine gate and continue into Phase 1 without waiting unless a real access/safety blocker requires the user.
+Then perform preflight, reconcile the existing ledgers and continue from the 2026-07-21 checkpoint without waiting unless a real access/safety blocker requires the user. Do not repeat already-completed persona creation or guardian setup unless you are deliberately retesting a linked defect. Next defect ID after the closeout is `TR-226`.
