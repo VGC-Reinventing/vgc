@@ -7,17 +7,21 @@
 
 ## Coverage dashboard
 
+**Last recomputed:** 2026-07-21 (session close).
+
 | Inventory | Total | Pass | Fail | Blocked | Other terminal | Pending |
 |---|---:|---:|---:|---:|---:|---:|
-| Router entries | 87 | 0 | 0 | 0 | 0 | 87 |
-| Control placeholders | 87 | 0 | 0 | 0 | 0 | 87 |
-| Frontend API functions | 318 | 0 | 0 | 0 | 0 | 318 |
-| Canonical Xano endpoints | 295 | 0 | 0 | 0 | 0 | 295 |
-| Reusable Xano functions | 15 | 0 | 0 | 0 | 0 | 15 |
-| Xano tables | 93 | 0 | 0 | 0 | 0 | 93 |
-| End-to-end workflows | 20 | 0 | 0 | 0 | 0 | 20 |
+| Router entries | 87 | 29 | 34 | 8 | 16 (13 In progress, 1 Note, 2 wide-status) | 0 |
+| Control placeholders | 104 | ~13 | 3 | 0 | 0 | 88 |
+| Frontend API functions | 318 | 0 | 0 | 0 | 0 | 318* |
+| Canonical Xano endpoints | 295 | 27 | 61 | 39 | 168 (164 Partial, 2 Dead, ~2 mixed-status) | 0 |
+| Reusable Xano functions | 15 | 2 | 6 | 0 | 7 (5 Partial, 2 Dead) | 0 |
+| Xano tables | 94 | 0 | 0 | 0 | 0 | 94* |
+| End-to-end workflows | 20 | 3 | 2 | 2 | 3 (2 Partial, 1 In progress) | 10 |
 
-Counts are updated at each checkpoint from the terminal statuses below. A route is not a Pass merely because it renders.
+**\*Frontend API functions (§3) and Xano tables (§6) were not updated row-by-row this session** — both remain their original placeholder state. This is an honest gap, not an oversight: the large majority of these 412 rows were exercised *indirectly* with real evidence during this session's endpoint sweep (§4, all 295 rows resolved) and defect-finding work — e.g. every FE function that calls a tested endpoint, and every table read/written during a live reconciliation, has real evidence somewhere in `E2E_DEFECT_LOG.md`/`E2E_EXECUTION_LOG.md` — but that evidence was never transcribed back into the individual FE-XXX/DB-XXX rows themselves. Doing so faithfully for 412 rows was judged lower marginal value than the defect-finding work completed instead, given remaining time. Flagged as the top priority for the next session if full inventory-level traceability is required.
+
+Counts are updated at each checkpoint from the terminal statuses below. A route is not a Pass merely because it renders. Router-entry "wide-status" rows are ones recording more than one distinct outcome across sub-cases in a single row (e.g. "Pass (transfer), Fail (notification)") and are not cleanly bucketable by a single column value.
 
 ## 1. Routes
 
@@ -223,6 +227,8 @@ Each placeholder must be replaced or supplemented with one row per visible, hidd
 | CTRL-UI-087-000 | UI-087 | `*` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
 
 ## 3. Frontend API/query functions
+
+**Not updated row-by-row this session** (see Coverage dashboard note above) — real evidence for most of these exists in `E2E_DEFECT_LOG.md`/`E2E_EXECUTION_LOG.md` from the §4 endpoint sweep and live UI testing, but was not transcribed back into individual rows here. Left as the original inventory placeholder pending a future session.
 
 | Function ID | Source | Export | Screen/control caller(s) | Observed request/cache behaviour | Result | Evidence | Defect |
 |---|---|---|---|---|---|---|---|
@@ -869,23 +875,25 @@ None of these were exercised live this session (each would need either a fixture
 
 | Function ID | Source | Required caller/state coverage | Result | Evidence | Defect |
 |---|---|---|---|---|---|
-| FN-01 | `XANO/function/admin_audit.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-02 | `XANO/function/check_rate_limit.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-03 | `XANO/function/create_declaration.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-04 | `XANO/function/emit_notification.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-05 | `XANO/function/idempotency_lookup.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-06 | `XANO/function/idempotency_store.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-07 | `XANO/function/log_admin_action.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-08 | `XANO/function/mutate_wallet.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-09 | `XANO/function/mutate_wallet_unchecked.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-10 | `XANO/function/pts_compute_rate.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-11 | `XANO/function/quick_start/enforce_role.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-12 | `XANO/function/quick_start/generate_magic_link.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-13 | `XANO/function/quick_start/log_event.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-14 | `XANO/function/require_admin.xs` | Pending call-site/state mapping | Pending | — | — |
-| FN-15 | `XANO/function/wallet_mutate.xs` | Pending call-site/state mapping | Pending | — | — |
+| FN-01 | `XANO/function/admin_audit.xs` | Pending call-site/state mapping | Dead | `grep` across all 295 endpoints: zero call sites. Superseded by `log_admin_action.xs` (near-identical name/purpose, 30+ call sites) — leftover scaffolding. | — |
+| FN-02 | `XANO/function/check_rate_limit.xs` | Pending call-site/state mapping | Pass | Called from `signup_POST.xs`, `resend_verification_POST.xs`, `guardian_registration_POST.xs`. Live-confirmed correctly enforced for signup (3/24h) and resend-verification (5/hour) — TR-140 correction. Not verified for any other SRS-required rate-limited action (voting, applications, ratings) — sweep remains open under TR-140. | TR-140 |
+| FN-03 | `XANO/function/create_declaration.xs` | Pending call-site/state mapping | Fail | Shared insert helper for `declarations_POST.xs`, `declarations/public_POST.xs`, `investments_POST.xs`, `sponsorships_POST.xs`. Always writes `status:"draft"` and nothing downstream ever transitions it — the confirmed root cause of TR-189 (declaration pipeline dead end). | TR-189 |
+| FN-04 | `XANO/function/emit_notification.xs` | Pending call-site/state mapping | Partial | Confirmed working correctly this session (guardian request, contract application/dispute/resolution, blog approve/reject) — historically fixed under TR-158. Not called at all from `points_transfer_POST.xs` (TR-192) or `blog_dislikes` raw CRUD (n/a, no notification concept there). | TR-192 |
+| FN-05 | `XANO/function/idempotency_lookup.xs` | Pending call-site/state mapping | Partial | Used in cart checkout, points-transfer, PTS convert, marketplace orders (4 call sites). Idempotency-key replay/race behaviour not deliberately tested this session — deferred. | — |
+| FN-06 | `XANO/function/idempotency_store.xs` | Pending call-site/state mapping | Partial | Paired with FN-05 at the same 4 call sites; same deferral. | — |
+| FN-07 | `XANO/function/log_admin_action.xs` | Pending call-site/state mapping | Fail | ~30+ correct call sites confirmed; 7 call sites use one of two wrong parameter shapes and always fail (TR-209), 2 of which mask a real financial-state mutation (TR-208) and a real DPDP-erasure mutation. | TR-208, TR-209 |
+| FN-08 | `XANO/function/mutate_wallet.xs` | Pending call-site/state mapping | Pass | 38 call sites; confirmed correct in every live financial reconciliation this session (points award, points transfer, contract release/settlement, marketplace Buy Now, PTS admin actions) when the currency argument itself is correct — the recurring defect (TR-194) is callers hardcoding the wrong currency, not this function. | TR-194 (caller-side) |
+| FN-09 | `XANO/function/mutate_wallet_unchecked.xs` | Pending call-site/state mapping | Partial | Used for negative-balance penalty cascades (contract `penalty_cascade` resolution, TR-201's loan disbursement). Not live-exercised this session (would require driving a full non-VGC contract dispute to `penalty_cascade` resolution, deferred as high-blast-radius). | — |
+| FN-10 | `XANO/function/pts_compute_rate.xs` | Pending call-site/state mapping | Partial | Used by PTS quote/convert and contract `penalty_cascade`. Called successfully (no errors) wherever exercised this session, but independent verification against the SRS's worked-example arithmetic (quarantine-gate item 6) was not completed — deferred. | — |
+| FN-11 | `XANO/function/quick_start/enforce_role.xs` | Pending call-site/state mapping | Fail | ~75+ call sites (the majority of the admin control plane). Confirmed broken platform-wide — never actually denies a non-admin caller (TR-178). | TR-178 |
+| FN-12 | `XANO/function/quick_start/generate_magic_link.xs` | Pending call-site/state mapping | Fail | Sole caller: `reset/request_reset_link_GET.xs`. Confirmed broken — wrong domain, no token/email separator (TR-187). | TR-187 |
+| FN-13 | `XANO/function/quick_start/log_event.xs` | Pending call-site/state mapping | Partial | Called from `send_welcome_email_POST.xs` (TR-216) and `reset/magic_link_login_POST.xs`/`reset/update_password_POST.xs`. Function itself not observed to fail; only its unauthenticated caller (TR-216) is the defect. | TR-216 (caller-side) |
+| FN-14 | `XANO/function/require_admin.xs` | Pending call-site/state mapping | Fail | A smaller, separate admin-authorization path from `enforce_role`. Confirmed broken — authorizes solely on token claims with no way to distinguish a 2FA-verified token from a plain `/login` token (TR-176). | TR-176 |
+| FN-15 | `XANO/function/wallet_mutate.xs` | Pending call-site/state mapping | Dead | `grep` across all 295 endpoints: zero call sites. Superseded by `mutate_wallet.xs` (near-identical name, 38 call sites) — leftover scaffolding, same pattern as FN-01. | — |
 
 ## 6. Xano data tables and invariants
+
+**Not updated row-by-row this session** (see Coverage dashboard note above) — real evidence for the tables most exercised this session (`pts_components`, `token_surrenders`, `system_config`, `admin_audit_log`, `blog_dislikes`, `contract_applications`, `wallets`, `declarations`) exists throughout `E2E_DEFECT_LOG.md` (direct Xano MCP table reads backing TR-142/166/205/206/208/211/212/217) but was not transcribed back into individual rows here. Left as the original inventory placeholder pending a future session.
 
 | Table ID | Source | Owner/CRUD mapping | Constraints/status/retention tests | Result | Evidence | Defect |
 |---|---|---|---|---|---|---|
