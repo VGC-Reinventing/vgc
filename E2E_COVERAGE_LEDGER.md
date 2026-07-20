@@ -13,13 +13,13 @@
 |---|---:|---:|---:|---:|---:|---:|
 | Router entries | 87 | 29 | 34 | 8 | 16 (13 In progress, 1 Note, 2 wide-status) | 0 |
 | Control placeholders | 104 | ~13 | 3 | 0 | 0 | 88 |
-| Frontend API functions | 318 | 0 | 0 | 0 | 0 | 318* |
+| Frontend API functions | 318 | 1 | 1 | 0 | 2 (2 Dead/Unreachable exports) | 314* |
 | Canonical Xano endpoints | 295 | 27 | 61 | 39 | 168 (164 Partial, 2 Dead, ~2 mixed-status) | 0 |
 | Reusable Xano functions | 15 | 2 | 6 | 0 | 7 (5 Partial, 2 Dead) | 0 |
-| Xano tables | 93 | 0 | 0 | 0 | 0 | 93* |
+| Xano tables | 93 | 0 | 1 | 0 | 2 (2 Partial) | 90* |
 | End-to-end workflows | 20 | 3 | 2 | 2 | 3 (2 Partial, 1 In progress) | 10 |
 
-**\*Frontend API functions (§3) and Xano tables (§6) were not updated row-by-row this session** — both remain their original placeholder state. This is an honest gap, not an oversight: the large majority of these 411 rows were exercised *indirectly* with real evidence during this session's endpoint sweep (§4, all 295 rows resolved) and defect-finding work — e.g. every FE function that calls a tested endpoint, and every table read/written during a live reconciliation, has real evidence somewhere in `E2E_DEFECT_LOG.md`/`E2E_EXECUTION_LOG.md` — but that evidence was never transcribed back into the individual FE-XXX/DB-XXX rows themselves. Doing so faithfully for 411 rows was judged lower marginal value than the defect-finding work completed instead, given remaining time. Flagged as the top priority for the next session if full inventory-level traceability is required.
+**\*Frontend API functions (§3) and Xano tables (§6) were not updated row-by-row in the 2026-07-21 closeout** — the first Activity Rewards batch (FE-001–004, DB-001–003) was transcribed immediately after that closeout, leaving 404 rows still needing individual evidence transcription. This is an honest gap, not an oversight: the large majority of these rows were exercised *indirectly* with real evidence during this session's endpoint sweep (§4, all 295 rows resolved) and defect-finding work — e.g. every FE function that calls a tested endpoint, and every table read/written during a live reconciliation, has real evidence somewhere in `E2E_DEFECT_LOG.md`/`E2E_EXECUTION_LOG.md` — but that evidence was not yet fully transcribed back into the individual FE-XXX/DB-XXX rows themselves. Flagged as the top priority for the next session if full inventory-level traceability is required.
 
 Counts are updated at each checkpoint from the terminal statuses below. A route is not a Pass merely because it renders. Router-entry "wide-status" rows are ones recording more than one distinct outcome across sub-cases in a single row (e.g. "Pass (transfer), Fail (notification)") and are not cleanly bucketable by a single column value.
 
@@ -232,10 +232,10 @@ Each placeholder must be replaced or supplemented with one row per visible, hidd
 
 | Function ID | Source | Export | Screen/control caller(s) | Observed request/cache behaviour | Result | Evidence | Defect |
 |---|---|---|---|---|---|---|---|
-| FE-001 | `FrontEnd/src/api/activityRewards.ts` | `getActivityCatalog` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-002 | `FrontEnd/src/api/activityRewards.ts` | `getActivityChangelog` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-003 | `FrontEnd/src/api/activityRewards.ts` | `logActivity` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-004 | `FrontEnd/src/api/activityRewards.ts` | `getMyActivities` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-001 | `FrontEnd/src/api/activityRewards.ts` | `getActivityCatalog` | `useActivityCatalog()` in `api/queries.ts`; rendered by `ActivityRewardsScreen` Catalog tab | Live request reached `GET /activity-rewards/catalog`; empty catalog rendered as "Catalog v0" / "No activities published" without crash | Pass | RUN-043b; UI-022; source caller grep 2026-07-21 | — |
+| FE-002 | `FrontEnd/src/api/activityRewards.ts` | `getActivityChangelog` | No caller in `FrontEnd/src` | Exported wrapper calls `GET /activity-rewards/changelog`, but no route/control imports or invokes it, so no runtime user path exists | Dead/Unreachable frontend export | Source caller grep 2026-07-21; backend endpoint still exists as API-002 | — |
+| FE-003 | `FrontEnd/src/api/activityRewards.ts` | `logActivity` | No caller in `FrontEnd/src` | Exported wrapper calls `POST /activity-rewards/activities`, but no route/control imports or invokes it, so activity logging is backend/API-only from current frontend | Dead/Unreachable frontend export | Source caller grep 2026-07-21; backend endpoint still exists as API-004 | — |
+| FE-004 | `FrontEnd/src/api/activityRewards.ts` | `getMyActivities` | `useMyActivities()` in `api/queries.ts`; rendered by `ActivityRewardsScreen` My activity tab | Live request reached `GET /activity-rewards/activities/me`; screen crashed because the wrapper is typed as a bare `ActivityLogEntry[]` while the endpoint returns a paginated envelope | Fail | RUN-047; UI-022; API-001; TR-196 | TR-196 |
 | FE-005 | `FrontEnd/src/api/admin.ts` | `adminLogin` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-006 | `FrontEnd/src/api/admin.ts` | `adminVerifyOtp` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-007 | `FrontEnd/src/api/admin.ts` | `adminRecoverOtp` | Pending caller mapping | Pending request observation | Pending | — | — |
@@ -897,9 +897,9 @@ None of these were exercised live this session (each would need either a fixture
 
 | Table ID | Source | Owner/CRUD mapping | Constraints/status/retention tests | Result | Evidence | Defect |
 |---|---|---|---|---|---|---|
-| DB-001 | `XANO/table/activities.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-002 | `XANO/table/activity_catalog.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-003 | `XANO/table/activity_catalog_changelog.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
+| DB-001 | `XANO/table/activities.xs` | Read by `GET /activities/me`; written by `POST /activities` | Owner scoping is implemented through member-auth paths, but the frontend wrapper/screen cannot consume the live paginated envelope | Fail | RUN-047; API-001; FE-004 | TR-196 |
+| DB-002 | `XANO/table/activity_catalog.xs` | Read by public catalog; written/edited/deleted by admin catalog endpoints | Public active-catalog empty state verified live; admin mutation branches still require dedicated runtime validation before Pass | Partial | RUN-043b; API-003; source mapping 2026-07-21 | — |
+| DB-003 | `XANO/table/activity_catalog_changelog.xs` | Read by catalog/changelog; written by admin catalog create/update/delete endpoints | Changelog table/callers mapped; no frontend caller for `getActivityChangelog`, and admin changelog write/read branches remain untested as table-level cases | Partial | FE-002; API-002; source mapping 2026-07-21 | — |
 | DB-004 | `XANO/table/admin_audit_log.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
 | DB-005 | `XANO/table/admin_login_events.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
 | DB-006 | `XANO/table/admin_mfa_challenges.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
@@ -1034,3 +1034,4 @@ Expected results must keep separate columns in child cases for SRS Expected, App
 |---|---|---|---|---|
 | CP-001 | 2026-07-19 | Root `2b7a2c1`; frontend `ce7e994` | 87/318/295/15/93/20 | Initial source-derived inventory seeded; no functional row has been credited yet |
 | CP-002 | 2026-07-20 00:10 | Root `ed9ef24`; frontend `172c8ac`; Xano `8310fc0` (436 docs) | 87/318/295/15/93/20 | Session resume reconciliation: `rg`/`find` recount against current source returned router 87, frontend exported functions 318, Xano `query` endpoints 295, Xano functions 15, Xano tables 93, Xano API groups 29 — byte-exact match to the plan baseline, zero drift since 2026-07-19 closeout. Screen-file count intentionally not 1:1 (86 raw `.tsx` under `features/` includes shared-export files and non-routed reusable components, e.g. `SignupScreen.tsx` exports both `SignupScreen`+`GuardianSentScreen`). Local build/test/typecheck reverified green, dev server restarted (new PID `92033`, same `172c8ac`/`8310fc0` pair). Next available defect ID confirmed `TR-174` (register active issues end `TR-145`; defect log highest `TR-173`). |
+| CP-003 | 2026-07-21 | Root `8023c7c`; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Post-closeout reconciliation corrected stale counts and transcribed the first Activity Rewards traceability batch: FE-001–004 and DB-001–003. Next exact row remains `FE-005` / `DB-004`, or `CTRL-UI-001-000` if resuming control inventory. Next runtime case remains `RUN-088`; next defect ID remains `TR-226`. |
