@@ -28,19 +28,43 @@ Read, in this order, before doing anything else:
 **Update this section at the end of every session, in place — this is the only part of this file that changes session to session.** Overwrite the block below; do not append a history of old checkpoints here (that history lives in commit messages and `TEST_REGISTER.md`'s own Fix Summary fields).
 
 ```text
-Last updated: 2026-07-21 (plan preparation — no fixes started yet)
-Current phase: Phase 0 (not yet started)
-Last completed fix: none
-Exact next fix: Cluster F0 — TR-194 + TR-239, marketplace settlement hardcoded currency
-  (FIX_PLAN.md §Phase 0). Read the cluster section in full before starting;
-  it fixes 5 call sites in one change, not just the one TR-239 repro case.
+Last updated: 2026-07-21 (Phase 0 complete, verification partial)
+Current phase: Phase 0 done; Phase 1 (auth/session security foundation) next
+Last completed fix: Cluster F0 — TR-194 + TR-239, marketplace settlement
+  hardcoded currency. Fixed via a new shared function
+  order_currency_to_wallet_currency (Xano function id 330584) called from
+  all 5 settlement endpoints (cancel, mark-received, auto-settle, settle,
+  resolve-dispute) instead of each hardcoding "token". Verified via isolated
+  unit test (all 3 currencies map correctly, invalid input throws) and a
+  live smoke test of the cancel endpoint (deploys/runs cleanly). Full
+  financial reconciliation NOT completed — funding a disposable test wallet
+  needed a direct table write the tooling safety classifier blocked;
+  correctly not routed around. See TEST_REGISTER.md's TR-194/TR-239 Resolved
+  entries and FIX_PLAN.md Phase 0 for full detail. Also corrected a stale
+  E2E_COVERAGE_LEDGER.md citation (API-127, contracts/{id}/cancel) that
+  wrongly implied a 6th hardcoded-currency instance — re-read live source,
+  confirmed it has no wallet mutation at all, not a real defect.
+Exact next fix: Phase 1, Cluster F1 — login/session/2FA bypass family
+  (TR-176, TR-178, TR-179, TR-236, TR-186, TR-163, TR-187, TR-235, TR-177,
+  TR-166, TR-165). Read FIX_PLAN.md's Phase 1 section in full, including the
+  TR-236 note: owner decided 2026-07-21 to code the email_verified_at check
+  but gate it behind a system_config flag defaulted off (real accounts
+  Varun Ghavare/Kashish Mutta/Barkha Gorana/Sneha Gorana/Vishal Gorana/
+  "Boss" would be locked out otherwise — Xano free-plan email sandbox only
+  delivers to the workspace-owner inbox). Do not enable that flag without
+  a fresh explicit go-ahead.
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 / behind 0
-  as of commit 86795a2 (root).
-Open blockers: none.
+  as of root commit bec21c9, XANO commit 835fa21 (verify both are still
+  current — this note itself predates its own commit).
+Open blockers: none for Phase 1. Phase 0's full reconciliation verification
+  is a recommended Phase 2 follow-up (needs a working admin/wallets/adjust
+  to fund test wallets legitimately), not a blocker for proceeding.
 Fixture/persona state: reuse existing disposable personas from
   E2E_FIXTURE_LEDGER.md (VGC50-VGC67) rather than creating new ones, unless
-  a specific fix needs a genuinely fresh/untouched account (e.g. re-testing
-  signup/verification gating in Phase 1).
+  a specific fix needs a genuinely fresh/untouched account. New this pass:
+  VGC68 ("Fix Phase0 Cancel Probe", zero balance, no dependent records) —
+  not yet added to E2E_FIXTURE_LEDGER.md, do that before creating any more
+  probe accounts so the ledger stays current.
 Known standing residue to correct once tooling allows: VGC53's wallet
   (E2E_FIXTURE_LEDGER.md "Known uncorrected residue" row) is intentionally
   left short 11.73 points / over-credited 11.73 tokens as live evidence of
