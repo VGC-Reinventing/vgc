@@ -64,8 +64,10 @@ Exact next fix: Phase 2, Cluster F2c — log_admin_action wrong-parameter
   prerequisite for ever safely testing DPDP erasure (one of the 7 affected
   endpoints), which still needs an explicit owner go-ahead even once fixed.
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 / behind
-  0 as of root commit (pending this session's commit), FrontEnd commit
-  300bddb, XANO commit 93a69d5 (verify all three are still current before
+  0 as of root commit 85fbb15, FrontEnd commit b98080e (includes a fix
+  committed slightly after the others — getProfile()'s envelope unwrap —
+  don't assume all three repos' Phase 2 commits landed in the same breath),
+  XANO commit 93a69d5 (verify all three are still current before
   continuing).
 Open blockers: none for Cluster F2c. Known gaps carried forward (not
   blockers): TR-165 (CORS) needs Xano dashboard access or a plan change,
