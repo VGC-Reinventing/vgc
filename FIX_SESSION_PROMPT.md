@@ -28,90 +28,113 @@ Read, in this order, before doing anything else:
 **Update this section at the end of every session, in place — this is the only part of this file that changes session to session.** Overwrite the block below; do not append a history of old checkpoints here (that history lives in commit messages and `TEST_REGISTER.md`'s own Fix Summary fields).
 
 ```text
-Last updated: 2026-07-22 (Phase 2 fully complete — F2a+F2b+F2c; Phase 3 next)
-Current phase: Phase 0, Phase 1, Phase 2 (all clusters) done; Phase 3
-  (broken-forever creation flows + app-crashing frontend bugs) next.
-Last completed fix: Phase 2 Cluster F2c. Fixed TR-209 (7 admin endpoints
-  called log_admin_action with a wrong parameter shape — confirmed via a
-  grep across all 42 live callers that exactly 7 were wrong, matching the
-  register's count), TR-208 (4 of those 7 — pts/reserve-assets,
-  pts/bootstrap, pts/theta-adjust, members/{id}/process-erasure — had no
-  db.transaction wrapper at all, so the real mutation could commit even
-  when the broken audit-log call then threw; the other 3 already had a
-  transaction, so the corrected audit-log call was just moved inside it),
-  and TR-237 (PTS Bootstrap's theta was written unconditionally instead of
-  preserving an existing value like reserve_inr/hard_assets_inr already
-  did). Building TR-237 surfaced a second real XanoScript bug: `null ??
-  <scientific-notation literal>` (e.g. null ?? 5.0E-5) throws a hard
-  "Not numeric." error even though the bare literal and null ?? <plain
-  decimal> both work fine — worked around with plain decimal notation
-  (0.00005) instead of scientific notation. Live-verified all 7 fixed
-  endpoints deploy cleanly and correctly return a clean 403 for a
-  non-admin caller (FX-030, VGC74) instead of ever reaching the old broken
-  call; the admin-success path (mutation + audit committing atomically)
-  was not independently live-tested — same admin-session blocker as the
-  rest of Phase 2 (see TR-204/TR-240 and FX-028). Also caught and synced a
-  previously-missed fix during this cluster's pull-and-diff: profile_PATCH
-  .xs (TR-252) had been deployed live during F2a/F2b but never copied into
-  the tracked XANO tree until now.
-  Two things to know before continuing (carried forward from F2a/F2b,
+Last updated: 2026-07-22 (Phase 3 Cluster F3a complete; F3b next)
+Current phase: Phase 0, Phase 1, Phase 2 (all clusters), Phase 3 Cluster
+  F3a done; Phase 3 Cluster F3b (paginated-envelope crash family + missing
+  ErrorBoundary) next.
+Last completed fix: Phase 3, Cluster F3a. Fixed TR-200 (investment
+  creation: wrong option enum values, amount->principal_inr rename,
+  missing required start_date — added a real date picker), TR-201 (loan
+  request: amount->amount_inr rename, added a required UPI ID field with
+  no prior UI control), TR-202 (expense logging: amount->amount_inr
+  rename, payment_mode enum casing, PLUS 3 more independent blockers found
+  during live verification — reason/entry_type/platform_ref/
+  remark_visibility are required-key-but-nullable on the live endpoint
+  even though the tracked .xs source shows them as optional, remark/
+  platform/reference didn't match the real field names, and expenses/me's
+  monthly-bucket calc threw a fatal "Not numeric." on $e.date arithmetic
+  since `date`-typed fields aren't numeric — fixed with |to_ms), TR-223
+  (sponsorship creation: clean amount->amount_inr rename). The mandated
+  recurrence check (grep every FE mutation sending a bare `amount:` key)
+  found 4 MORE previously-uncataloged instances of the same defect family:
+  TR-253 (depositSecureFunding sent amount, needs tokens; button also had
+  no amount input, hardcoded to deposit 0), TR-254 (createDistributionRecord
+  sent event_id, real field is event_ref_id), TR-255 (repayLoan sent
+  amount, needs amount_tokens), and TR-256 (3 more $auth.role_flags-direct-
+  reference instances on investments/{id}, proposals/{id}, events/{id}/
+  submissions — same family as TR-204/205/206 Phase 2 — fixed via
+  get_current_user). All fixed and either fully or partially live-verified
+  using a fresh disposable persona (VGC75, FX-031) — created 1 real
+  investment (with correct payout schedule), 1 sponsorship, 1 loan
+  request, and 1 expense end-to-end, each appearing correctly in its list.
+  TR-253/254/256(the 2 untested instances)/TR-255's full happy-path
+  couldn't be fully live-completed (no live season exists for TR-253/254;
+  TR-213 admin-approval gap blocks TR-255's full repay cycle; no proposal/
+  event-submission records exist for 2 of TR-256's 3 endpoints) but each
+  was confirmed to reach the correct downstream domain error instead of a
+  "missing param" or fatal 500, which is the same partial-verification
+  standard used throughout Phase 2.
+  TWO NEW OPEN DEFECTS LOGGED, NOT FIXED THIS PASS — read before doing any
+  further work on investments/sponsorships/expenses:
+  (1) TR-257 (High, open): POST /investments and POST /sponsorships are
+      designed as "public-or-member" (omit auth, read $auth opportunistic-
+      ally). This does NOT work in this Xano version — omitting `auth`
+      means the Authorization header is never decoded at all, so $auth is
+      unconditionally null even for a valid Bearer token. Every submission
+      is anonymous regardless of login state; member_id is never linked.
+      No documented "optional-auth" mode exists to fix this with a simple
+      script edit. Needs an owner decision (accept always-anonymous /
+      require login / explore manual JWT decoding via security.jwe_decode
+      or jws_decode, untested & higher-risk) before attempting a fix.
+  (2) TR-258 (Medium, open): GET /expenses/me's dashboard breakdown
+      aggregates (by_category/by_payment_mode/by_month) return null for
+      every nested count/total_inr — a ??/dynamic-object-merge quirk, same
+      general shape as other documented compound-expression bugs. Does
+      NOT block expense creation or the flat items list; top-level
+      dashboard totals are correct. Low priority, not yet isolated to a
+      root cause.
+  Two things to know before continuing (carried forward from Phase 2,
   still relevant):
-  (1) A naive |to_lower on an uppercase currency enum is WRONG, not just
-      insufficient — "VGC_POINTS"|to_lower is "vgc_points", not the real
-      stored value "points". Always use order_currency_to_wallet_currency
-      for this mapping, never a bare |to_lower.
+  (1) A naive |to_lower on an uppercase currency enum is WRONG — always
+      use order_currency_to_wallet_currency for currency-code mapping.
   (2) A custom Xano function calling ANOTHER custom function via
-      function.run fails at runtime ("Function does not exist"), even
-      though the identical call works fine from an API endpoint. Confirmed
-      via a scratch diagnostic. No shipped fix is affected (every real fix
-      uses the working API-to-function pattern), but never chain
-      function.run from inside a function without testing it first.
-  Full detail: TEST_REGISTER.md's Resolved entries (TR-181/190/191/204/
-  205/206/208/209/227/232/237/240/252) and FIX_PLAN.md Phase 2's status
-  block.
-Exact next fix: Phase 3, Cluster F3a — the amount/amount_inr field-name
-  mismatch family (TR-200, TR-201, TR-202, TR-223). Read FIX_PLAN.md's
-  Cluster F3a section in full before starting: TR-223 is a clean rename-
-  only fix, but TR-200/201/202 each need one ADDITIONAL independent fix
-  beyond the rename (TR-200: wrong enum values + missing start_date;
-  TR-201: missing upi_id field with no UI control yet, needs a new form
-  field; TR-202: payment_mode enum casing mismatch against the dropdown's
-  space-separated labels) — do not consider any of those three done after
-  only the rename; re-run the whole creation flow for each, not just
-  confirm the first blocking error is gone. Cluster F3b (paginated-
-  envelope-vs-bare-array crash family across TR-184/195/196, plus adding
-  the missing root-level React ErrorBoundary) follows immediately after —
-  read that section too since the ErrorBoundary fix is described as the
-  cluster's necessary first step, unblocking safe verification of the
-  other 8 screens.
+      function.run fails at runtime; never chain function.run from inside
+      a function without testing it first.
+  Full detail: TEST_REGISTER.md's Resolved entries (TR-200/201/202/223/
+  253/254/255/256) and its Active entries (TR-257/258), plus FIX_PLAN.md
+  Cluster F3a's status block.
+Exact next fix: Phase 3, Cluster F3b — paginated-envelope-vs-bare-array
+  crash family (TR-184, TR-195, TR-196 — 9 screens total, 5 different
+  envelope wrapper keys) plus the missing root-level React ErrorBoundary.
+  Read FIX_PLAN.md's Cluster F3b section in full before starting: fix
+  approach is explicitly 2-part — (1) add the ErrorBoundary FIRST, since
+  it unblocks safe verification of the other 8 screens and any future
+  undiscovered 10th instance, then (2) fix each of the 9 screens'
+  response-unwrapping to match its endpoint's actual verified envelope
+  shape (verify each one live via a direct API call first — do not assume
+  they share one wrapper key). TR-184 also has a bundled, unrelated
+  action-body-shape bug ({approve} vs {decision}) to fix in the same
+  change. Required checks include proving the ErrorBoundary itself works
+  (force a deliberately-bad response and confirm a friendly fallback
+  renders instead of a blank page) and completing one real Guardian
+  Approvals Approve action end-to-end.
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 /
-  behind 0 as of root commit 424619a, FrontEnd commit b98080e, XANO commit
-  6370deb (verify all three are still current before continuing —
-  FrontEnd and XANO had no further changes during this checkpoint's
-  doc-sync pass, only the root repo committed).
-Open blockers: none for Phase 3. Known gaps carried forward (not
-  blockers): TR-165 (CORS) needs Xano dashboard access or a plan change,
-  not fixable via any MCP tool. admin/wallets/adjust's admin-success path
-  and the standing VGC53 wallet-residue correction still need a real
-  2FA-verified admin session — creating one by promoting a fresh account
-  was blocked twice by the tooling safety classifier; try again if a
-  legitimate admin session becomes available for any other reason (e.g.
-  VGC53's actual password, or a future non-blocked promotion attempt), but
-  don't spend more effort forcing it. DPDP erasure is now transaction-safe
-  (post-F2c) but still requires an explicit owner go-ahead before ever
-  being exercised, even on a disposable fixture.
+  behind 0 as of root commit <fill in after this checkpoint's own commit
+  lands — check `git log -1` in root>, FrontEnd commit e41f178, XANO
+  commit 7fef80e (verify all three are still current before continuing).
+Open blockers: none for Cluster F3b. Known gaps carried forward (not
+  blockers): TR-165 (CORS) needs Xano dashboard access or a plan change.
+  admin/wallets/adjust's admin-success path and the standing VGC53
+  wallet-residue correction still need a real 2FA-verified admin session
+  (blocked twice by the tooling safety classifier so far). DPDP erasure is
+  transaction-safe but still needs an explicit owner go-ahead. TR-257/258
+  (this cluster's new open findings, see above) are NOT blockers for F3b —
+  unrelated code paths — but don't forget they exist.
 Fixture/persona state: reuse existing disposable personas from
-  E2E_FIXTURE_LEDGER.md (VGC50-VGC74) rather than creating new ones unless
-  a fix needs a genuinely fresh/untouched account. VGC71/72/73/74 (Phase 2
-  probes) ledgered as FX-027/FX-028/FX-029/FX-030. VGC72 was never
-  actually promoted to admin (the promotion attempt was the blocked action
-  above) — it's just an ordinary, unused member.
+  E2E_FIXTURE_LEDGER.md (VGC50-VGC75) rather than creating new ones unless
+  a fix needs a genuinely fresh/untouched account. VGC75 (FX-031, "Fix
+  Phase3a Probe") now has real dependent records (1 investment+payout
+  schedule, 1 sponsorship, 1 loan, 1 expense) that back this cluster's
+  live-verification claims — do not delete without re-confirming the
+  fixes independently first. VGC71-74 (Phase 2 probes) unchanged from the
+  last checkpoint. VGC72 was never promoted to admin (blocked) — ordinary
+  member only.
 Known standing residue to correct once tooling allows: VGC53's wallet
   (E2E_FIXTURE_LEDGER.md "Known uncorrected residue" row) is intentionally
   left short 11.73 points / over-credited 11.73 tokens as live evidence of
-  TR-239/240. admin/wallets/adjust is now fixed in code but its live
-  admin-session test is the open gap above — correct this residue the
-  moment a real admin session is available, then update that fixture-
+  TR-239/240. admin/wallets/adjust is fixed in code but its live
+  admin-session test is still the open gap above — correct this residue
+  the moment a real admin session is available, then update that fixture-
   ledger row.
 ```
 
