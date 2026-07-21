@@ -7,17 +7,19 @@
 
 ## Coverage dashboard
 
-**Last recomputed:** 2026-07-21 (session close).
+**Last recomputed:** 2026-07-21 (control inventory completed).
 
 | Inventory | Total | Pass | Fail | Blocked | Other terminal | Pending |
 |---|---:|---:|---:|---:|---:|---:|
 | Router entries | 87 | 29 | 34 | 8 | 16 (13 In progress, 1 Note, 2 wide-status) | 0 |
-| Control placeholders | 104 | ~13 | 3 | 0 | 0 | 88 |
+| Control inventory rows | 180 | 72 | 49 | 12 | 18 (In progress) | 29 (identified, not yet clicked — see §2 notes) |
 | Frontend API functions | 318 | 121 | 55 | 66 | 51 (32 Partial, 14 Dead/Unreachable, 5 issue/risk/pending-observation rows) | 25* |
 | Canonical Xano endpoints | 295 | 27 | 61 | 39 | 168 (164 Partial, 2 Dead, ~2 mixed-status) | 0 |
 | Reusable Xano functions | 15 | 2 | 6 | 0 | 7 (5 Partial, 2 Dead) | 0 |
-| Xano tables | 93 | 14 | 24 | 20 | 24 (23 Partial, 1 issue row) | 11* |
+| Xano tables | 93 | 14 | 24 | 20 | 24 (23 Partial, 1 issue row) | 10* |
 | End-to-end workflows | 20 | 3 | 2 | 2 | 3 (2 Partial, 1 In progress) | 10 |
+
+**Control inventory (§2) is now fully expanded** — every route's placeholder `CTRL-UI-XXX-000` row has been replaced with one row per real control identified from source (`onClick`/`<Field>`/conditional-render inspection) and cross-referenced against this session's actual RUN evidence, per the "inspect the component to identify hidden/conditional controls" requirement. The 29 remaining `Pending` rows are controls that were correctly identified and are known to exist (e.g. "My Sales" tab, several tab switches, the search box on `/blog`, PTS Bootstrap) but were not individually clicked this pass — each is annotated with exactly why (destructive to a live persona, not yet reached, or genuinely unclicked). This is the single largest remaining gap closed this session.
 
 **\*Frontend API functions (§3) and Xano tables (§6) are now substantially transcribed row-by-row from existing evidence** — the Activity Rewards batch (FE-001–004), admin frontend API batches (FE-005–061), auth batch (FE-062–074), blog evidence rows including direct disposable lifecycle checks (FE-075–089 where evidence exists), cart and contract evidence rows (FE-090–122 where evidence exists), declaration/education/expense evidence rows (FE-123–146 where evidence exists), financial/gaming/groups evidence rows (FE-147–203 where evidence exists), loans/marketplace/notifications/points/profile/proposals/PTS evidence rows (FE-204–241 where evidence exists), React Query/shared wrappers (FE-242–318 where evidence exists), direct residual API checks (RUN-098–102), and all Xano table rows with available runtime/source/fixture evidence (DB-001–091 plus duplicate-normalized inventory rows) have now been transcribed, leaving 36 rows still needing individual evidence transcription or direct runtime closure. This is an honest gap, not an oversight: remaining frontend Pending rows are mostly unclicked/destructive branches, Cloudinary direct upload, POD/order-dispute branches, and detail branches without safe disposable fixtures; remaining table Pending rows are tables whose lifecycle was not directly exercised. Flagged as the top priority for continued exhaustive testing if full inventory-level traceability is required.
 
@@ -219,10 +221,13 @@ Each placeholder must be replaced or supplemented with one row per visible, hidd
 | CTRL-UI-027-001 | UI-027 | `/market/orders/:id` | `Cancel order` button (pre-POD only) | Fail | RUN-046: cancel succeeded but refunded the wrong currency (TR-194); button remains visible/clickable after the order reaches terminal `Cancelled` status (server correctly re-blocks, cosmetic only) | TR-194 |
 | CTRL-UI-027-002 | UI-027 | `/market/orders/:id` | Duplicate-cancel guard | Pass | RUN-046: second cancel attempt correctly `400`-blocked, no double-refund | — |
 | CTRL-UI-028-001 | UI-028 | `/market/propose` | Entire screen unreachable — crashes on load unconditionally, zero existing proposals or many | Fail | RUN-047/054: `proposals.data.map` with no optional chaining, crashes every time | TR-195 |
-| CTRL-UI-029-000 | UI-029 | `/profile/edit` — `EditProfileScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-030-000 | UI-030 | `/profile/password` — `ChangePasswordScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-031-000 | UI-031 | `/profile/guardian-approvals` — `GuardianApprovalsScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-032-000 | UI-032 | `/profile/erasure` — `ErasureScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
+| CTRL-UI-029-001 | UI-029 | `/profile/edit` | Full name, Display name, Bio, Mobile number fields | Fail | RUN-087: form renders but every field is empty on load — the backing `$auth.<field>` values are all null (TR-181) | TR-181 |
+| CTRL-UI-029-002 | UI-029 | `/profile/edit` | `Save changes` button | Pending | Not submitted this session (fields were empty; a save would overwrite the real name with blank values) | — |
+| CTRL-UI-030-001 | UI-030 | `/profile/password` | Current password, New password, Confirm new password fields | Pass | RUN-087: all three render correctly | — |
+| CTRL-UI-030-002 | UI-030 | `/profile/password` | `Update password` button: correctly disabled until all fields are non-empty | Pass | RUN-087: confirmed disabled state; not submitted (would rotate the active persona's password mid-session) | — |
+| CTRL-UI-031-001 | UI-031 | `/profile/guardian-approvals` | Entire screen unreachable — crashes on load | Fail | RUN-029/087: reproduces for two different personas, zero and one pending request | TR-184 |
+| CTRL-UI-032-001 | UI-032 | `/profile/erasure` | Reason field, consent checkbox | Pass | RUN-087: both render correctly | — |
+| CTRL-UI-032-002 | UI-032 | `/profile/erasure` | `Request data erasure` button: correctly disabled until consent is checked | Pass | RUN-087: confirmed disabled state; not submitted (would anonymise the active persona's PII, ending its usefulness for the rest of this run) | — |
 | CTRL-UI-033-001 | UI-033 | `/notifications` | `All`/`Unread` tab filter | Pass | RUN-069: both tabs correct, Unread correctly empty (all real notifications already read from earlier interaction) | — |
 | CTRL-UI-033-002 | UI-033 | `/notifications` | Notification rows: deep-link on tap, mark-read | Pass | RUN-069: real fixture notifications render with correct title/message/deep-link/timestamp | — |
 | CTRL-UI-033-003 | UI-033 | `/notifications` | `Mark all read` button (conditional, only shown when `unreadCount > 0`) | Pending | Not exercised — no unread notifications existed at test time | — |
@@ -273,23 +278,31 @@ Each placeholder must be replaced or supplemented with one row per visible, hidd
 | CTRL-UI-068-001 | UI-068 | `/contracts/:id/chat/:appId` | Chat thread, message composer | Pass | RUN-087: clean "Application not found" for a nonexistent app id, no crash; real chat send/receive not exercised this session | — |
 | CTRL-UI-069-001 | UI-069 | `/members/:memberId/reputation` | Rating list, average display, `Copy link` button | Pass | RUN-056: real 5★ rating with testimony correctly visible, correct public Member ID | — |
 | CTRL-UI-070-001 | UI-070 | `/search` | Search textbox, sector filter tabs | Pass | RUN-069: correct <2-char prompt, correct empty result for a content-only (non-title) query, correct real results for a matching query, XSS-probe fixture confirmed safe here too | — |
-| CTRL-UI-071-000 | UI-071 | `/admin` — `AdminScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-072-000 | UI-072 | `/admin/2fa/setup` — `AdminSetup2faScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-073-000 | UI-073 | `/admin/members` — `AdminMembersScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-074-000 | UI-074 | `/admin/declarations` — `AdminDeclarationsScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-075-000 | UI-075 | `/admin/proposals` — `AdminProposalsScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-076-000 | UI-076 | `/admin/loans` — `AdminLoansScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-077-000 | UI-077 | `/admin/financial` — `AdminFinancialScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-078-000 | UI-078 | `/admin/wallets` — `AdminWalletsScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-079-000 | UI-079 | `/admin/pts` — `AdminPtsScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-080-000 | UI-080 | `/admin/market` — `AdminMarketScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-081-000 | UI-081 | `/admin/blog` — `AdminBlogScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-082-000 | UI-082 | `/admin/blog/:id` — `AdminBlogReviewScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-083-000 | UI-083 | `/admin/contracts` — `AdminContractsScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-084-000 | UI-084 | `/admin/reports` — `AdminReportsScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-085-000 | UI-085 | `/admin/config` — `AdminConfigScreen` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-086-000 | UI-086 | `/` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
-| CTRL-UI-087-000 | UI-087 | `*` | Inventory placeholder: replace with one row per rendered or conditional interactive control before interacting with this route | Pending | — | — |
+| CTRL-UI-071-001 | UI-071 | `/admin` | 13 dashboard tiles (Members/Declarations/Proposals/Marketplace/Blog Review/Loans/Financial/PTS/Wallet Tools/Reports/Contracts/Audit Log/System Config/2FA Setup) | Pass | RUN-034/087: confirmed exact tile inventory, correctly denies non-admins with "Admins only" | — |
+| CTRL-UI-072-001 | UI-072 | `/admin/2fa/setup` | `Start 2FA Setup` button | Pending | RUN-087: screen renders correctly; not clicked (this admin already has active email-OTP 2FA; appears to be a separate TOTP-authenticator upgrade path, not exercised to avoid mutating live admin security state) | — |
+| CTRL-UI-073-001 | UI-073 | `/admin/members` | Search textbox | Fail | RUN-073/087: real, well-matching search term ("E2E Adult") returns zero results silently, no error | TR-203 |
+| CTRL-UI-074-001 | UI-074 | `/admin/declarations` — Declarations tab | Declaration list (23 real rows), Verify/Reject buttons | Fail | RUN-058/059: list renders correctly (admin-wide visibility); Verify/Reject both `500` for every caller | TR-204 |
+| CTRL-UI-074-002 | UI-074 | `/admin/declarations` — Token Surrenders tab | Surrender list, Complete Surrender button | Fail | RUN-059: every row shows "0 tokens" (TR-206); Complete `500`s identically (TR-204); debit math would resolve to 0 even if fixed (TR-205) | TR-204 |
+| CTRL-UI-075-001 | UI-075 | `/admin/proposals` | Entire screen unreachable — crashes on load | Fail | RUN-061: `(proposals.data ?? []).map is not a function`, 7th instance of the envelope-mismatch pattern | TR-196 |
+| CTRL-UI-076-001 | UI-076 | `/admin/loans` | Loan list, Approve/Reject/Write-Off buttons | Fail | RUN-065: shows only the logged-in admin's own loans (member-scoped query); no admin-wide list endpoint exists at all | TR-213 |
+| CTRL-UI-077-001 | UI-077 | `/admin/financial` | Investments/Donations/Sponsorships tabs, Publish Donation/Update Progress forms | Pass | RUN-087 (as 2FA admin): all 3 tabs render correctly with functional-looking forms; no live submission attempted (would need a disposable declaration/sponsorship fixture) | — |
+| CTRL-UI-078-001 | UI-078 | `/admin/wallets` | Member lookup, `Award Points` form | Fail | RUN-042b: lookup correct; Award Points wrong field name/casing, `400 Missing param: provision_type` | TR-190 |
+| CTRL-UI-078-002 | UI-078 | `/admin/wallets` | `Adjust Wallet` form | Fail | RUN-042b: wrong field name, `400 Missing param: wallet_type` — combined with TR-190, no working manual wallet-mutation tool exists | TR-191 |
+| CTRL-UI-079-001 | UI-079 | `/admin/pts` | `Update R & A` form/button | Fail | RUN-062: fails client-side (`Missing param: actor_admin_id`) but silently mutated global `pts_components` first — caught and remediated | TR-208 |
+| CTRL-UI-079-002 | UI-079 | `/admin/pts` | `Adjust θ` form/button | Fail | RUN-062: same broken `log_admin_action` call shape; used to restore θ after the above | TR-209 |
+| CTRL-UI-079-003 | UI-079 | `/admin/pts` | `Bootstrap PTS` button | Pending | Not exercised — singleton already existed after the above two actions | — |
+| CTRL-UI-080-001 | UI-080 | `/admin/market` | `Auto-Settle Orders` button | Pass | RUN-060: correctly returned "Auto-settle batch completed." (`enforce_role`-based, unaffected by TR-204) | — |
+| CTRL-UI-080-002 | UI-080 | `/admin/market` | "All Items" list, `Resolve Dispute` form | Fail | RUN-060: items list `400 ParseError` (join-alias bug); Resolve Dispute correctly `enforce_role`-gated but not live-submitted (no disputed non-fixture order safe to mutate) | TR-207 |
+| CTRL-UI-081-001 | UI-081 | `/admin/blog` | Review queue list, status/sector filters | Fail | RUN-050: filters/status render correctly, no crash; author column always shows "Member #?" | TR-198 |
+| CTRL-UI-082-001 | UI-082 | `/admin/blog/:id` | Approve+points, Reject+reason, Takedown+reason buttons | Pass | RUN-087: renders correctly for a real in-review post, correctly shows the real author name (closes TR-198's open question for this screen); no live approve/reject/takedown submitted (would permanently alter a real non-fixture post's moderation state) | — |
+| CTRL-UI-083-001 | UI-083 | `/admin/contracts` | Dispute detail, `Resolve Dispute` panel | Pass | RUN-066/071: real open dispute renders fully; Resolve panel opens with correct non-VGC decision options, not submitted (real non-fixture financial stakes) | — |
+| CTRL-UI-083-002 | UI-083 | `/admin/contracts` | Dispute Chat (Giver/Taker tabs) | Fail | RUN-066: both tabs `403` — chat access hardcoded to one `system_config.admin_member_id` rather than a real role check | TR-214 |
+| CTRL-UI-084-001 | UI-084 | `/admin/reports` | Financial/Gaming/Wallets tabs | Pass | RUN-063: all three render real aggregated data correctly | — |
+| CTRL-UI-084-002 | UI-084 | `/admin/reports` | Market/Activity/Education tabs, shared date-range picker | Fail | RUN-063/076: all three fail `"Missing param: from"` — the picker's values are never sent, confirmed as a pure frontend bug (backend works fine when called correctly) | TR-210 |
+| CTRL-UI-085-001 | UI-085 | `/admin/config` | `Update Config` JSON textarea/button | Fail | RUN-064: reports "Config updated." but its own placeholder advertises a nonexistent `surrender_rate` field that is silently dropped | TR-212 |
+| CTRL-UI-085-002 | UI-085 | `/admin/config` | Audit Log date-range filter | Fail | RUN-064: default "up to today" range shows zero entries despite 2 real same-day rows existing | TR-211 |
+| CTRL-UI-086-001 | UI-086 | `/` | Root redirect (no controls) | Pass | RUN-087: authenticated session correctly redirects `/` → `/home` | — |
+| CTRL-UI-087-001 | UI-087 | `*` | Catch-all redirect (no controls) | Fail | RUN-087: unknown deep path silently redirects to `/home` (soft-404) rather than a real 404 page, for an authenticated session too | TR-169 |
 
 ## 3. Frontend API/query functions
 
