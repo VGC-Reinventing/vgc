@@ -83,6 +83,8 @@ A fix that skips step 5 (live re-verification) is not done, no matter how obviou
 
 **Nothing in Phase 2 onward is verified "as admin" until this phase closes.** This is the highest-severity cluster on the whole register by count of Critical rows (4) and by blast radius (every one of these is a full, unauthenticated-or-under-authenticated path to the entire admin control plane).
 
+**Status: closed 2026-07-21, 9 of 10 fixed and live-verified, 1 genuinely blocked.** TR-176, TR-178, TR-179, TR-236 (coded, deliberately disabled), TR-163, TR-186, TR-187, TR-177, TR-166, TR-235 all fixed — see their Resolved entries in `TEST_REGISTER.md` for full fix/verification detail. TR-176's real fix landed on `Quick Start/enforce_role`, not `require_admin.xs` as originally named — the latter turned out to have zero live callers anywhere in the codebase. TR-178's root cause was deeper than described (`$role_hierarchy|get:""` returns the whole hierarchy object for an empty-string role, not `null`) — building its fix also surfaced a real XanoScript evaluation quirk (a compound piped-filter-chain + comparison expression inside a nested `var.update`/`conditional` silently produces a stale value) that's now a documented pattern to avoid throughout the rest of this plan. **TR-165 (CORS) investigated and left open — genuinely not fixable through any available Xano MCP tool** (checked `updateApiGroupSecurity`, `updateAPISecurity`, workspace settings; none expose an origin allowlist). This is real, unlike TR-226's earlier false alarm — flag for a future session with either direct Xano dashboard access or a plan-tier change. Phase 2 may proceed.
+
 ### Cluster F1 — Login/session/2FA bypass family
 
 | TR | Severity | Defect |

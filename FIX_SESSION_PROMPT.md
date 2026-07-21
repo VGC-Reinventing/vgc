@@ -28,43 +28,52 @@ Read, in this order, before doing anything else:
 **Update this section at the end of every session, in place — this is the only part of this file that changes session to session.** Overwrite the block below; do not append a history of old checkpoints here (that history lives in commit messages and `TEST_REGISTER.md`'s own Fix Summary fields).
 
 ```text
-Last updated: 2026-07-21 (Phase 0 complete, verification partial)
-Current phase: Phase 0 done; Phase 1 (auth/session security foundation) next
-Last completed fix: Cluster F0 — TR-194 + TR-239, marketplace settlement
-  hardcoded currency. Fixed via a new shared function
-  order_currency_to_wallet_currency (Xano function id 330584) called from
-  all 5 settlement endpoints (cancel, mark-received, auto-settle, settle,
-  resolve-dispute) instead of each hardcoding "token". Verified via isolated
-  unit test (all 3 currencies map correctly, invalid input throws) and a
-  live smoke test of the cancel endpoint (deploys/runs cleanly). Full
-  financial reconciliation NOT completed — funding a disposable test wallet
-  needed a direct table write the tooling safety classifier blocked;
-  correctly not routed around. See TEST_REGISTER.md's TR-194/TR-239 Resolved
-  entries and FIX_PLAN.md Phase 0 for full detail. Also corrected a stale
-  E2E_COVERAGE_LEDGER.md citation (API-127, contracts/{id}/cancel) that
-  wrongly implied a 6th hardcoded-currency instance — re-read live source,
-  confirmed it has no wallet mutation at all, not a real defect.
-Exact next fix: Phase 1, Cluster F1 — login/session/2FA bypass family
-  (TR-176, TR-178, TR-179, TR-236, TR-186, TR-163, TR-187, TR-235, TR-177,
-  TR-166, TR-165). Read FIX_PLAN.md's Phase 1 section in full, including the
-  TR-236 note: owner decided 2026-07-21 to code the email_verified_at check
-  but gate it behind a system_config flag defaulted off (real accounts
-  Varun Ghavare/Kashish Mutta/Barkha Gorana/Sneha Gorana/Vishal Gorana/
-  "Boss" would be locked out otherwise — Xano free-plan email sandbox only
-  delivers to the workspace-owner inbox). Do not enable that flag without
-  a fresh explicit go-ahead.
-Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 / behind 0
-  as of root commit bec21c9, XANO commit 835fa21 (verify both are still
-  current — this note itself predates its own commit).
-Open blockers: none for Phase 1. Phase 0's full reconciliation verification
-  is a recommended Phase 2 follow-up (needs a working admin/wallets/adjust
-  to fund test wallets legitimately), not a blocker for proceeding.
+Last updated: 2026-07-21 (Phase 1 complete, 9/10 fixed, 1 genuinely blocked)
+Current phase: Phase 0 and Phase 1 done; Phase 2 (wallet/financial data-
+  integrity — Clusters F2a/F2b/F2c) next
+Last completed fix: Phase 1 in full. Fixed and live-verified: TR-176 +
+  TR-178 (both closed via one fix to Quick Start/enforce_role — the real
+  admin gate on all 79 endpoints; require_admin.xs, which TR-176 originally
+  named, has zero live callers), TR-179 (suspended check), TR-163 + TR-187
+  (reset-link enumeration + broken magic link, plus a related FE bug found
+  in the same workflow — magicLinkLogin() never sent email), TR-186 (admin
+  login enumeration, unified error+status), TR-177 (admin/members sensitive
+  fields stripped), TR-166 (backup-admin status restricted to the real
+  backup admin), TR-235 (FE challenge_token fix). TR-236 coded but
+  deliberately left disabled by a system_config flag (owner decision
+  2026-07-21 — real accounts would be locked out under the current
+  email-sandbox limitation). TR-165 (CORS) investigated, genuinely not
+  fixable via any available Xano MCP tool — left open, distinct from
+  TR-226's earlier false alarm. Full detail: TEST_REGISTER.md's Resolved
+  entries and FIX_PLAN.md Phase 1's status block.
+  Notable: building TR-178's fix surfaced a real XanoScript evaluation
+  quirk — a compound expression combining a piped filter chain with a
+  comparison, inside one var.update nested in a conditional, silently
+  produces a stale value. Split into two separate var.update steps to work
+  around it; watch for this pattern in any future timestamp-window or
+  similar compound-condition logic.
+Exact next fix: Phase 2, Cluster F2a — wallet-type enum-casing mismatch
+  (TR-181, TR-191, TR-227, TR-232, TR-240, TR-190). Read FIX_PLAN.md's
+  Phase 2 section in full, including the hard sequencing constraint in
+  §2.3: TR-204 and TR-205 (Cluster F2b) MUST ship in the same commit, never
+  separately, or fixing TR-204's crash opens a live free-token exploit.
+  Cluster F2a's TR-240 fix (admin/wallets/adjust) is also the tool needed
+  to finally correct the standing VGC53 wallet residue below.
+Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 / behind
+  0 as of root commit 4334390, FrontEnd commit aec4119, XANO commit
+  4686aaf (verify all three are still current before starting Phase 2 —
+  this note itself predates its own commit).
+Open blockers: none for Phase 2. TR-165 (CORS) needs either direct Xano
+  dashboard access or a plan-tier change — flag to the owner, don't retry
+  via MCP tools. Phase 0's full financial reconciliation and TR-177's live
+  2FA-authenticated re-check are both recommended follow-ups once Phase 2's
+  admin/wallets/adjust fix (or a fresh admin 2FA session) makes them easy,
+  not blockers.
 Fixture/persona state: reuse existing disposable personas from
-  E2E_FIXTURE_LEDGER.md (VGC50-VGC67) rather than creating new ones, unless
-  a specific fix needs a genuinely fresh/untouched account. New this pass:
-  VGC68 ("Fix Phase0 Cancel Probe", zero balance, no dependent records) —
-  not yet added to E2E_FIXTURE_LEDGER.md, do that before creating any more
-  probe accounts so the ledger stays current.
+  E2E_FIXTURE_LEDGER.md (VGC50-VGC70) rather than creating new ones unless
+  a fix needs a genuinely fresh/untouched account. VGC69/VGC70 (Phase 1
+  probes) already ledgered as FX-025/FX-026, both reverted to clean
+  non-admin/non-suspended state after use.
 Known standing residue to correct once tooling allows: VGC53's wallet
   (E2E_FIXTURE_LEDGER.md "Known uncorrected residue" row) is intentionally
   left short 11.73 points / over-credited 11.73 tokens as live evidence of
