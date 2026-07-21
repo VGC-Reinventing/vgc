@@ -85,10 +85,10 @@ Exact next fix: Phase 3, Cluster F3a — the amount/amount_inr field-name
   cluster's necessary first step, unblocking safe verification of the
   other 8 screens.
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 /
-  behind 0 as of root commit <see git log after this checkpoint's commit>,
-  FrontEnd commit b98080e, XANO commit 6370deb (verify all three are still
-  current before continuing — FrontEnd and XANO had no further changes
-  during this checkpoint's doc-sync pass, only the root repo committed).
+  behind 0 as of root commit 424619a, FrontEnd commit b98080e, XANO commit
+  6370deb (verify all three are still current before continuing —
+  FrontEnd and XANO had no further changes during this checkpoint's
+  doc-sync pass, only the root repo committed).
 Open blockers: none for Phase 3. Known gaps carried forward (not
   blockers): TR-165 (CORS) needs Xano dashboard access or a plan change,
   not fixable via any MCP tool. admin/wallets/adjust's admin-success path
