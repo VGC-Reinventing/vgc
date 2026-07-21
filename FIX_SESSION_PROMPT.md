@@ -109,8 +109,7 @@ Exact next fix: Phase 3, Cluster F3b — paginated-envelope-vs-bare-array
   renders instead of a blank page) and completing one real Guardian
   Approvals Approve action end-to-end.
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 /
-  behind 0 as of root commit <fill in after this checkpoint's own commit
-  lands — check `git log -1` in root>, FrontEnd commit e41f178, XANO
+  behind 0 as of root commit 22f82c8, FrontEnd commit e41f178, XANO
   commit 7fef80e (verify all three are still current before continuing).
 Open blockers: none for Cluster F3b. Known gaps carried forward (not
   blockers): TR-165 (CORS) needs Xano dashboard access or a plan change.
