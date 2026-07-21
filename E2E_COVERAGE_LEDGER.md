@@ -13,13 +13,13 @@
 |---|---:|---:|---:|---:|---:|---:|
 | Router entries | 87 | 29 | 34 | 8 | 16 (13 In progress, 1 Note, 2 wide-status) | 0 |
 | Control placeholders | 104 | ~13 | 3 | 0 | 0 | 88 |
-| Frontend API functions | 318 | 14 | 26 | 16 | 21 (8 Partial, 11 Dead/Unreachable exports, 1 Pass with risk, 1 Pass with issue) | 241* |
+| Frontend API functions | 318 | 98 | 52 | 63 | 50 (32 Partial, 14 Dead/Unreachable, 4 issue/risk/pending-observation rows) | 55* |
 | Canonical Xano endpoints | 295 | 27 | 61 | 39 | 168 (164 Partial, 2 Dead, ~2 mixed-status) | 0 |
 | Reusable Xano functions | 15 | 2 | 6 | 0 | 7 (5 Partial, 2 Dead) | 0 |
-| Xano tables | 93 | 0 | 1 | 0 | 2 (2 Partial) | 90* |
+| Xano tables | 93 | 10 | 22 | 21 | 23 (23 Partial) | 17* |
 | End-to-end workflows | 20 | 3 | 2 | 2 | 3 (2 Partial, 1 In progress) | 10 |
 
-**\*Frontend API functions (§3) and Xano tables (§6) were not updated row-by-row in the 2026-07-21 closeout** — the Activity Rewards batch (FE-001–004), admin frontend API batches (FE-005–061), auth batch (FE-062–074), first blog evidence rows (FE-075/077/087), and initial activity tables (DB-001–003) have now been transcribed, leaving 331 rows still needing individual evidence transcription. This is an honest gap, not an oversight: the large majority of these rows were exercised *indirectly* with real evidence during this session's endpoint sweep (§4, all 295 rows resolved) and defect-finding work — e.g. every FE function that calls a tested endpoint, and every table read/written during a live reconciliation, has real evidence somewhere in `E2E_DEFECT_LOG.md`/`E2E_EXECUTION_LOG.md` — but that evidence was not yet fully transcribed back into the individual FE-XXX/DB-XXX rows themselves. Flagged as the top priority for the next session if full inventory-level traceability is required.
+**\*Frontend API functions (§3) and Xano tables (§6) are now substantially transcribed row-by-row from existing evidence** — the Activity Rewards batch (FE-001–004), admin frontend API batches (FE-005–061), auth batch (FE-062–074), first blog evidence rows (FE-075/077/087), cart and contract evidence rows (FE-090–122 where evidence exists), declaration/education/expense evidence rows (FE-123–146 where evidence exists), financial/gaming/groups evidence rows (FE-147–203 where evidence exists), loans/marketplace/notifications/points/profile/proposals/PTS evidence rows (FE-204–241 where evidence exists), React Query/shared wrappers (FE-242–318 where evidence exists), and all Xano table rows with available runtime/source/fixture evidence (DB-001–091 plus duplicate-normalized inventory rows) have now been transcribed, leaving 72 rows still needing individual evidence transcription or direct runtime closure. This is an honest gap, not an oversight: remaining frontend Pending rows are mostly unclicked/destructive branches, file/cloud upload/delete paths, seller/POD branches, social/group invite/comment/reaction paths, and detail branches without safe disposable fixtures; remaining table Pending rows are tables whose lifecycle was not directly exercised. Flagged as the top priority for continued exhaustive testing if full inventory-level traceability is required.
 
 Counts are updated at each checkpoint from the terminal statuses below. A route is not a Pass merely because it renders. Router-entry "wide-status" rows are ones recording more than one distinct outcome across sub-cases in a single row (e.g. "Pass (transfer), Fail (notification)") and are not cleanly bucketable by a single column value.
 
@@ -321,99 +321,99 @@ Each placeholder must be replaced or supplemented with one row per visible, hidd
 | FE-087 | `FrontEnd/src/api/blog.ts` | `commentBlog` | `BlogDetailScreen` comment form | Live inert stored-XSS marker comment posted and rendered as escaped literal text with no script execution | Pass | RUN-049; FX-013 | — |
 | FE-088 | `FrontEnd/src/api/blog.ts` | `toggleBookmark` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-089 | `FrontEnd/src/api/blog.ts` | `getMyBookmarks` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-090 | `FrontEnd/src/api/cart.ts` | `addToCart` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-091 | `FrontEnd/src/api/cart.ts` | `getCarts` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-092 | `FrontEnd/src/api/cart.ts` | `removeCartItem` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-093 | `FrontEnd/src/api/cart.ts` | `checkout` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-094 | `FrontEnd/src/api/client.ts` | `request` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-095 | `FrontEnd/src/api/contracts.ts` | `createContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-096 | `FrontEnd/src/api/contracts.ts` | `listContracts` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-097 | `FrontEnd/src/api/contracts.ts` | `getContract` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-090 | `FrontEnd/src/api/cart.ts` | `addToCart` | `ItemDetailScreen` Add to Cart control | Live add-to-cart flow created a vendor cart for item id 14 and rendered it on `/cart` | Pass | RUN-045; UI-025 | — |
+| FE-091 | `FrontEnd/src/api/cart.ts` | `getCarts` | `CartScreen` cart query | Live cart grouped item by vendor with correct subtotal and labels | Pass | RUN-045; UI-025 | — |
+| FE-092 | `FrontEnd/src/api/cart.ts` | `removeCartItem` | `CartScreen` Remove control | Remove control rendered and was included in cart flow; destructive remove branch still needs its own standalone runtime assertion | Partial | RUN-045; UI-025 | — |
+| FE-093 | `FrontEnd/src/api/cart.ts` | `checkout` | `CartScreen` checkout action | Live checkout succeeded, cleared cart exactly once and debited wallet exactly 9.78 points | Pass | RUN-045; FIN-004; UI-025 | — |
+| FE-094 | `FrontEnd/src/api/client.ts` | `request` | Shared frontend API transport | Shared request helper carried all successful and failing runtime API calls this run; row remains Partial because raw backend-error presentation/session-expiry cache behaviours are tracked in feature rows rather than fully closed here | Partial | RUN-001–RUN-091; TR-180/TR-187/TR-224 | TR-180, TR-187, TR-224 |
+| FE-095 | `FrontEnd/src/api/contracts.ts` | `createContract` | `CreateContractScreen` submit | Live Independent contract id 35 and Secure contract id 36 were created through the real workflow and reconciled | Pass | RUN-055; RUN-057; FX-015; FIN-006/007 | — |
+| FE-096 | `FrontEnd/src/api/contracts.ts` | `listContracts` | `ContractsScreen` Browse tab | Live browse tab rendered real contracts with filters; API optional-filter gateway drift remains tracked separately on bare backend calls | Pass | RUN-087; UI-065; TR-171 | TR-171 |
+| FE-097 | `FrontEnd/src/api/contracts.ts` | `getContract` | `ContractDetailScreen` detail query | Detail query works for lifecycle screens, but same endpoint leaks private applicant bid/proposal data to unrelated authenticated members | Fail | RUN-056; RUN-071; UI-067 | TR-217 |
 | FE-098 | `FrontEnd/src/api/contracts.ts` | `editContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-099 | `FrontEnd/src/api/contracts.ts` | `applyContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-100 | `FrontEnd/src/api/contracts.ts` | `assignContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-101 | `FrontEnd/src/api/contracts.ts` | `markCompleteContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-102 | `FrontEnd/src/api/contracts.ts` | `releaseContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-103 | `FrontEnd/src/api/contracts.ts` | `disputeContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-104 | `FrontEnd/src/api/contracts.ts` | `escalateContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-105 | `FrontEnd/src/api/contracts.ts` | `cancelContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-106 | `FrontEnd/src/api/contracts.ts` | `forceCloseRequest` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-107 | `FrontEnd/src/api/contracts.ts` | `rateContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-108 | `FrontEnd/src/api/contracts.ts` | `requestDetailedProposal` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-109 | `FrontEnd/src/api/contracts.ts` | `updateApplication` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-110 | `FrontEnd/src/api/contracts.ts` | `confirmAssignment` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-111 | `FrontEnd/src/api/contracts.ts` | `appointCandidate` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-112 | `FrontEnd/src/api/contracts.ts` | `submitCompletion` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-113 | `FrontEnd/src/api/contracts.ts` | `verifyCompletion` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-114 | `FrontEnd/src/api/contracts.ts` | `raiseApplicationDispute` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-115 | `FrontEnd/src/api/contracts.ts` | `getMyContracts` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-116 | `FrontEnd/src/api/contracts.ts` | `getContractMessages` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-117 | `FrontEnd/src/api/contracts.ts` | `sendContractMessage` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-118 | `FrontEnd/src/api/contracts.ts` | `rateApplication` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-119 | `FrontEnd/src/api/contracts.ts` | `getMemberReputation` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-120 | `FrontEnd/src/api/contracts.ts` | `closeApplications` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-121 | `FrontEnd/src/api/contracts.ts` | `getDisputeMessages` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-122 | `FrontEnd/src/api/contracts.ts` | `sendDisputeMessage` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-123 | `FrontEnd/src/api/declarations.ts` | `createDeclaration` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-124 | `FrontEnd/src/api/declarations.ts` | `submitDeclaration` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-125 | `FrontEnd/src/api/declarations.ts` | `listDeclarations` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-099 | `FrontEnd/src/api/contracts.ts` | `applyContract` | `ContractDetailScreen` Express Interest form | Live applications were created during Independent and Secure contract lifecycles | Pass | RUN-056; RUN-057 | — |
+| FE-100 | `FrontEnd/src/api/contracts.ts` | `assignContract` | No caller in current `FrontEnd/src` | Legacy/superseded wrapper; current assignment path uses application-level `appointCandidate` | Dead/Unreachable frontend export | Source caller grep 2026-07-21 | — |
+| FE-101 | `FrontEnd/src/api/contracts.ts` | `markCompleteContract` | `ContractDetailScreen` legacy contract-level completion control | Caller exists, but tested successful lifecycle uses application-level `submitCompletion`; contract-level branch not exercised | Partial | Source caller grep 2026-07-21; RUN-056 | — |
+| FE-102 | `FrontEnd/src/api/contracts.ts` | `releaseContract` | `ContractDetailScreen` legacy contract-level release control | Caller exists, but tested successful lifecycle uses application-level `verifyCompletion`; contract-level branch not exercised | Partial | Source caller grep 2026-07-21; RUN-056 | — |
+| FE-103 | `FrontEnd/src/api/contracts.ts` | `disputeContract` | `ContractDetailScreen` legacy contract-level dispute control | Caller exists; legacy contract-dispute path appears distinct from current application-dispute flow and was not executed | Partial | UI-067; TR-143 context | TR-143 |
+| FE-104 | `FrontEnd/src/api/contracts.ts` | `escalateContract` | `ContractDetailScreen` legacy escalation control | Caller exists but no runtime branch reached in current fixtures | Partial | Source caller grep 2026-07-21 | — |
+| FE-105 | `FrontEnd/src/api/contracts.ts` | `cancelContract` | `ContractDetailScreen` cancel/withdraw control | Caller exists; no disposable cancellation branch was exercised in the successful contract lifecycles | Partial | Source caller grep 2026-07-21; UI-067 | — |
+| FE-106 | `FrontEnd/src/api/contracts.ts` | `forceCloseRequest` | `ContractDetailScreen` force-close request control | Caller exists but no runtime branch reached in current fixtures | Partial | Source caller grep 2026-07-21 | — |
+| FE-107 | `FrontEnd/src/api/contracts.ts` | `rateContract` | `ContractDetailScreen` legacy contract-level rating control | Caller exists, but tested successful rating uses application-level `rateApplication` | Partial | RUN-056; source caller grep 2026-07-21 | — |
+| FE-108 | `FrontEnd/src/api/contracts.ts` | `requestDetailedProposal` | `ContractDetailScreen` / `ContractChatScreen` request-detail action | Live giver requested a detailed proposal during the Independent lifecycle | Pass | RUN-056 | — |
+| FE-109 | `FrontEnd/src/api/contracts.ts` | `updateApplication` | `ContractDetailScreen` detailed proposal editor | Live taker submitted detailed proposal successfully | Pass | RUN-056 | — |
+| FE-110 | `FrontEnd/src/api/contracts.ts` | `confirmAssignment` | No caller in current `FrontEnd/src` | Exported wrapper has no UI/import and was not used by the current lifecycle | Dead/Unreachable frontend export | Source caller grep 2026-07-21 | — |
+| FE-111 | `FrontEnd/src/api/contracts.ts` | `appointCandidate` | `ContractDetailScreen` Appoint as Taker action | Live appointment succeeded for Independent and Secure contracts with exact wallet reconciliation | Pass | RUN-056; RUN-057; FIN-006/007 | — |
+| FE-112 | `FrontEnd/src/api/contracts.ts` | `submitCompletion` | `ContractDetailScreen` Mark Work Complete action | Live taker completion submission succeeded in Independent and Secure lifecycles | Pass | RUN-056; RUN-057 | — |
+| FE-113 | `FrontEnd/src/api/contracts.ts` | `verifyCompletion` | `ContractDetailScreen` Verify & Complete action | Live verification transferred exact points in Independent and Secure lifecycles | Pass | RUN-056; RUN-057; FIN-006/007 | — |
+| FE-114 | `FrontEnd/src/api/contracts.ts` | `raiseApplicationDispute` | `ContractDetailScreen` application dispute action | Caller mapped but no disposable application dispute was raised; admin inspected only a pre-existing real dispute read-only | Blocked | RUN-066; UI-083 | — |
+| FE-115 | `FrontEnd/src/api/contracts.ts` | `getMyContracts` | `ContractsScreen` My Contracts tabs | Live contracts screen rendered Browse/As Giver/As Taker/Applied states with real fixture data | Pass | RUN-056; RUN-087; UI-065 | — |
+| FE-116 | `FrontEnd/src/api/contracts.ts` | `getContractMessages` | `ContractChatScreen` thread query | Nonexistent app-id route returned clean `Application not found` state; real chat-thread success remains only partially covered | Partial | RUN-087; UI-068 | — |
+| FE-117 | `FrontEnd/src/api/contracts.ts` | `sendContractMessage` | `ContractChatScreen` send form | Caller mapped; send-message mutation not exercised in this pass | Pending request observation | Pending | — | — |
+| FE-118 | `FrontEnd/src/api/contracts.ts` | `rateApplication` | `ContractDetailScreen` application rating form | Live 5-star testimony submitted and appeared on public reputation | Pass | RUN-056; UI-069 | — |
+| FE-119 | `FrontEnd/src/api/contracts.ts` | `getMemberReputation` | `MemberReputationScreen` query | Live one-rating reputation page rendered correct average, testimony, rater and contract reference | Pass | RUN-056; UI-069 | — |
+| FE-120 | `FrontEnd/src/api/contracts.ts` | `closeApplications` | `ContractsScreen` close-applications mutation | Caller mapped; close-applications branch not exercised with disposable fixture | Partial | Source caller grep 2026-07-21 | — |
+| FE-121 | `FrontEnd/src/api/contracts.ts` | `getDisputeMessages` | `DisputeChatPanel` admin/member dispute chat query | Live admin dispute chat tabs both returned 403 because access is hardcoded to one admin id, not role-based | Fail | RUN-066; UI-083 | TR-214 |
+| FE-122 | `FrontEnd/src/api/contracts.ts` | `sendDisputeMessage` | `DisputeChatPanel` send form | Blocked because dispute message reads fail for the legitimate test admin and no disposable dispute fixture exists | Blocked | RUN-066; UI-083 | TR-214 |
+| FE-123 | `FrontEnd/src/api/declarations.ts` | `createDeclaration` | `DeclarationFormScreen` submit chain | Live Donation declaration draft id 23 was created successfully with run marker and no wallet side effects | Pass | RUN-037; FX-011 | — |
+| FE-124 | `FrontEnd/src/api/declarations.ts` | `submitDeclaration` | `DeclarationFormScreen` immediate submit after draft create | Live submit call failed, leaving the declaration stuck as draft and unable to reach admin review | Fail | RUN-037; FX-011 | TR-189 |
+| FE-125 | `FrontEnd/src/api/declarations.ts` | `listDeclarations` | `DeclarationsListScreen` query | Live screen crashes because wrapper expects a bare array while backend returns `{declarations:[...]}` | Fail | RUN-047; UI-016 | TR-196 |
 | FE-126 | `FrontEnd/src/api/declarations.ts` | `getDeclaration` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-127 | `FrontEnd/src/api/declarations.ts` | `deleteDeclaration` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-128 | `FrontEnd/src/api/education.ts` | `createCourse` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-129 | `FrontEnd/src/api/education.ts` | `getMyCourses` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-130 | `FrontEnd/src/api/education.ts` | `getCourse` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-131 | `FrontEnd/src/api/education.ts` | `proposeAmendment` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-132 | `FrontEnd/src/api/education.ts` | `requestPayout` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-128 | `FrontEnd/src/api/education.ts` | `createCourse` | No caller in current `FrontEnd/src` | Course creation is routed through marketplace proposal flow in the UI; this exported wrapper has no current caller | Dead/Unreachable frontend export | Source caller grep 2026-07-21; RUN-053 | TR-195 |
+| FE-129 | `FrontEnd/src/api/education.ts` | `getMyCourses` | `TeacherDashboardScreen` courses query | Teacher Dashboard rendered a clean empty/course-dependent state; course creation remains blocked upstream | Pass | RUN-053; UI-043 | TR-195 |
+| FE-130 | `FrontEnd/src/api/education.ts` | `getCourse` | `CourseDetailScreen` query | Course-dependent route handling was visited as part of Education sweep; no successful course fixture exists because creation is blocked upstream | Partial | RUN-053; TR-195 | TR-195 |
+| FE-131 | `FrontEnd/src/api/education.ts` | `proposeAmendment` | `TeacherDashboardScreen` amendment form | Blocked because no disposable course can be created through the product flow | Blocked | RUN-053; TR-195 | TR-195 |
+| FE-132 | `FrontEnd/src/api/education.ts` | `requestPayout` | `TeacherDashboardScreen` payout request | Blocked because no disposable course exists; backend call family also affected by broken audit signature if reached through admin payout | Blocked | RUN-053; TR-195/TR-209 | TR-195, TR-209 |
 | FE-133 | `FrontEnd/src/api/education.ts` | `getMyEnrollments` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-134 | `FrontEnd/src/api/education.ts` | `startSession` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-135 | `FrontEnd/src/api/education.ts` | `endSession` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-136 | `FrontEnd/src/api/education.ts` | `cancelSession` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-137 | `FrontEnd/src/api/education.ts` | `checkinSession` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-138 | `FrontEnd/src/api/education.ts` | `verifyAttendance` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-139 | `FrontEnd/src/api/education.ts` | `getSessionAttendance` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-140 | `FrontEnd/src/api/education.ts` | `rateTeacher` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-141 | `FrontEnd/src/api/education.ts` | `rateStudent` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-134 | `FrontEnd/src/api/education.ts` | `startSession` | `TeacherDashboardScreen` session start | Blocked: no course/session fixture exists because Education creation path is blocked | Blocked | RUN-053; TR-195 | TR-195 |
+| FE-135 | `FrontEnd/src/api/education.ts` | `endSession` | `TeacherDashboardScreen` session end | Blocked: no course/session fixture exists because Education creation path is blocked | Blocked | RUN-053; TR-195 | TR-195 |
+| FE-136 | `FrontEnd/src/api/education.ts` | `cancelSession` | `TeacherDashboardScreen` session cancel | Blocked: no course/session fixture exists because Education creation path is blocked | Blocked | RUN-053; TR-195 | TR-195 |
+| FE-137 | `FrontEnd/src/api/education.ts` | `checkinSession` | `SessionDetailScreen` QR/check-in form | Blocked pending actual course/session/enrollment fixture and physical-device QR/camera gate | Blocked | RUN-053; device gate | TR-195 |
+| FE-138 | `FrontEnd/src/api/education.ts` | `verifyAttendance` | `SessionDetailScreen` teacher attendance verification | Blocked: no course/session/enrollment fixture exists because Education creation path is blocked | Blocked | RUN-053; TR-195 | TR-195 |
+| FE-139 | `FrontEnd/src/api/education.ts` | `getSessionAttendance` | `SessionDetailScreen` attendance query | Blocked: no course/session fixture exists because Education creation path is blocked | Blocked | RUN-053; TR-195 | TR-195 |
+| FE-140 | `FrontEnd/src/api/education.ts` | `rateTeacher` | `CourseDetailScreen` student rating form | Blocked: no completed course/session fixture exists because Education creation path is blocked | Blocked | RUN-053; TR-195 | TR-195 |
+| FE-141 | `FrontEnd/src/api/education.ts` | `rateStudent` | `SessionDetailScreen` teacher rating form | Blocked: no completed course/session fixture exists because Education creation path is blocked | Blocked | RUN-053; TR-195 | TR-195 |
 | FE-142 | `FrontEnd/src/api/education.ts` | `getTeacherRatings` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-143 | `FrontEnd/src/api/expenses.ts` | `logExpense` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-144 | `FrontEnd/src/api/expenses.ts` | `getMyExpenses` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-145 | `FrontEnd/src/api/expenses.ts` | `settleExpense` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-146 | `FrontEnd/src/api/expenses.ts` | `getPlatformLedger` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-147 | `FrontEnd/src/api/financial.ts` | `getDonors` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-148 | `FrontEnd/src/api/financial.ts` | `getDonor` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-149 | `FrontEnd/src/api/financial.ts` | `createInvestment` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-150 | `FrontEnd/src/api/financial.ts` | `getMyInvestments` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-143 | `FrontEnd/src/api/expenses.ts` | `logExpense` | `AddExpenseScreen` submit | Live full-form expense submission fails because frontend sends `amount` while backend requires `amount_inr` | Fail | RUN-055; UI-063 | TR-202 |
+| FE-144 | `FrontEnd/src/api/expenses.ts` | `getMyExpenses` | `ExpensesScreen` dashboard/list query | Live expenses screen rendered clean empty state; wrapper supplies page/per_page, masking the backend optional-default defect for this UI | Pass | RUN-087; UI-062; TR-171 | TR-171 |
+| FE-145 | `FrontEnd/src/api/expenses.ts` | `settleExpense` | `ExpensesScreen` settle action | Blocked because expense creation fails and no disposable pending expense fixture exists | Blocked | RUN-055; RUN-087 | TR-202 |
+| FE-146 | `FrontEnd/src/api/expenses.ts` | `getPlatformLedger` | `PlatformLedgerScreen` public ledger query | Live platform ledger route rendered correct empty state using explicit page param | Pass | RUN-087; UI-064 | — |
+| FE-147 | `FrontEnd/src/api/financial.ts` | `getDonors` | Financial donors screen/feed query | Financial screen rendered correct empty/list states without crash | Pass | RUN-054; RUN-087 | — |
+| FE-148 | `FrontEnd/src/api/financial.ts` | `getDonor` | `DonorDetailScreen` query | Nonexistent donor detail rendered clean `Donor not found` state | Pass | RUN-087; UI-048 | — |
+| FE-149 | `FrontEnd/src/api/financial.ts` | `createInvestment` | `CreateInvestmentScreen` submit | Live form submission fails due option enum, amount field and missing start-date contract mismatches | Fail | RUN-054; UI-049 | TR-200 |
+| FE-150 | `FrontEnd/src/api/financial.ts` | `getMyInvestments` | Financial investments list query | Financial screen rendered investments area correctly; creation remains blocked separately | Pass | RUN-054; UI-047 | TR-200 |
 | FE-151 | `FrontEnd/src/api/financial.ts` | `getOverdueCount` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-152 | `FrontEnd/src/api/financial.ts` | `getInvestment` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-153 | `FrontEnd/src/api/financial.ts` | `fileOverdueRequest` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-154 | `FrontEnd/src/api/financial.ts` | `createSponsorship` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-155 | `FrontEnd/src/api/financial.ts` | `getSponsorships` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-156 | `FrontEnd/src/api/financial.ts` | `getSponsorship` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-157 | `FrontEnd/src/api/financial.ts` | `disputeSponsorship` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-158 | `FrontEnd/src/api/gamingCommunity.ts` | `getGames` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-159 | `FrontEnd/src/api/gamingCommunity.ts` | `getGame` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-152 | `FrontEnd/src/api/financial.ts` | `getInvestment` | `InvestmentDetailScreen` query | Nonexistent investment detail rendered clean not-found state | Pass | RUN-087; UI-050 | — |
+| FE-153 | `FrontEnd/src/api/financial.ts` | `fileOverdueRequest` | `InvestmentDetailScreen` overdue request action | Blocked because no disposable investment can be created through the UI | Blocked | RUN-054; TR-200 | TR-200 |
+| FE-154 | `FrontEnd/src/api/financial.ts` | `createSponsorship` | `CreateSponsorshipScreen` submit | Live form submission fails because frontend sends `amount` while backend requires `amount_inr` | Fail | RUN-087; UI-051 | TR-223 |
+| FE-155 | `FrontEnd/src/api/financial.ts` | `getSponsorships` | Financial sponsorship list query | Financial/admin sponsorship areas rendered clean empty/action state; creation remains blocked separately | Pass | RUN-087; UI-077 | TR-223 |
+| FE-156 | `FrontEnd/src/api/financial.ts` | `getSponsorship` | `SponsorshipDetailScreen` query | Nonexistent sponsorship detail rendered clean not-found state | Pass | RUN-087; UI-052 | — |
+| FE-157 | `FrontEnd/src/api/financial.ts` | `disputeSponsorship` | `SponsorshipDetailScreen` dispute action | Blocked because no disposable sponsorship exists; creation is blocked by TR-223 | Blocked | RUN-087; TR-223 | TR-223 |
+| FE-158 | `FrontEnd/src/api/gamingCommunity.ts` | `getGames` | Community/Gaming games query | Game list/empty states rendered after disposable game seed | Pass | RUN-052; RUN-087 | — |
+| FE-159 | `FrontEnd/src/api/gamingCommunity.ts` | `getGame` | `GameDetailScreen` query | Disposable game id 1 detail loaded and rendered empty dependent states | Pass | RUN-052 | — |
 | FE-160 | `FrontEnd/src/api/gamingCommunity.ts` | `createGameGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-161 | `FrontEnd/src/api/gamingCommunity.ts` | `getGameGroups` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-161 | `FrontEnd/src/api/gamingCommunity.ts` | `getGameGroups` | `GameDetailScreen` groups tab query | Game groups empty state rendered correctly for disposable game | Pass | RUN-052 | — |
 | FE-162 | `FrontEnd/src/api/gamingCommunity.ts` | `joinGameGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-163 | `FrontEnd/src/api/gamingCommunity.ts` | `leaveGameGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-164 | `FrontEnd/src/api/gamingElections.ts` | `registerPioneerCandidate` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-165 | `FrontEnd/src/api/gamingElections.ts` | `getPioneerCandidates` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-166 | `FrontEnd/src/api/gamingElections.ts` | `updatePioneerCandidate` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-167 | `FrontEnd/src/api/gamingElections.ts` | `getElection` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-168 | `FrontEnd/src/api/gamingElections.ts` | `getElectionEligibility` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-169 | `FrontEnd/src/api/gamingElections.ts` | `castVote` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-170 | `FrontEnd/src/api/gamingSeasons.ts` | `getSeasons` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-171 | `FrontEnd/src/api/gamingSeasons.ts` | `getSeason` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-172 | `FrontEnd/src/api/gamingSeasons.ts` | `joinSeasonCommittee` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-173 | `FrontEnd/src/api/gamingSeasons.ts` | `getSeasonEvents` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-174 | `FrontEnd/src/api/gamingSeasons.ts` | `submitEventEntry` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-175 | `FrontEnd/src/api/gamingSeasons.ts` | `getEventSubmissions` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-176 | `FrontEnd/src/api/gamingSeasons.ts` | `postEventResults` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-177 | `FrontEnd/src/api/gamingSeasons.ts` | `depositSecureFunding` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-178 | `FrontEnd/src/api/gamingSeasons.ts` | `getSeasonLedger` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-179 | `FrontEnd/src/api/gamingSeasons.ts` | `createDistributionRecord` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-180 | `FrontEnd/src/api/groups.ts` | `listGroups` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-181 | `FrontEnd/src/api/groups.ts` | `getGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-182 | `FrontEnd/src/api/groups.ts` | `createGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-164 | `FrontEnd/src/api/gamingElections.ts` | `registerPioneerCandidate` | `PioneerCandidacyScreen` submit | Live full form submission fails because UI never supplies required `game_id` | Fail | RUN-051; UI-013 | TR-199 |
+| FE-165 | `FrontEnd/src/api/gamingElections.ts` | `getPioneerCandidates` | Pioneer candidacy/community query | Candidate-dependent area rendered and confirmed blocked by missing game selection on submit | Pass | RUN-051; TR-199 | TR-199 |
+| FE-166 | `FrontEnd/src/api/gamingElections.ts` | `updatePioneerCandidate` | `PioneerCandidacyScreen` update branch | Blocked because no candidate can be created through the UI | Blocked | RUN-051; TR-199 | TR-199 |
+| FE-167 | `FrontEnd/src/api/gamingElections.ts` | `getElection` | `ElectionDetailScreen` query | Blocked because no pioneer candidate/election fixture can be created | Blocked | RUN-052; TR-199 | TR-199 |
+| FE-168 | `FrontEnd/src/api/gamingElections.ts` | `getElectionEligibility` | `ElectionDetailScreen` eligibility query | Blocked because no election fixture can be created | Blocked | RUN-052; TR-199 | TR-199 |
+| FE-169 | `FrontEnd/src/api/gamingElections.ts` | `castVote` | `ElectionDetailScreen` vote action | Blocked because no election fixture can be created | Blocked | RUN-052; TR-199 | TR-199 |
+| FE-170 | `FrontEnd/src/api/gamingSeasons.ts` | `getSeasons` | `GameDetailScreen` Seasons tab query | Seasons empty state rendered correctly for disposable game | Pass | RUN-052; UI-035/036 | TR-199 |
+| FE-171 | `FrontEnd/src/api/gamingSeasons.ts` | `getSeason` | `SeasonDetailScreen` query | Season route/detail remains blocked because no season can be created until Pioneer Candidacy is fixed | Blocked | RUN-052; TR-199 | TR-199 |
+| FE-172 | `FrontEnd/src/api/gamingSeasons.ts` | `joinSeasonCommittee` | `SeasonDetailScreen` committee action | Blocked because no season fixture exists | Blocked | RUN-052; TR-199 | TR-199 |
+| FE-173 | `FrontEnd/src/api/gamingSeasons.ts` | `getSeasonEvents` | `SeasonDetailScreen` events query | Blocked because no season/event fixture exists | Blocked | RUN-052; TR-199 | TR-199 |
+| FE-174 | `FrontEnd/src/api/gamingSeasons.ts` | `submitEventEntry` | `EventDetailScreen` submission action | Blocked by missing event-detail endpoint and no event fixture | Blocked | RUN-087; UI-038 | TR-224 |
+| FE-175 | `FrontEnd/src/api/gamingSeasons.ts` | `getEventSubmissions` | `EventDetailScreen` submissions query | Blocked by missing event-detail endpoint and no event fixture | Blocked | RUN-087; UI-038 | TR-224 |
+| FE-176 | `FrontEnd/src/api/gamingSeasons.ts` | `postEventResults` | No current member UI path reached | Blocked because no event fixture exists | Blocked | RUN-052; TR-199/TR-224 | TR-199, TR-224 |
+| FE-177 | `FrontEnd/src/api/gamingSeasons.ts` | `depositSecureFunding` | `SeasonDetailScreen` secure-funding action | Blocked because no season fixture exists | Blocked | RUN-052; TR-199 | TR-199 |
+| FE-178 | `FrontEnd/src/api/gamingSeasons.ts` | `getSeasonLedger` | `SeasonDetailScreen` ledger query | Blocked because no season fixture exists; backend rate-limit behaviour observed during rapid direct calls | Blocked | RUN-052; security extended note | TR-199 |
+| FE-179 | `FrontEnd/src/api/gamingSeasons.ts` | `createDistributionRecord` | `SeasonDetailScreen` distribution action | Blocked because no season/event fixture exists | Blocked | RUN-052; TR-199 | TR-199 |
+| FE-180 | `FrontEnd/src/api/groups.ts` | `listGroups` | `GroupsScreen` list query | Group list/hub rendered with real fixtures | Pass | RUN-087; UI-055 | — |
+| FE-181 | `FrontEnd/src/api/groups.ts` | `getGroup` | `GroupDetailScreen` query | Disposable XSS-probe group id 11 rendered safely with escaped title/description | Pass | RUN-087; FX-012 | — |
+| FE-182 | `FrontEnd/src/api/groups.ts` | `createGroup` | `CreateGroupScreen` submit | Disposable group id 11 was created with inert stored-XSS markers and retained as evidence | Pass | FX-012; RUN-087 | — |
 | FE-183 | `FrontEnd/src/api/groups.ts` | `joinGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-184 | `FrontEnd/src/api/groups.ts` | `leaveGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-185 | `FrontEnd/src/api/groups.ts` | `inviteMember` | Pending caller mapping | Pending request observation | Pending | — | — |
@@ -425,131 +425,131 @@ Each placeholder must be replaced or supplemented with one row per visible, hidd
 | FE-191 | `FrontEnd/src/api/groups.ts` | `removeMember` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-192 | `FrontEnd/src/api/groups.ts` | `appealRemoval` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-193 | `FrontEnd/src/api/groups.ts` | `deleteGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-194 | `FrontEnd/src/api/groups.ts` | `getGroupMembers` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-194 | `FrontEnd/src/api/groups.ts` | `getGroupMembers` | `GroupDetailScreen` Members tab query | Group detail rendered member count/state for disposable group; deeper role/admin member actions remain separate | Partial | RUN-087; UI-055 | — |
 | FE-195 | `FrontEnd/src/api/groups.ts` | `getGroupJoinRequests` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-196 | `FrontEnd/src/api/groups.ts` | `getGroupPendingInvites` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-197 | `FrontEnd/src/api/groups.ts` | `listGroupPosts` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-198 | `FrontEnd/src/api/groups.ts` | `createPost` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-197 | `FrontEnd/src/api/groups.ts` | `listGroupPosts` | `GroupDetailScreen` Posts tab query | Posts empty state rendered correctly for disposable group | Pass | RUN-087; UI-055 | — |
+| FE-198 | `FrontEnd/src/api/groups.ts` | `createPost` | `CreatePostScreen` submit | Non-member direct UI can compose but backend correctly rejects submission with 403; UX defect remains | Partial | RUN-087; UI-056 | TR-222 |
 | FE-199 | `FrontEnd/src/api/groups.ts` | `commentOnPost` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-200 | `FrontEnd/src/api/groups.ts` | `getPostComments` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-201 | `FrontEnd/src/api/groups.ts` | `reactToPost` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-202 | `FrontEnd/src/api/groups.ts` | `voteOnPoll` | Pending caller mapping | Pending request observation | Pending | — | — |
 | FE-203 | `FrontEnd/src/api/groups.ts` | `deletePost` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-204 | `FrontEnd/src/api/loans.ts` | `requestLoan` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-205 | `FrontEnd/src/api/loans.ts` | `getMyLoans` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-206 | `FrontEnd/src/api/loans.ts` | `repayLoan` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-207 | `FrontEnd/src/api/marketplace.ts` | `getCategories` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-208 | `FrontEnd/src/api/marketplace.ts` | `getCategoryTree` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-209 | `FrontEnd/src/api/marketplace.ts` | `getItems` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-210 | `FrontEnd/src/api/marketplace.ts` | `getItem` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-211 | `FrontEnd/src/api/marketplace.ts` | `placeOrder` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-212 | `FrontEnd/src/api/marketplace.ts` | `getOrders` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-213 | `FrontEnd/src/api/marketplace.ts` | `getOrder` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-214 | `FrontEnd/src/api/marketplace.ts` | `getSales` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-215 | `FrontEnd/src/api/marketplace.ts` | `submitProofOfDelivery` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-216 | `FrontEnd/src/api/marketplace.ts` | `markReceived` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-217 | `FrontEnd/src/api/marketplace.ts` | `disputeOrder` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-218 | `FrontEnd/src/api/marketplace.ts` | `requestSettle` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-219 | `FrontEnd/src/api/marketplace.ts` | `cancelOrder` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-220 | `FrontEnd/src/api/notifications.ts` | `getNotifications` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-221 | `FrontEnd/src/api/notifications.ts` | `markNotificationRead` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-222 | `FrontEnd/src/api/notifications.ts` | `markAllNotificationsRead` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-223 | `FrontEnd/src/api/notifications.ts` | `getNotificationPreferences` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-224 | `FrontEnd/src/api/notifications.ts` | `updateNotificationPreferences` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-225 | `FrontEnd/src/api/pointsTransfer.ts` | `initiateTransfer` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-226 | `FrontEnd/src/api/pointsTransfer.ts` | `getTransferPassbook` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-227 | `FrontEnd/src/api/profile.ts` | `getProfile` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-228 | `FrontEnd/src/api/profile.ts` | `updateProfile` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-229 | `FrontEnd/src/api/profile.ts` | `getRoles` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-230 | `FrontEnd/src/api/profile.ts` | `lookupMembers` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-231 | `FrontEnd/src/api/profile.ts` | `getErasureRequest` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-232 | `FrontEnd/src/api/profile.ts` | `createErasureRequest` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-233 | `FrontEnd/src/api/proposals.ts` | `submitProposal` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-234 | `FrontEnd/src/api/proposals.ts` | `getProposals` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-235 | `FrontEnd/src/api/proposals.ts` | `getProposal` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-236 | `FrontEnd/src/api/proposals.ts` | `editProposal` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-237 | `FrontEnd/src/api/proposals.ts` | `withdrawProposal` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-238 | `FrontEnd/src/api/pts.ts` | `getPtsRate` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-239 | `FrontEnd/src/api/pts.ts` | `quoteConversion` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-240 | `FrontEnd/src/api/pts.ts` | `convert` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-241 | `FrontEnd/src/api/pts.ts` | `getPtsHistory` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-242 | `FrontEnd/src/api/queries.ts` | `useMe` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-243 | `FrontEnd/src/api/queries.ts` | `usePlatformConfig` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-244 | `FrontEnd/src/api/queries.ts` | `useProfile` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-245 | `FrontEnd/src/api/queries.ts` | `useRoles` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-246 | `FrontEnd/src/api/queries.ts` | `useGuardianApprovals` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-247 | `FrontEnd/src/api/queries.ts` | `useErasureRequest` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-248 | `FrontEnd/src/api/queries.ts` | `useWallets` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-249 | `FrontEnd/src/api/queries.ts` | `useWalletActivity` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-250 | `FrontEnd/src/api/queries.ts` | `useDeclarations` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-251 | `FrontEnd/src/api/queries.ts` | `useSurrenders` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-252 | `FrontEnd/src/api/queries.ts` | `useTransferPassbook` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-253 | `FrontEnd/src/api/queries.ts` | `useActivityCatalog` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-254 | `FrontEnd/src/api/queries.ts` | `useMyActivities` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-255 | `FrontEnd/src/api/queries.ts` | `usePtsRate` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-256 | `FrontEnd/src/api/queries.ts` | `usePtsHistory` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-257 | `FrontEnd/src/api/queries.ts` | `useCategoryTree` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-258 | `FrontEnd/src/api/queries.ts` | `useMarketItems` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-259 | `FrontEnd/src/api/queries.ts` | `useMarketItem` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-260 | `FrontEnd/src/api/queries.ts` | `useOrders` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-261 | `FrontEnd/src/api/queries.ts` | `useOrder` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-262 | `FrontEnd/src/api/queries.ts` | `useSales` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-263 | `FrontEnd/src/api/queries.ts` | `useCarts` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-264 | `FrontEnd/src/api/queries.ts` | `useProposals` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-265 | `FrontEnd/src/api/queries.ts` | `useNotifications` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-266 | `FrontEnd/src/api/queries.ts` | `useUnreadCount` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-267 | `FrontEnd/src/api/queries.ts` | `useNotificationPreferences` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-268 | `FrontEnd/src/api/queries.ts` | `useGames` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-269 | `FrontEnd/src/api/queries.ts` | `useGame` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-270 | `FrontEnd/src/api/queries.ts` | `useGameGroups` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-271 | `FrontEnd/src/api/queries.ts` | `usePioneerCandidates` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-272 | `FrontEnd/src/api/queries.ts` | `useElection` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-273 | `FrontEnd/src/api/queries.ts` | `useElectionEligibility` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-274 | `FrontEnd/src/api/queries.ts` | `useSeasons` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-275 | `FrontEnd/src/api/queries.ts` | `useSeason` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-276 | `FrontEnd/src/api/queries.ts` | `useSeasonEvents` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-277 | `FrontEnd/src/api/queries.ts` | `useSeasonLedger` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-278 | `FrontEnd/src/api/queries.ts` | `useMyCourses` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-279 | `FrontEnd/src/api/queries.ts` | `useCourse` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-280 | `FrontEnd/src/api/queries.ts` | `useMyEnrollments` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-281 | `FrontEnd/src/api/queries.ts` | `useSessionAttendance` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-282 | `FrontEnd/src/api/queries.ts` | `useTeacherRatings` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-283 | `FrontEnd/src/api/queries.ts` | `useDonors` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-284 | `FrontEnd/src/api/queries.ts` | `useOverdueCount` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-285 | `FrontEnd/src/api/queries.ts` | `useMyInvestments` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-286 | `FrontEnd/src/api/queries.ts` | `useInvestment` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-287 | `FrontEnd/src/api/queries.ts` | `useSponsorships` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-288 | `FrontEnd/src/api/queries.ts` | `useSponsorship` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-289 | `FrontEnd/src/api/queries.ts` | `useGroups` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-290 | `FrontEnd/src/api/queries.ts` | `useGroup` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-291 | `FrontEnd/src/api/queries.ts` | `useGroupPosts` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-292 | `FrontEnd/src/api/queries.ts` | `useGroupMembers` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-293 | `FrontEnd/src/api/queries.ts` | `useGroupJoinRequests` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-294 | `FrontEnd/src/api/queries.ts` | `useGroupPendingInvites` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-295 | `FrontEnd/src/api/queries.ts` | `useMyGroupInvites` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-296 | `FrontEnd/src/api/queries.ts` | `usePublicBlog` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-297 | `FrontEnd/src/api/queries.ts` | `useMyBlogs` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-298 | `FrontEnd/src/api/queries.ts` | `useMyBookmarks` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-299 | `FrontEnd/src/api/queries.ts` | `useBlog` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-300 | `FrontEnd/src/api/queries.ts` | `useMyLoans` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-301 | `FrontEnd/src/api/queries.ts` | `useMyExpenses` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-302 | `FrontEnd/src/api/queries.ts` | `usePlatformLedger` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-303 | `FrontEnd/src/api/queries.ts` | `useContracts` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-304 | `FrontEnd/src/api/queries.ts` | `useMyContracts` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-305 | `FrontEnd/src/api/queries.ts` | `useContract` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-306 | `FrontEnd/src/api/queries.ts` | `useContractMessages` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-307 | `FrontEnd/src/api/queries.ts` | `useMemberReputation` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-308 | `FrontEnd/src/api/search.ts` | `searchAll` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-309 | `FrontEnd/src/api/system.ts` | `getConfig` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-310 | `FrontEnd/src/api/system.ts` | `uploadFile` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-311 | `FrontEnd/src/api/system.ts` | `deleteFile` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-312 | `FrontEnd/src/api/system.ts` | `uploadToCloudinary` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-313 | `FrontEnd/src/api/tokenSurrender.ts` | `createSurrender` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-314 | `FrontEnd/src/api/tokenSurrender.ts` | `listSurrenders` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-315 | `FrontEnd/src/api/tokenSurrender.ts` | `getSurrender` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-316 | `FrontEnd/src/api/wallets.ts` | `getWallets` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-317 | `FrontEnd/src/api/wallets.ts` | `getWallet` | Pending caller mapping | Pending request observation | Pending | — | — |
-| FE-318 | `FrontEnd/src/api/wallets.ts` | `getWalletActivity` | Pending caller mapping | Pending request observation | Pending | — | — |
+| FE-204 | `FrontEnd/src/api/loans.ts` | `requestLoan` | `LoanRequestScreen` submit | Live full-form loan request fails because frontend sends `amount` while backend requires `amount_inr` | Fail | RUN-055; UI-061 | TR-201 |
+| FE-205 | `FrontEnd/src/api/loans.ts` | `getMyLoans` | `LoansScreen`; `AdminLoansScreen` current wrapper use | Member/admin loan screens render empty/member-scoped lists; admin review is separately broken because it needs an admin-wide list | Pass | RUN-055; RUN-065; UI-061/UI-076 | TR-213 |
+| FE-206 | `FrontEnd/src/api/loans.ts` | `repayLoan` | `LoansScreen` repay action | Blocked because no disposable loan can be created through the UI and admin loan approval workflow is unreachable | Blocked | RUN-055; RUN-065 | TR-201, TR-213 |
+| FE-207 | `FrontEnd/src/api/marketplace.ts` | `getCategories` | `ExploreScreen` category chips | Live marketplace browse rendered category chips/list correctly | Pass | RUN-044; UI-012 | — |
+| FE-208 | `FrontEnd/src/api/marketplace.ts` | `getCategoryTree` | `ProposalFormScreen` category tree prefetch | Proposal screen crashes before form use because proposals list/envelope handling fails; tree call not independently proven | Blocked | RUN-047; TR-195 | TR-195 |
+| FE-209 | `FrontEnd/src/api/marketplace.ts` | `getItems` | `ExploreScreen` item listing/search/filter | Live marketplace browse rendered 10 real items; price display currency labelling remains defective | Pass | RUN-044; UI-012 | TR-193 |
+| FE-210 | `FrontEnd/src/api/marketplace.ts` | `getItem` | `ItemDetailScreen` query | Live item id 2 detail loaded and enabled Buy Now; detail price unit display remains defective | Pass | RUN-044; UI-024 | TR-193 |
+| FE-211 | `FrontEnd/src/api/marketplace.ts` | `placeOrder` | `ItemDetailScreen` Buy Now | Live Buy Now created an order and debited the points wallet exactly once | Pass | RUN-044; FIN-003 | — |
+| FE-212 | `FrontEnd/src/api/marketplace.ts` | `getOrders` | `OrdersScreen` list query | Live My Orders tab listed the newly-created order with correct status | Pass | RUN-044; UI-026 | — |
+| FE-213 | `FrontEnd/src/api/marketplace.ts` | `getOrder` | `OrderDetailScreen` query | Live order detail loaded the disposable order and rendered correct pre-POD actions | Pass | RUN-046; UI-027 | — |
+| FE-214 | `FrontEnd/src/api/marketplace.ts` | `getSales` | Seller/sales view query | Caller mapped, but no proposer-owned disposable sales workflow was completed | Pending | — | — |
+| FE-215 | `FrontEnd/src/api/marketplace.ts` | `submitProofOfDelivery` | Order detail proposer POD action | Blocked because tested disposable order was buyer-side and no proposer-owned disposable sale was safely advanced | Blocked | WF-09; RUN-046 | — |
+| FE-216 | `FrontEnd/src/api/marketplace.ts` | `markReceived` | Order detail buyer receipt action | Source-confirmed settlement path hardcodes token currency and would mis-settle non-token purchases; not live-submitted to avoid known bad financial mutation | Fail | RUN-046; RUN-081 | TR-194 |
+| FE-217 | `FrontEnd/src/api/marketplace.ts` | `disputeOrder` | Order detail buyer dispute action | Blocked because no disposable POD-window order fixture was safely advanced | Blocked | WF-09 | — |
+| FE-218 | `FrontEnd/src/api/marketplace.ts` | `requestSettle` | Order detail proposer settle request | Blocked because no proposer-owned disposable sale was safely advanced | Blocked | WF-09 | — |
+| FE-219 | `FrontEnd/src/api/marketplace.ts` | `cancelOrder` | `OrderDetailScreen` Cancel button | Live cancellation worked and duplicate-cancel was blocked, but refund credited token wallet instead of the order's real points currency | Fail | RUN-046; FIN-005 | TR-194 |
+| FE-220 | `FrontEnd/src/api/notifications.ts` | `getNotifications` | `NotificationsScreen` list/unread filter | Live notification list and unread filter rendered correctly with real fixture notifications | Pass | RUN-069; UI-033 | — |
+| FE-221 | `FrontEnd/src/api/notifications.ts` | `markNotificationRead` | Notification row read action | Notification row interaction was not individually exercised beyond list/filter rendering | Pending | — | — |
+| FE-222 | `FrontEnd/src/api/notifications.ts` | `markAllNotificationsRead` | Notifications bulk read action | Bulk read action was not clicked in this pass | Pending | — | — |
+| FE-223 | `FrontEnd/src/api/notifications.ts` | `getNotificationPreferences` | `NotificationPreferencesScreen` query | Preferences load path is broken by frontend/backend data-model mismatch | Fail | RUN-069; UI-034 | TR-215 |
+| FE-224 | `FrontEnd/src/api/notifications.ts` | `updateNotificationPreferences` | `NotificationPreferencesScreen` save toggles | Preferences save path is broken by the same frontend/backend data-model mismatch | Fail | RUN-069; UI-034 | TR-215 |
+| FE-225 | `FrontEnd/src/api/pointsTransfer.ts` | `initiateTransfer` | `PointsTransferScreen` send/confirm flow | Live 100-point transfer from `VGC50` to `VGC51` reconciled exactly; recipient notification missing separately | Pass | RUN-041; FIN-002 | TR-192 |
+| FE-226 | `FrontEnd/src/api/pointsTransfer.ts` | `getTransferPassbook` | `PointsTransferPassbookScreen` query | Sender passbook entry rendered correctly after live transfer | Pass | RUN-041; UI-021 | — |
+| FE-227 | `FrontEnd/src/api/profile.ts` | `getProfile` | `ProfileScreen`; `EditProfileScreen` prefill | Profile-dependent screens render, but `GET /user/profile` returns null/zero data due wallet/field mismatch, leaving Edit Profile empty | Fail | RUN-087; UI-028/UI-029 | TR-181 |
+| FE-228 | `FrontEnd/src/api/profile.ts` | `updateProfile` | `EditProfileScreen` save form | Form rendered with empty prefill due TR-181; update was not submitted in this pass | Partial | RUN-087; UI-029 | TR-181 |
+| FE-229 | `FrontEnd/src/api/profile.ts` | `getRoles` | Profile/security shell role query | Role-dependent protected shell/admin access was exercised; endpoint auth checked in backend matrix | Partial | RUN-077; RUN-087 | — |
+| FE-230 | `FrontEnd/src/api/profile.ts` | `lookupMembers` | Points-transfer recipient search / member lookup | Member lookup is functionally used for transfer recipient selection, but related admin/member search mismatch remains tracked separately | Pass | RUN-041; UI-019 | TR-203 |
+| FE-231 | `FrontEnd/src/api/profile.ts` | `getErasureRequest` | `DataErasureScreen` query | Erasure screen route rendered; backend auth checked, but no full erasure request lifecycle was created | Partial | RUN-087; RUN-077; UI-032 | — |
+| FE-232 | `FrontEnd/src/api/profile.ts` | `createErasureRequest` | `DataErasureScreen` submit | Not submitted because it would create a real DPDP erasure request; admin process path has known mutation-before-audit risk | Blocked | RUN-086; TR-209 | TR-209 |
+| FE-233 | `FrontEnd/src/api/proposals.ts` | `submitProposal` | `ProposalFormScreen` submit | Marketplace/Education proposal creation is unreachable because the proposal screen crashes before form submission | Blocked | RUN-047; RUN-053 | TR-195 |
+| FE-234 | `FrontEnd/src/api/proposals.ts` | `getProposals` | `ProposalFormScreen`; `AdminProposalsScreen` list query | Live member/admin proposal screens crash because endpoint returns a paginated envelope while wrappers/screens expect an array | Fail | RUN-047; RUN-061 | TR-195, TR-196 |
+| FE-235 | `FrontEnd/src/api/proposals.ts` | `getProposal` | Proposal detail/edit caller | Endpoint auth checked; no proposal fixture exists because creation/listing is blocked | Blocked | RUN-075; TR-195 | TR-195 |
+| FE-236 | `FrontEnd/src/api/proposals.ts` | `editProposal` | Proposal edit caller | Blocked because no disposable proposal can be created through the product | Blocked | RUN-075; TR-195 | TR-195 |
+| FE-237 | `FrontEnd/src/api/proposals.ts` | `withdrawProposal` | Proposal withdraw caller | Blocked because no disposable proposal can be created through the product | Blocked | RUN-075; TR-195 | TR-195 |
+| FE-238 | `FrontEnd/src/api/pts.ts` | `getPtsRate` | `PtsDashboardScreen` rate detail tab | Live rate detail rendered published/equilibrium/user rates, P_net, suspension state and θ-hidden copy | Pass | RUN-042; UI-023 | — |
+| FE-239 | `FrontEnd/src/api/pts.ts` | `quoteConversion` | `PtsDashboardScreen` quote action | Conversion quote correctly blocked by current suspended platform economics; multiplier/divisor arithmetic remains unexercised until suspension is lifted | Blocked | RUN-042; security quarantine gate | — |
+| FE-240 | `FrontEnd/src/api/pts.ts` | `convert` | `PtsDashboardScreen` convert action | Conversion execution correctly blocked by current suspended platform economics | Blocked | RUN-042; security quarantine gate | — |
+| FE-241 | `FrontEnd/src/api/pts.ts` | `getPtsHistory` | `PtsDashboardScreen` history tab | Live history tab crashes due paginated-envelope versus array mismatch | Fail | RUN-047; UI-023 | TR-196 |
+| FE-242 | `FrontEnd/src/api/queries.ts` | `useMe` | Protected shell/global current-user query | Current-user query worked across login/session flows, with suspended/cache risks tracked separately | Partial | RUN-079; TR-179/TR-180 | TR-179, TR-180 |
+| FE-243 | `FrontEnd/src/api/queries.ts` | `usePlatformConfig` | Global platform config query | Public config loaded across PTS/wallet/admin contexts; sensitive θ not exposed in member PTS UI | Pass | RUN-042; API-073 | — |
+| FE-244 | `FrontEnd/src/api/queries.ts` | `useProfile` | Profile/edit-profile prefill query | Wraps broken `getProfile`; edit profile fields render empty/incorrect | Fail | RUN-087; FE-227 | TR-181 |
+| FE-245 | `FrontEnd/src/api/queries.ts` | `useRoles` | Role-gated shell/admin visibility query | Role query participated in tested shell/admin flows; backend auth checked | Partial | RUN-077; RUN-087 | — |
+| FE-246 | `FrontEnd/src/api/queries.ts` | `useGuardianApprovals` | Guardian approvals route query | Live guardian approvals screen crashes on envelope mismatch | Fail | RUN-029; RUN-087; FE-073 | TR-184 |
+| FE-247 | `FrontEnd/src/api/queries.ts` | `useErasureRequest` | Data erasure route query | Route/query rendered; full request lifecycle remains deferred | Partial | RUN-087; FE-231 | — |
+| FE-248 | `FrontEnd/src/api/queries.ts` | `useWallets` | Home/wallet/profile wallet summary query | Live wallet balances rendered and reconciled across transfers, marketplace, contracts and admin wallet tools | Pass | RUN-021; RUN-041–046; RUN-056–057 | — |
+| FE-249 | `FrontEnd/src/api/queries.ts` | `useWalletActivity` | Wallet passbook/activity query | Wallet/activity views supported reconciliation checks; no crash observed | Pass | RUN-041–046; RUN-056–057 | — |
+| FE-250 | `FrontEnd/src/api/queries.ts` | `useDeclarations` | Wallet declarations list query | Wraps declaration list crash path | Fail | RUN-047; FE-125 | TR-196 |
+| FE-251 | `FrontEnd/src/api/queries.ts` | `useSurrenders` | Wallet token-surrenders list query | Token-surrenders history crashes on envelope mismatch | Fail | RUN-047; UI-018 | TR-196 |
+| FE-252 | `FrontEnd/src/api/queries.ts` | `useTransferPassbook` | Points transfer passbook query | Live transfer passbook rendered the sender-side entry correctly | Pass | RUN-041; FE-226 | — |
+| FE-253 | `FrontEnd/src/api/queries.ts` | `useActivityCatalog` | Activity Rewards catalog query | Empty catalog state rendered correctly | Pass | RUN-043b; FE-001 | — |
+| FE-254 | `FrontEnd/src/api/queries.ts` | `useMyActivities` | Activity Rewards my-activity query | My-activity tab crashes on envelope mismatch | Fail | RUN-047; FE-002 | TR-196 |
+| FE-255 | `FrontEnd/src/api/queries.ts` | `usePtsRate` | PTS dashboard rate query | Rate/suspension state rendered correctly | Pass | RUN-042; FE-238 | — |
+| FE-256 | `FrontEnd/src/api/queries.ts` | `usePtsHistory` | PTS dashboard history query | History tab crashes on envelope mismatch | Fail | RUN-047; FE-241 | TR-196 |
+| FE-257 | `FrontEnd/src/api/queries.ts` | `useCategoryTree` | Marketplace proposal category-tree query | Blocked behind proposal screen crash before useful form exercise | Blocked | FE-208; TR-195 | TR-195 |
+| FE-258 | `FrontEnd/src/api/queries.ts` | `useMarketItems` | Explore marketplace listing query | Live browse rendered marketplace items correctly | Pass | RUN-044; FE-209 | TR-193 |
+| FE-259 | `FrontEnd/src/api/queries.ts` | `useMarketItem` | Marketplace item detail query | Live item detail rendered and supported Buy Now | Pass | RUN-044; FE-210 | TR-193 |
+| FE-260 | `FrontEnd/src/api/queries.ts` | `useOrders` | My Orders list query | Live order list rendered newly-created order | Pass | RUN-044; FE-212 | — |
+| FE-261 | `FrontEnd/src/api/queries.ts` | `useOrder` | Order detail query | Live order detail rendered pre-POD/cancel state | Pass | RUN-046; FE-213 | — |
+| FE-262 | `FrontEnd/src/api/queries.ts` | `useSales` | Seller sales query | No proposer-owned disposable sales workflow completed | Pending | — | — |
+| FE-263 | `FrontEnd/src/api/queries.ts` | `useCarts` | Cart screen query | Live cart grouped vendor/items correctly | Pass | RUN-045; FE-091 | — |
+| FE-264 | `FrontEnd/src/api/queries.ts` | `useProposals` | Member/admin proposal list query | Wraps proposal envelope crash path | Fail | RUN-047; RUN-061; FE-234 | TR-195, TR-196 |
+| FE-265 | `FrontEnd/src/api/queries.ts` | `useNotifications` | Notifications list/unread/bell query | Live notifications and unread filter rendered correctly | Pass | RUN-069; FE-220 | — |
+| FE-266 | `FrontEnd/src/api/queries.ts` | `useUnreadCount` | Header unread-count derived query | Derived from working unread notification query; badge pathway exercised during notifications sweep | Pass | RUN-069; FE-220 | — |
+| FE-267 | `FrontEnd/src/api/queries.ts` | `useNotificationPreferences` | Notification preferences query | Wraps broken preferences model | Fail | RUN-069; FE-223 | TR-215 |
+| FE-268 | `FrontEnd/src/api/queries.ts` | `useGames` | Gaming catalog query | Game list/empty states rendered | Pass | RUN-052; RUN-087; FE-158 | — |
+| FE-269 | `FrontEnd/src/api/queries.ts` | `useGame` | Game detail query | Disposable game detail rendered | Pass | RUN-052; FE-159 | — |
+| FE-270 | `FrontEnd/src/api/queries.ts` | `useGameGroups` | Game detail groups tab query | Game groups empty state rendered | Pass | RUN-052; FE-161 | — |
+| FE-271 | `FrontEnd/src/api/queries.ts` | `usePioneerCandidates` | Pioneer candidacy/community query | Candidate list area rendered; registration mutation blocked separately | Pass | RUN-051; FE-165 | TR-199 |
+| FE-272 | `FrontEnd/src/api/queries.ts` | `useElection` | Election detail query | Blocked because no election fixture can be created | Blocked | RUN-052; FE-167 | TR-199 |
+| FE-273 | `FrontEnd/src/api/queries.ts` | `useElectionEligibility` | Election eligibility query | Blocked because no election fixture can be created | Blocked | RUN-052; FE-168 | TR-199 |
+| FE-274 | `FrontEnd/src/api/queries.ts` | `useSeasons` | Game seasons tab query | Seasons empty state rendered correctly | Pass | RUN-052; FE-170 | TR-199 |
+| FE-275 | `FrontEnd/src/api/queries.ts` | `useSeason` | Season detail query | Blocked because no season fixture exists | Blocked | RUN-052; FE-171 | TR-199 |
+| FE-276 | `FrontEnd/src/api/queries.ts` | `useSeasonEvents` | Season events query | Blocked because no season/event fixture exists | Blocked | RUN-052; FE-173 | TR-199 |
+| FE-277 | `FrontEnd/src/api/queries.ts` | `useSeasonLedger` | Season ledger query | Blocked because no season fixture exists; rate-limit behaviour observed under repeated calls | Blocked | RUN-052; FE-178 | TR-199 |
+| FE-278 | `FrontEnd/src/api/queries.ts` | `useMyCourses` | Teacher dashboard courses query | Teacher dashboard rendered clean course-dependent state | Pass | RUN-053; FE-129 | TR-195 |
+| FE-279 | `FrontEnd/src/api/queries.ts` | `useCourse` | Course detail query | Course detail route/error handling visited; no successful course fixture exists | Partial | RUN-053; FE-130 | TR-195 |
+| FE-280 | `FrontEnd/src/api/queries.ts` | `useMyEnrollments` | Student enrollment query | Enrollment row remains unexercised because course creation is blocked | Pending | — | TR-195 |
+| FE-281 | `FrontEnd/src/api/queries.ts` | `useSessionAttendance` | Session attendance query | Blocked because no course/session fixture exists | Blocked | RUN-053; FE-139 | TR-195 |
+| FE-282 | `FrontEnd/src/api/queries.ts` | `useTeacherRatings` | Teacher ratings query | Ratings empty state rendered cleanly for teacher/member route | Pass | RUN-068; UI-046 | — |
+| FE-283 | `FrontEnd/src/api/queries.ts` | `useDonors` | Financial donors query | Financial donors/feed screen rendered cleanly | Pass | RUN-054; RUN-087; FE-147 | — |
+| FE-284 | `FrontEnd/src/api/queries.ts` | `useOverdueCount` | Investment overdue count query | Caller mapped but not independently observed in UI | Pending | — | — |
+| FE-285 | `FrontEnd/src/api/queries.ts` | `useMyInvestments` | Financial investments list query | Financial screen rendered investments area; creation blocked separately | Pass | RUN-054; FE-150 | TR-200 |
+| FE-286 | `FrontEnd/src/api/queries.ts` | `useInvestment` | Investment detail query | Nonexistent detail route rendered clean not-found state | Pass | RUN-087; FE-152 | — |
+| FE-287 | `FrontEnd/src/api/queries.ts` | `useSponsorships` | Sponsorship list query | Sponsorship list/admin areas rendered; creation blocked separately | Pass | RUN-087; FE-155 | TR-223 |
+| FE-288 | `FrontEnd/src/api/queries.ts` | `useSponsorship` | Sponsorship detail query | Nonexistent detail route rendered clean not-found state | Pass | RUN-087; FE-156 | — |
+| FE-289 | `FrontEnd/src/api/queries.ts` | `useGroups` | Groups list query | Groups hub rendered real fixtures | Pass | RUN-087; FE-180 | — |
+| FE-290 | `FrontEnd/src/api/queries.ts` | `useGroup` | Group detail query | Disposable XSS-probe group detail rendered safely | Pass | RUN-087; FE-181 | — |
+| FE-291 | `FrontEnd/src/api/queries.ts` | `useGroupPosts` | Group posts query | Posts tab rendered correct empty state | Pass | RUN-087; FE-197 | — |
+| FE-292 | `FrontEnd/src/api/queries.ts` | `useGroupMembers` | Group members query | Member state/count rendered; role/admin member actions remain deeper coverage | Partial | RUN-087; FE-194 | — |
+| FE-293 | `FrontEnd/src/api/queries.ts` | `useGroupJoinRequests` | Group join requests query | Admin/co-admin join-request branch not exercised | Pending | — | — |
+| FE-294 | `FrontEnd/src/api/queries.ts` | `useGroupPendingInvites` | Group pending-invites query | Admin/co-admin invite branch not exercised | Pending | — | — |
+| FE-295 | `FrontEnd/src/api/queries.ts` | `useMyGroupInvites` | My group invites query | User invite branch not exercised | Pending | — | — |
+| FE-296 | `FrontEnd/src/api/queries.ts` | `usePublicBlog` | Blog feed query | Public feed rendered real published posts and title-only search | Pass | RUN-087; FE-075 | — |
+| FE-297 | `FrontEnd/src/api/queries.ts` | `useMyBlogs` | My blogs query | My blogs branch remains unclicked/unproven | Pending | — | — |
+| FE-298 | `FrontEnd/src/api/queries.ts` | `useMyBookmarks` | Blog bookmarks query | Bookmarks branch remains unclicked/unproven | Pending | — | — |
+| FE-299 | `FrontEnd/src/api/queries.ts` | `useBlog` | Blog detail query | Blog detail loaded real posts/comments; edit fetch failure UX issue tracked | Pass with issue | RUN-049; RUN-087; FE-077 | TR-225 |
+| FE-300 | `FrontEnd/src/api/queries.ts` | `useMyLoans` | Loans list query | Loan list/screens rendered; admin workflow issue tracked separately | Pass | RUN-055; RUN-065; FE-205 | TR-213 |
+| FE-301 | `FrontEnd/src/api/queries.ts` | `useMyExpenses` | Expenses dashboard/list query | Expenses screen rendered clean empty state with explicit pagination | Pass | RUN-087; FE-144 | TR-171 |
+| FE-302 | `FrontEnd/src/api/queries.ts` | `usePlatformLedger` | Platform ledger query | Platform ledger route rendered correct empty state | Pass | RUN-087; FE-146 | — |
+| FE-303 | `FrontEnd/src/api/queries.ts` | `useContracts` | Contracts browse query | Browse tab rendered real contracts/filters; bare optional-filter backend bug tracked separately | Pass | RUN-087; FE-096 | TR-171 |
+| FE-304 | `FrontEnd/src/api/queries.ts` | `useMyContracts` | My contracts grouped query | My Contracts tabs rendered fixture data | Pass | RUN-056; RUN-087; FE-115 | — |
+| FE-305 | `FrontEnd/src/api/queries.ts` | `useContract` | Contract detail query | Detail query works but endpoint leaks applicant data to unrelated authenticated users | Fail | RUN-056; RUN-071; FE-097 | TR-217 |
+| FE-306 | `FrontEnd/src/api/queries.ts` | `useContractMessages` | Contract chat query | Nonexistent route handled cleanly; real chat-thread send/read success only partially covered | Partial | RUN-087; FE-116 | — |
+| FE-307 | `FrontEnd/src/api/queries.ts` | `useMemberReputation` | Member reputation query | Live 5-star reputation rendered correctly | Pass | RUN-056; FE-119 | — |
+| FE-308 | `FrontEnd/src/api/search.ts` | `searchAll` | Search screen query | Live cross-module search returned real matches and empty states correctly | Pass | RUN-069; UI-070 | — |
+| FE-309 | `FrontEnd/src/api/system.ts` | `getConfig` | Global config/API rate consumers | Public config loaded and did not expose θ in member PTS UI | Pass | RUN-042; API-073 | — |
+| FE-310 | `FrontEnd/src/api/system.ts` | `uploadFile` | Rich-content/file upload path | Multipart Xano upload path not exercised; Cloudinary direct upload is the active image path for blog editor | Pending | — | — |
+| FE-311 | `FrontEnd/src/api/system.ts` | `deleteFile` | File deletion path | No disposable Xano file fixture created/deleted | Pending | — | — |
+| FE-312 | `FrontEnd/src/api/system.ts` | `uploadToCloudinary` | Blog image upload path | Cloudinary auth/preset inspected, but no live asset upload was performed in this transcription pass | Pending | Cloudinary access note | — |
+| FE-313 | `FrontEnd/src/api/tokenSurrender.ts` | `createSurrender` | Token surrender form submit | Insufficient-balance guard worked; positive-balance surrender creation not exercised | Partial | RUN-043; UI-017 | — |
+| FE-314 | `FrontEnd/src/api/tokenSurrender.ts` | `listSurrenders` | Token surrender history query | History screen crashes on envelope mismatch | Fail | RUN-047; UI-018 | TR-196 |
+| FE-315 | `FrontEnd/src/api/tokenSurrender.ts` | `getSurrender` | Surrender detail query | No surrender detail route/runtime branch exercised | Pending | — | — |
+| FE-316 | `FrontEnd/src/api/wallets.ts` | `getWallets` | Home/wallet/profile wallet summary | Three-wallet fetch and normalization supported all wallet reconciliation checks | Pass | RUN-021; RUN-041–046; RUN-056–057 | — |
+| FE-317 | `FrontEnd/src/api/wallets.ts` | `getWallet` | Single-wallet query | No single-currency wallet detail branch independently exercised | Pending | — | — |
+| FE-318 | `FrontEnd/src/api/wallets.ts` | `getWalletActivity` | Wallet passbook/activity query | Wallet activity/passbook supported reconciliation checks and rendered without crash | Pass | RUN-041–046; RUN-056–057 | — |
 
 ## 4. Canonical Xano endpoints
 
@@ -893,101 +893,101 @@ None of these were exercised live this session (each would need either a fixture
 
 ## 6. Xano data tables and invariants
 
-**Not updated row-by-row this session** (see Coverage dashboard note above) — real evidence for the tables most exercised this session (`pts_components`, `token_surrenders`, `system_config`, `admin_audit_log`, `blog_dislikes`, `contract_applications`, `wallets`, `declarations`) exists throughout `E2E_DEFECT_LOG.md` (direct Xano MCP table reads backing TR-142/166/205/206/208/211/212/217) but was not transcribed back into individual rows here. Left as the original inventory placeholder pending a future session.
+Rows below are being updated incrementally from live endpoint coverage, direct Xano reads, fixture ledgers and financial reconciliation evidence. Table-level `Pass` means the exercised owner/CRUD path and observed invariants behaved correctly for the tested state; `Partial` means the table was read/written or source-mapped but not fully lifecycle-tested; `Fail`/`Blocked` point to the exact defect or upstream fixture blocker.
 
 | Table ID | Source | Owner/CRUD mapping | Constraints/status/retention tests | Result | Evidence | Defect |
 |---|---|---|---|---|---|---|
 | DB-001 | `XANO/table/activities.xs` | Read by `GET /activities/me`; written by `POST /activities` | Owner scoping is implemented through member-auth paths, but the frontend wrapper/screen cannot consume the live paginated envelope | Fail | RUN-047; API-001; FE-004 | TR-196 |
 | DB-002 | `XANO/table/activity_catalog.xs` | Read by public catalog; written/edited/deleted by admin catalog endpoints | Public active-catalog empty state verified live; admin mutation branches still require dedicated runtime validation before Pass | Partial | RUN-043b; API-003; source mapping 2026-07-21 | — |
 | DB-003 | `XANO/table/activity_catalog_changelog.xs` | Read by catalog/changelog; written by admin catalog create/update/delete endpoints | Changelog table/callers mapped; no frontend caller for `getActivityChangelog`, and admin changelog write/read branches remain untested as table-level cases | Partial | FE-002; API-002; source mapping 2026-07-21 | — |
-| DB-004 | `XANO/table/admin_audit_log.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-005 | `XANO/table/admin_login_events.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-006 | `XANO/table/admin_mfa_challenges.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-007 | `XANO/table/admin_totp.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-008 | `XANO/table/blog_bookmarks.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-009 | `XANO/table/blog_comments.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-010 | `XANO/table/blog_dislikes.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-011 | `XANO/table/blog_likes.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-012 | `XANO/table/blog_readers.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-013 | `XANO/table/blogs.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-014 | `XANO/table/cart_items.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-015 | `XANO/table/carts.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-016 | `XANO/table/categories.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-017 | `XANO/table/contract_application_messages.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-018 | `XANO/table/contract_applications.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-019 | `XANO/table/contract_disputes.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-020 | `XANO/table/contract_ratings.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-021 | `XANO/table/contracts.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-022 | `XANO/table/course_amendments.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-023 | `XANO/table/courses.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-024 | `XANO/table/data_erasure_requests.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-025 | `XANO/table/declarations.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-026 | `XANO/table/dispute_messages.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-027 | `XANO/table/donors.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-028 | `XANO/table/elections.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-029 | `XANO/table/email_verification_tokens.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-030 | `XANO/table/enrollments.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-031 | `XANO/table/event_log.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-032 | `XANO/table/event_results.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-033 | `XANO/table/event_submissions.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-034 | `XANO/table/events.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-035 | `XANO/table/expenses.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-036 | `XANO/table/files.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-037 | `XANO/table/game_group_members.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-038 | `XANO/table/game_groups.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-039 | `XANO/table/games.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-040 | `XANO/table/group_invites.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-041 | `XANO/table/group_post_comments.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-042 | `XANO/table/group_post_poll_votes.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-043 | `XANO/table/group_post_reactions.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-044 | `XANO/table/group_posts.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-045 | `XANO/table/guardian_approvals.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-046 | `XANO/table/idempotency_keys.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-047 | `XANO/table/investment_overdue_requests.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-048 | `XANO/table/investment_payouts.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-049 | `XANO/table/investments.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-050 | `XANO/table/ledger.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-051 | `XANO/table/loan_debits.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-052 | `XANO/table/loan_repayments.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-053 | `XANO/table/loans.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-054 | `XANO/table/marketplace_items.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-055 | `XANO/table/marketplace_order_disputes.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-056 | `XANO/table/marketplace_pod.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-057 | `XANO/table/marketplace_proposals.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-058 | `XANO/table/marketplace_settlements.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-059 | `XANO/table/member_group_members.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-060 | `XANO/table/member_groups.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-061 | `XANO/table/mobile_otps.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-062 | `XANO/table/notification_preferences.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-063 | `XANO/table/notifications.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-064 | `XANO/table/orders.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-065 | `XANO/table/pioneer_candidates.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-066 | `XANO/table/points_ledger.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-067 | `XANO/table/points_minting_budget.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-068 | `XANO/table/points_minting_log.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-069 | `XANO/table/points_transfers.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-070 | `XANO/table/pts_components.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-071 | `XANO/table/pts_conversions.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-072 | `XANO/table/pts_rate_cache.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-073 | `XANO/table/pts_rate_current.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-074 | `XANO/table/pts_rate_history.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-075 | `XANO/table/rate_announcements.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-076 | `XANO/table/rate_limit_counters.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-077 | `XANO/table/season_committee.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-078 | `XANO/table/season_distribution_records.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-079 | `XANO/table/season_funding.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-080 | `XANO/table/seasons.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-081 | `XANO/table/session_ratings.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-082 | `XANO/table/sessions.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-083 | `XANO/table/sponsorship_disputes.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-084 | `XANO/table/sponsorship_recognitions.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-085 | `XANO/table/sponsorship_refunds.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-086 | `XANO/table/sponsorships.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-087 | `XANO/table/system_config.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-088 | `XANO/table/token_surrenders.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-089 | `XANO/table/transfer_disputes.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-090 | `XANO/table/user.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
-| DB-091 | `XANO/table/votes.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
+| DB-004 | `XANO/table/admin_audit_log.xs` | Written by admin action logging; read by `/admin/audit-log` | Same-day audit-log UI filter fails despite real rows; several admin call sites pass wrong log shape | Fail | RUN-064; RUN-086; FN-07 | TR-209, TR-211 |
+| DB-005 | `XANO/table/admin_login_events.xs` | Written/read by admin login/MFA audit path | Admin login events were source-mapped during 2FA flow; row-level retention/anomaly review not completed | Partial | RUN-033–034; API-078–083 | — |
+| DB-006 | `XANO/table/admin_mfa_challenges.xs` | Written/consumed by admin email-OTP challenge flow | Live admin email-OTP challenge completed successfully; wrong/expired/reused challenge branches remain | Partial | RUN-034; UI-001 | — |
+| DB-007 | `XANO/table/admin_totp.xs` | Admin TOTP setup/verify/recovery-code storage | Email-OTP flow tested; TOTP setup/recovery-code table lifecycle remains untested | Pending | — | — |
+| DB-008 | `XANO/table/blog_bookmarks.xs` | Blog bookmark toggle/list endpoints | Bookmark branches not clicked in this pass | Pending | — | — |
+| DB-009 | `XANO/table/blog_comments.xs` | Blog comment create/list endpoints | Live inert XSS marker comment was created and rendered escaped, no execution | Pass | RUN-049; FX-013; FE-087 | — |
+| DB-010 | `XANO/table/blog_dislikes.xs` | Raw CRUD table plus blog dislike endpoints | Fully open unauthenticated raw CRUD remains exploitable; junk row created then deleted as proof | Fail | RUN-026; RUN-082; CL-004 | TR-142 |
+| DB-011 | `XANO/table/blog_likes.xs` | Blog like/admin proposal-decision readers | Like branch not clicked; admin proposal path source-mapped only | Pending | — | — |
+| DB-012 | `XANO/table/blog_readers.xs` | Blog detail readers/admin proposal approval | Blog detail read path exercised; reader-row side effects not independently asserted | Partial | RUN-049; RUN-087; API-060 | — |
+| DB-013 | `XANO/table/blogs.xs` | Blog feed/detail/admin review endpoints | Public feed/detail/admin review rendered real posts; edit failure and admin author display issues tracked elsewhere | Partial | RUN-049; RUN-050; RUN-087 | TR-198, TR-225 |
+| DB-014 | `XANO/table/cart_items.xs` | Cart add/list/checkout item rows | Live cart item created, rendered under vendor grouping, and checkout cleared cart | Pass | RUN-045; FIN-004; FE-090–093 | — |
+| DB-015 | `XANO/table/carts.xs` | Cart container rows per member/vendor | Live cart created and cleared exactly once on checkout | Pass | RUN-045; FIN-004 | — |
+| DB-016 | `XANO/table/categories.xs` | Marketplace category list/tree | Live marketplace category chips rendered; proposal tree branch blocked by proposal crash | Partial | RUN-044; FE-207/208 | TR-195 |
+| DB-017 | `XANO/table/contract_application_messages.xs` | Contract application chat messages | Detail proposal/update path used; full chat send/read thread remains partial | Partial | RUN-056; FE-108/109/116 | — |
+| DB-018 | `XANO/table/contract_applications.xs` | Contract applications and lifecycle transitions | Live independent+secure applications completed; same table leaks private bids via contract detail IDOR | Fail | RUN-056; RUN-057; RUN-071 | TR-217 |
+| DB-019 | `XANO/table/contract_disputes.xs` | Contract dispute records/admin dispute panel | Existing real dispute inspected read-only; no disposable dispute created/resolved | Partial | RUN-066; UI-083 | TR-214 |
+| DB-020 | `XANO/table/contract_ratings.xs` | Contract rating create/read | Live 5-star rating was created and rendered on public reputation | Pass | RUN-056; FE-118/119 | — |
+| DB-021 | `XANO/table/contracts.xs` | Contract create/list/detail/lifecycle endpoints | Independent and Secure contracts created/completed with exact financial reconciliation; detail IDOR tracked on joined applications | Partial | RUN-055–057; FIN-006/007 | TR-217 |
+| DB-022 | `XANO/table/course_amendments.xs` | Education amendment workflow | Blocked because course creation/listing is unreachable | Blocked | RUN-053; FE-131 | TR-195 |
+| DB-023 | `XANO/table/courses.xs` | Education course creation/detail/listing | Education route states rendered, but course creation path is blocked by proposal/envelope crash | Blocked | RUN-053; RUN-080 | TR-195 |
+| DB-024 | `XANO/table/data_erasure_requests.xs` | DPDP erasure request/status/admin processing | Member route/status checked; creation/admin process deferred due mutation-before-audit risk | Partial | RUN-077; RUN-086; FE-231/232 | TR-209 |
+| DB-025 | `XANO/table/declarations.xs` | INR declaration create/list/admin verify/reject | Draft create succeeds, submit/list/admin approval chain broken | Fail | RUN-040; RUN-047; RUN-058 | TR-189, TR-196, TR-204 |
+| DB-026 | `XANO/table/dispute_messages.xs` | Contract dispute-chat messages | Legitimate test admin is blocked by hardcoded admin id; no disposable message sent | Fail | RUN-066; FE-121/122 | TR-214 |
+| DB-027 | `XANO/table/donors.xs` | Public donor feed/detail | Financial donors list/detail states rendered cleanly | Pass | RUN-054; RUN-087; FE-147/148 | — |
+| DB-028 | `XANO/table/elections.xs` | Gaming election lifecycle | Blocked because pioneer candidacy/election creation is broken | Blocked | RUN-052; RUN-078 | TR-199 |
+| DB-029 | `XANO/table/email_verification_tokens.xs` | Signup/resend/verify-email token lifecycle | Signup verification worked, rate limits worked; concurrent-token race leaves multiple valid tokens | Fail | RUN-017–020; RUN-038–039 | TR-174 |
+| DB-030 | `XANO/table/enrollments.xs` | Education enroll/check-in/rating | Blocked because course/session creation is unavailable | Blocked | RUN-053; RUN-080 | TR-195 |
+| DB-031 | `XANO/table/event_log.xs` | Backend event logging | Endpoint matrix/source-mapped; no dedicated retention/audit review | Partial | RUN-073; FN-13 | — |
+| DB-032 | `XANO/table/event_results.xs` | Gaming event results | Blocked because season/event fixtures cannot be created | Blocked | RUN-052; RUN-078 | TR-199, TR-224 |
+| DB-033 | `XANO/table/event_submissions.xs` | Gaming event submissions | Blocked by missing event-detail endpoint and no event fixture | Blocked | RUN-087; FE-174/175 | TR-224 |
+| DB-034 | `XANO/table/events.xs` | Gaming season events | Blocked by absent season/event fixtures and missing detail endpoint | Blocked | RUN-052; RUN-087 | TR-199, TR-224 |
+| DB-035 | `XANO/table/expenses.xs` | Expense create/list/settle | Expense creation fails on field mismatch; list empty-state works | Fail | RUN-055; RUN-087; FE-143–145 | TR-202 |
+| DB-036 | `XANO/table/files.xs` | Xano file upload/delete metadata | Xano file upload/delete branches not exercised; Cloudinary direct upload configured separately | Pending | — | — |
+| DB-037 | `XANO/table/game_group_members.xs` | Game group membership | Game-group membership actions unexercised | Pending | — | — |
+| DB-038 | `XANO/table/game_groups.xs` | Game group create/list/join/leave | Game groups list empty-state rendered; mutations unexercised | Partial | RUN-052; FE-160–163 | — |
+| DB-039 | `XANO/table/games.xs` | Game catalog/admin game seed | Disposable game id 1 created and rendered in list/detail | Pass | RUN-052; FX-014; FE-158/159 | — |
+| DB-040 | `XANO/table/group_invites.xs` | Member group invite workflow | Invite/respond/my-invites branches unexercised | Pending | — | — |
+| DB-041 | `XANO/table/group_post_comments.xs` | Group post comments | Group post comment branch unexercised | Pending | — | — |
+| DB-042 | `XANO/table/group_post_poll_votes.xs` | Group poll votes | Group poll vote branch unexercised | Pending | — | — |
+| DB-043 | `XANO/table/group_post_reactions.xs` | Group post reactions | Group reaction branch unexercised | Pending | — | — |
+| DB-044 | `XANO/table/group_posts.xs` | Group post list/create/delete | Posts empty-state rendered; non-member direct create rejected with UX issue; no valid post fixture created | Partial | RUN-087; FE-197/198 | TR-222 |
+| DB-045 | `XANO/table/guardian_approvals.xs` | Minor guardian approval requests | Pending/rejected/expired states worked; approval happy-path fails and no minor user is created | Fail | RUN-027–032; FX-007–009 | TR-184, TR-185 |
+| DB-046 | `XANO/table/idempotency_keys.xs` | Idempotency storage for checkout/orders/transfers/contracts/PTS | Idempotency call sites mapped; replay/race behaviour not directly tested | Partial | FN-05; RUN-041/044/045/056/057 | — |
+| DB-047 | `XANO/table/investment_overdue_requests.xs` | Investment overdue requests | Blocked because no disposable investment can be created | Blocked | RUN-054; FE-153 | TR-200 |
+| DB-048 | `XANO/table/investment_payouts.xs` | Investment payout schedule | Blocked because investment creation fails | Blocked | RUN-054; FE-149/150 | TR-200 |
+| DB-049 | `XANO/table/investments.xs` | Investment create/list/detail | Investment list/detail empty/not-found states work, but creation fails on contract mismatch | Fail | RUN-054; RUN-087; FE-149–153 | TR-200 |
+| DB-050 | `XANO/table/ledger.xs` | Platform financial ledger entries | Platform ledger route rendered clean empty state; expense/admin outflow lifecycle blocked | Partial | RUN-087; FE-146 | TR-202 |
+| DB-051 | `XANO/table/loan_debits.xs` | Loan debit schedule/consequence rows | Blocked because loan creation/approval workflow is unavailable | Blocked | RUN-055; RUN-065 | TR-201, TR-213 |
+| DB-052 | `XANO/table/loan_repayments.xs` | Loan repayment rows | Blocked because no disposable loan can be created/approved | Blocked | RUN-055; RUN-065 | TR-201, TR-213 |
+| DB-053 | `XANO/table/loans.xs` | Loan request/list/admin approval/repayment | Request creation fails on amount field mismatch; admin review also unreachable | Fail | RUN-055; RUN-065 | TR-201, TR-213 |
+| DB-054 | `XANO/table/marketplace_items.xs` | Marketplace items, stock, admin/proposal listing | Browse/detail/order worked, but price currency UI defect and admin items join bug remain | Partial | RUN-044; RUN-060; RUN-081 | TR-193, TR-207 |
+| DB-055 | `XANO/table/marketplace_order_disputes.xs` | Marketplace order dispute lifecycle | Dispute branch not advanced because no POD-window disposable order fixture | Pending | — | — |
+| DB-056 | `XANO/table/marketplace_pod.xs` | Proof-of-delivery records | POD branch not advanced because no proposer-owned disposable sale was safely progressed | Pending | — | — |
+| DB-057 | `XANO/table/marketplace_proposals.xs` | Marketplace/course/blog proposal rows | Proposal list/form/admin queue crash on envelope mismatch; no disposable proposal can be created through UI | Fail | RUN-047; RUN-061; RUN-075 | TR-195, TR-196 |
+| DB-058 | `XANO/table/marketplace_settlements.xs` | Marketplace settlement rows | Settlement path source-confirmed hardcodes token currency; not live-executed to avoid known bad mutation | Fail | RUN-046; RUN-081 | TR-194 |
+| DB-059 | `XANO/table/member_group_members.xs` | General member-group membership | Group detail/member count observed, but join/leave/admin membership workflow remains unexercised | Partial | RUN-087; FE-194 | — |
+| DB-060 | `XANO/table/member_groups.xs` | General groups create/list/detail/delete | Disposable XSS-probe group created and rendered safely; deletion/admin branches unexercised | Pass | RUN-047b; RUN-087; FX-012 | — |
+| DB-061 | `XANO/table/mobile_otps.xs` | Mobile OTP verification | Mobile OTP workflow was not exercised | Pending | — | — |
+| DB-062 | `XANO/table/notification_preferences.xs` | Notification preference read/write | Preferences UI is broken in both directions due model mismatch | Fail | RUN-069; FE-223/224 | TR-215 |
+| DB-063 | `XANO/table/notifications.xs` | Notification list/read/read-all/emits | List/unread filter worked; several workflows fail to emit expected notifications and read/read-all unclicked | Partial | RUN-028; RUN-041; RUN-069 | TR-183, TR-192 |
+| DB-064 | `XANO/table/orders.xs` | Marketplace order lifecycle | Buy Now/order list/detail/cancel worked structurally; cancel/settlement currency defect remains | Fail | RUN-044; RUN-046; FIN-003/005 | TR-194 |
+| DB-065 | `XANO/table/pioneer_candidates.xs` | Pioneer candidacy/election eligibility | Candidate list renders, but registration cannot submit because `game_id` missing from UI | Fail | RUN-051; FE-164/165 | TR-199 |
+| DB-066 | `XANO/table/points_ledger.xs` | Points ledger entries for transfers/awards/orders/contracts | Multiple points movements reconciled exactly; missing notification on transfer tracked outside ledger arithmetic | Pass | FIN-001–007; RUN-041–046; RUN-056–057 | — |
+| DB-067 | `XANO/table/points_minting_budget.xs` | Points minting budget admin controls | Admin PTS/points budget controls source-mapped; direct full lifecycle not isolated | Partial | RUN-062; RUN-085 | TR-208, TR-209 |
+| DB-068 | `XANO/table/points_minting_log.xs` | Points minting log rows | Constitutional award direct-API workaround reconciled; table-level retention/replay not fully reviewed | Partial | FIN-001; RUN-042b | TR-190 |
+| DB-069 | `XANO/table/points_transfers.xs` | Points transfer records | Live 100-point transfer reconciled exactly and passbook rendered; recipient notification missing | Pass | RUN-041; FIN-002 | TR-192 |
+| DB-070 | `XANO/table/pts_components.xs` | PTS R/A/θ components | Admin PTS update accidentally zeroed θ due source bug, then restored and reverified | Fail | RUN-062; CL-003 | TR-208, TR-209 |
+| DB-071 | `XANO/table/pts_conversions.xs` | PTS conversion history | Conversion is suspended; history screen crashes on envelope mismatch | Fail | RUN-042; RUN-047 | TR-196 |
+| DB-072 | `XANO/table/pts_rate_cache.xs` | PTS rate cache | Rate computation path observed, but cache-table lifecycle not directly asserted | Partial | RUN-042; API-265–269 | — |
+| DB-073 | `XANO/table/pts_rate_current.xs` | Current published PTS rate | Current rate rendered correctly with suspension/floor guard | Pass | RUN-042; FE-238 | — |
+| DB-074 | `XANO/table/pts_rate_history.xs` | Historical PTS rates | Rate history/announcement lifecycle not directly exercised | Pending | — | — |
+| DB-075 | `XANO/table/rate_announcements.xs` | PTS/rate announcements | Announcement lifecycle not directly exercised | Pending | — | — |
+| DB-076 | `XANO/table/rate_limit_counters.xs` | Signup/resend/API rate-limit counters | Signup/resend device/email caps correctly enforced; broader endpoint rate-limit matrix not exhaustive | Partial | RUN-039; RUN-072 | — |
+| DB-077 | `XANO/table/season_committee.xs` | Gaming season committee membership | Blocked because no season fixture exists | Blocked | RUN-052; FE-172 | TR-199 |
+| DB-078 | `XANO/table/season_distribution_records.xs` | Season distribution records | Blocked because no season/event fixture exists | Blocked | RUN-052; FE-179 | TR-199 |
+| DB-079 | `XANO/table/season_funding.xs` | Season secure funding deposits/ledger | Blocked because no season fixture exists | Blocked | RUN-052; FE-177/178 | TR-199 |
+| DB-080 | `XANO/table/seasons.xs` | Gaming season lifecycle | Seasons empty-state rendered; creation path blocked by pioneer-candidacy defect | Blocked | RUN-052; RUN-078; FE-170–179 | TR-199 |
+| DB-081 | `XANO/table/session_ratings.xs` | Education teacher/student ratings | Teacher-ratings empty state rendered, but full session-rating lifecycle blocked by missing course/session fixtures | Blocked | RUN-068; FE-140–142 | TR-195 |
+| DB-082 | `XANO/table/sessions.xs` | Education session lifecycle/attendance | Session detail/check-in guards rendered; no real session can be created | Blocked | RUN-053; RUN-068 | TR-195 |
+| DB-083 | `XANO/table/sponsorship_disputes.xs` | Sponsorship dispute records | Blocked because sponsorship creation is broken | Blocked | RUN-087; FE-157 | TR-223 |
+| DB-084 | `XANO/table/sponsorship_recognitions.xs` | Sponsorship progress/recognition records | Admin progress form rendered; no disposable sponsorship fixture exists | Blocked | RUN-087; FE-047 | TR-223 |
+| DB-085 | `XANO/table/sponsorship_refunds.xs` | Sponsorship refund/dispute records | Blocked because sponsorship creation is broken | Blocked | RUN-087; FE-157 | TR-223 |
+| DB-086 | `XANO/table/sponsorships.xs` | Sponsorship create/list/detail/dispute | List/detail states work, but creation fails on `amount`/`amount_inr` mismatch | Fail | RUN-087; FE-154–157 | TR-223 |
+| DB-087 | `XANO/table/system_config.xs` | Platform config, admin config/PTS/wallet defaults | Config read works, but admin config advertises unsupported field and PTS update caused remediated global-state drift | Fail | RUN-042; RUN-062; RUN-064; CL-003 | TR-208, TR-212 |
+| DB-088 | `XANO/table/token_surrenders.xs` | Token surrender create/list/admin completion | Insufficient-balance guard works; list display/envelope/admin completion paths are broken | Fail | RUN-043; RUN-047; RUN-059 | TR-196, TR-204, TR-205, TR-206 |
+| DB-089 | `XANO/table/transfer_disputes.xs` | Points transfer disputes | No transfer-dispute lifecycle exercised | Pending | — | — |
+| DB-090 | `XANO/table/user.xs` | Signup/login/profile/admin/member lookup/roles | Signup/login worked, but several user-state invariants fail: suspension ignored, admin/member leaks, profile fields broken, guardian approval user creation broken | Fail | RUN-017–025; RUN-031; RUN-037; RUN-087 | TR-176, TR-177, TR-178, TR-179, TR-181, TR-185 |
+| DB-091 | `XANO/table/votes.xs` | Gaming election votes | Blocked because election fixture cannot be created | Blocked | RUN-052; FE-169 | TR-199 |
 | DB-092 | `XANO/table/wallet_transactions.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
 | DB-093 | `XANO/table/wallets.xs` | Pending endpoint/owner mapping | Pending constraints/transition review | Pending | — | — |
 
@@ -1039,3 +1039,9 @@ Expected results must keep separate columns in child cases for SRS Expected, App
 | CP-005 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed admin blog/loans/financial/education/reports/contracts frontend API/query batch FE-038–061 from existing RUN-050/RUN-063/RUN-066/RUN-087 evidence and source caller mapping. Next exact frontend row is `FE-062`; next exact table row remains `DB-004`; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
 | CP-006 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed auth frontend API/query batch FE-062–074 from existing login/signup/verify/reset/guardian evidence. Next exact frontend row is `FE-075`; next exact table row remains `DB-004`; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
 | CP-007 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed blog rows with concrete runtime evidence only: FE-075, FE-077 and FE-087. Source-only or unclicked blog actions remain Pending. Next exact frontend row is `FE-076`; next exact table row remains `DB-004`; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
+| CP-008 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed cart and contracts frontend API/query rows with concrete evidence: FE-090–122 except FE-098/FE-117, which remain Pending. Next exact frontend row remains `FE-076`; next exact table row remains `DB-004`; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
+| CP-009 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed declaration/education/expense frontend API/query rows with concrete evidence: FE-123–146 except FE-126/FE-127/FE-133/FE-142, which remain Pending. Next exact frontend row remains `FE-076`; next exact table row remains `DB-004`; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
+| CP-010 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed financial/gaming/groups frontend API/query rows with concrete evidence: FE-147–203 where runtime or endpoint evidence exists. Remaining group membership/post-reaction, game-group mutation, and overdue-count rows stay Pending until a controlled runtime path/fixture exists. Next exact frontend row remains `FE-076`; next exact table row remains `DB-004`; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
+| CP-011 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed loans/marketplace/notifications/points-transfer/profile/proposals/PTS frontend API/query rows FE-204–241 where runtime or endpoint evidence exists. Unsubmitted destructive branches, unavailable proposal/loan fixtures, and POD/dispute/seller-order branches remain Pending or Blocked. Next exact frontend row remains `FE-076` plus query wrapper row `FE-242`; next exact table row remains `DB-004`; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
+| CP-012 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed React Query wrapper/shared endpoint rows FE-242–318 where existing runtime evidence supports the underlying path. Remaining frontend Pending rows are now concentrated in unclicked blog/group/social mutations, file/cloud upload/delete branches, single-wallet/surrender detail branches, and seller/POD/notification-read paths. Next exact frontend row remains `FE-076`; next exact table row is `DB-004`; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
+| CP-013 | 2026-07-21 | Root pending commit; frontend `2d92013`; Xano `9b9f664` | 87/318/295/15/93/20 | Transcribed Xano table rows DB-004–091 from existing endpoint, fixture, direct-table-read and financial-reconciliation evidence. Remaining table Pending rows are now only genuinely unexercised lifecycle tables such as TOTP, bookmarks/likes, Xano file metadata, game-group membership, group invites/post comments/reactions/votes, mobile OTP, POD/order disputes, PTS history/announcements and transfer disputes. Next exact frontend row remains `FE-076`; next exact table row is whichever of the 17 Pending table rows gets a safe runtime case; next runtime/control row remains `CTRL-UI-001-000` if switching to control inventory. Next defect ID remains `TR-226`. |
