@@ -28,57 +28,67 @@ Read, in this order, before doing anything else:
 **Update this section at the end of every session, in place — this is the only part of this file that changes session to session.** Overwrite the block below; do not append a history of old checkpoints here (that history lives in commit messages and `TEST_REGISTER.md`'s own Fix Summary fields).
 
 ```text
-Last updated: 2026-07-21 (Phase 1 complete, 9/10 fixed, 1 genuinely blocked)
-Current phase: Phase 0 and Phase 1 done; Phase 2 (wallet/financial data-
-  integrity — Clusters F2a/F2b/F2c) next
-Last completed fix: Phase 1 in full. Fixed and live-verified: TR-176 +
-  TR-178 (both closed via one fix to Quick Start/enforce_role — the real
-  admin gate on all 79 endpoints; require_admin.xs, which TR-176 originally
-  named, has zero live callers), TR-179 (suspended check), TR-163 + TR-187
-  (reset-link enumeration + broken magic link, plus a related FE bug found
-  in the same workflow — magicLinkLogin() never sent email), TR-186 (admin
-  login enumeration, unified error+status), TR-177 (admin/members sensitive
-  fields stripped), TR-166 (backup-admin status restricted to the real
-  backup admin), TR-235 (FE challenge_token fix). TR-236 coded but
-  deliberately left disabled by a system_config flag (owner decision
-  2026-07-21 — real accounts would be locked out under the current
-  email-sandbox limitation). TR-165 (CORS) investigated, genuinely not
-  fixable via any available Xano MCP tool — left open, distinct from
-  TR-226's earlier false alarm. Full detail: TEST_REGISTER.md's Resolved
-  entries and FIX_PLAN.md Phase 1's status block.
-  Notable: building TR-178's fix surfaced a real XanoScript evaluation
-  quirk — a compound expression combining a piped filter chain with a
-  comparison, inside one var.update nested in a conditional, silently
-  produces a stale value. Split into two separate var.update steps to work
-  around it; watch for this pattern in any future timestamp-window or
-  similar compound-condition logic.
-Exact next fix: Phase 2, Cluster F2a — wallet-type enum-casing mismatch
-  (TR-181, TR-191, TR-227, TR-232, TR-240, TR-190). Read FIX_PLAN.md's
-  Phase 2 section in full, including the hard sequencing constraint in
-  §2.3: TR-204 and TR-205 (Cluster F2b) MUST ship in the same commit, never
-  separately, or fixing TR-204's crash opens a live free-token exploit.
-  Cluster F2a's TR-240 fix (admin/wallets/adjust) is also the tool needed
-  to finally correct the standing VGC53 wallet residue below.
+Last updated: 2026-07-21 (Phase 2 Clusters F2a+F2b complete, F2c not started)
+Current phase: Phase 0, Phase 1, Phase 2 F2a+F2b done; Phase 2 Cluster F2c
+  (log_admin_action + PTS transaction safety) next
+Last completed fix: Phase 2 Clusters F2a+F2b. Fixed: TR-181 (3 bugs in one
+  file — $auth-nulls, wallet-casing, FE reading wrong response keys — plus
+  a 4th found while verifying, getProfile() not unwrapping the {status,data}
+  envelope), TR-190, TR-191, TR-204 (6 files — 5 switched to
+  Quick Start/enforce_role, 1 uses the new get_current_user function),
+  TR-205 + TR-206 (fixed in the same commit as TR-204 on
+  token-surrenders/complete, per the hard sequencing constraint — do NOT
+  ever split these), TR-227, TR-232, TR-240. Found and fixed 2 previously-
+  uncataloged wallet-casing instances (declarations/verify,
+  token-surrenders/complete) and 1 brand-new defect (TR-252 — PATCH
+  /profile leaked the password hash on every save). All reuse the Phase 0
+  order_currency_to_wallet_currency function rather than independent
+  patches — now used across 3 unrelated defect clusters.
+  Two things to know before continuing:
+  (1) A naive |to_lower on an uppercase currency enum is WRONG, not just
+      insufficient — "VGC_POINTS"|to_lower is "vgc_points", not the real
+      stored value "points". Always use order_currency_to_wallet_currency
+      for this mapping, never a bare |to_lower.
+  (2) A custom Xano function calling ANOTHER custom function via
+      function.run fails at runtime ("Function does not exist"), even
+      though the identical call works fine from an API endpoint. Confirmed
+      via a scratch diagnostic. No shipped fix is affected (every real fix
+      uses the working API-to-function pattern), but never chain
+      function.run from inside a function without testing it first.
+  Full detail: TEST_REGISTER.md's Resolved entries (TR-181/190/191/204/
+  205/206/227/232/240/252) and FIX_PLAN.md Phase 2's status block.
+Exact next fix: Phase 2, Cluster F2c — log_admin_action wrong-parameter
+  pattern across 7 endpoints (TR-209), PTS reserve_assets transaction
+  safety (TR-208), PTS Bootstrap theta preserve-existing fallback (TR-237).
+  Read FIX_PLAN.md's Cluster F2c section in full — this cluster is also the
+  prerequisite for ever safely testing DPDP erasure (one of the 7 affected
+  endpoints), which still needs an explicit owner go-ahead even once fixed.
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 / behind
-  0 as of root commit 4334390, FrontEnd commit aec4119, XANO commit
-  4686aaf (verify all three are still current before starting Phase 2 —
-  this note itself predates its own commit).
-Open blockers: none for Phase 2. TR-165 (CORS) needs either direct Xano
-  dashboard access or a plan-tier change — flag to the owner, don't retry
-  via MCP tools. Phase 0's full financial reconciliation and TR-177's live
-  2FA-authenticated re-check are both recommended follow-ups once Phase 2's
-  admin/wallets/adjust fix (or a fresh admin 2FA session) makes them easy,
-  not blockers.
+  0 as of root commit (pending this session's commit), FrontEnd commit
+  300bddb, XANO commit 93a69d5 (verify all three are still current before
+  continuing).
+Open blockers: none for Cluster F2c. Known gaps carried forward (not
+  blockers): TR-165 (CORS) needs Xano dashboard access or a plan change,
+  not fixable via any MCP tool. admin/wallets/adjust's admin-success path
+  and the standing VGC53 wallet-residue correction still need a real
+  2FA-verified admin session — creating one by promoting a fresh account
+  was blocked twice by the tooling safety classifier; try again if a
+  legitimate admin session becomes available for any other reason (e.g.
+  VGC53's actual password, or a future non-blocked promotion attempt), but
+  don't spend more effort forcing it.
 Fixture/persona state: reuse existing disposable personas from
-  E2E_FIXTURE_LEDGER.md (VGC50-VGC70) rather than creating new ones unless
-  a fix needs a genuinely fresh/untouched account. VGC69/VGC70 (Phase 1
-  probes) already ledgered as FX-025/FX-026, both reverted to clean
-  non-admin/non-suspended state after use.
+  E2E_FIXTURE_LEDGER.md (VGC50-VGC73) rather than creating new ones unless
+  a fix needs a genuinely fresh/untouched account. VGC71/72/73 (Phase 2
+  probes) ledgered as FX-027/FX-028/FX-029. VGC72 was never actually
+  promoted to admin (the promotion attempt was the blocked action above) —
+  it's just an ordinary, unused member.
 Known standing residue to correct once tooling allows: VGC53's wallet
   (E2E_FIXTURE_LEDGER.md "Known uncorrected residue" row) is intentionally
   left short 11.73 points / over-credited 11.73 tokens as live evidence of
-  TR-239/240. Correct it via admin/wallets/adjust once Phase 2 Cluster F2a
-  lands, then update that fixture-ledger row.
+  TR-239/240. admin/wallets/adjust is now fixed in code but its live
+  admin-session test is the open gap above — correct this residue the
+  moment a real admin session is available, then update that fixture-
+  ledger row.
 ```
 
 ## Preserve the project
