@@ -28,10 +28,27 @@ Read, in this order, before doing anything else:
 **Update this section at the end of every session, in place — this is the only part of this file that changes session to session.** Overwrite the block below; do not append a history of old checkpoints here (that history lives in commit messages and `TEST_REGISTER.md`'s own Fix Summary fields).
 
 ```text
-Last updated: 2026-07-22 (Phase 3 fully complete — F3a + F3b; Phase 4 next)
-Current phase: Phases 0, 1, 2, and 3 (all clusters) done. Phase 4
-  (remaining individual defects, no shared root cause) is next.
-Last completed fix: Phase 3, Cluster F3b — the paginated-envelope-vs-bare-
+Last updated: 2026-07-22 (Phase 3 complete; Phase 4 IN PROGRESS — TR-185 done)
+Current phase: Phases 0-3 done. Phase 4 (remaining individual defects, no
+  shared root cause) IN PROGRESS. Done so far this phase: TR-185.
+Most recent fix (Phase 4): TR-185 — guardian-approval approve branch did
+  db.add user with no member_id, colliding on the unique index (every
+  approval 500'd "Duplicate record"). Applied the signup_POST.xs UUID-
+  workaround (temp-uuid member_id -> insert -> db.edit to "VGC"~id).
+  Verified live end-to-end (reopens WF-02, now Pass): created a real minor
+  guardian-registration (approval id 4, guardian VGC75) and approved it →
+  200; minor account VGC76 (member_id "VGC76", is_minor:true) + 3 wallets
+  created. To satisfy the verified-email-guardian precondition, VGC75's
+  email was verified via the real app OTP flow (resend-verification ->
+  read token from email_verification_tokens table -> verify-email) — the
+  direct table-write shortcut was classifier-blocked and correctly NOT
+  routed around. XANO commit 74e19e4 (single file
+  guardian_approvals/id/respond_POST.xs). Fixture: FX-032 (VGC76 minor +
+  approval id 4). WF-02's remaining open items are TR-183 (guardian email
+  never arrives, Medium) and TR-182 (VGC<n> guardian-id input nicety,
+  High).
+--- earlier this session (Phase 3) ---
+Phase 3, Cluster F3b — the paginated-envelope-vs-bare-
   array crash family (TR-184, TR-195, TR-196) plus the missing app-level
   ErrorBoundary. Two required parts, both done:
   (1) Added a root-level <ErrorBoundary> (wraps RouterProvider in App.tsx)
@@ -73,26 +90,27 @@ Last completed fix: Phase 3, Cluster F3b — the paginated-envelope-vs-bare-
   date-typed DB field needs |to_ms first in this Xano version.
   Full detail: TEST_REGISTER.md's Resolved entries (TR-184/195/196/259)
   and FIX_PLAN.md Cluster F3b's status block.
-Exact next fix: Phase 4 — "Remaining individual defects" (FIX_PLAN.md's
-  Phase 4 section). No shared root cause; each is its own fix, grouped by
-  severity. Start with the Critical list in FIX_PLAN.md Phase 4: TR-164
-  (server-side minor-DOB rejection in signup), TR-185 (guardian-approval
-  approve branch member_id collision — this ALSO unblocks WF-02 and the
-  Guardian Approvals happy-path that F3b left blocked, so it's a good
-  first pick), TR-189 (INR declaration submit status-transition contract),
-  TR-199 (PioneerCandidacy missing game_id), TR-207 (admin/market join
-  alias), TR-213 (build admin-wide loans-list endpoint — new API surface,
-  scope accordingly), TR-214 (dispute-messages hardcoded admin check),
-  TR-234 (profile_PATCH 500s when dob omitted — why no profile save has
-  ever succeeded from the UI). Read each TR's row in TEST_REGISTER.md for
-  the authoritative repro before starting. There is no cluster discipline
-  in Phase 4 — commit one fix (or explicitly-paired fix) at a time.
-  Recommended first: TR-185, since it directly reopens the WF-02 guardian
-  lifecycle that F3b's TR-184 fix left one step short of.
+Exact next fix: continue Phase 4 — "Remaining individual defects"
+  (FIX_PLAN.md's Phase 4 section). No shared root cause; each is its own
+  fix, grouped by severity. TR-185 is done (see above). Remaining Critical
+  list in FIX_PLAN.md Phase 4: TR-164 (server-side minor-DOB rejection in
+  signup — pairs naturally with the guardian flow just fixed), TR-189 (INR
+  declaration submit status-transition contract — the whole declaration
+  pipeline has never reached admin review), TR-199 (PioneerCandidacy
+  missing game_id; FX-014 disposable game exists), TR-207 (admin/market
+  join alias `$db.seller.*`), TR-213 (build admin-wide loans-list endpoint
+  — new API surface, scope accordingly), TR-214 (dispute-messages
+  hardcoded admin check), TR-234 (profile_PATCH 500s when dob omitted —
+  why no profile save has ever succeeded from the UI). Read each TR's row
+  in TEST_REGISTER.md for the authoritative repro before starting. There
+  is no cluster discipline in Phase 4 — commit one fix (or explicitly-
+  paired fix) at a time. Recommended next: TR-234 (unblocks all profile
+  editing, a very common user action) or TR-189 (unblocks the entire INR
+  declaration→admin-review pipeline).
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 /
-  behind 0 as of root commit 4fa2e68, FrontEnd commit 9740e00 (F3b:
-  ErrorBoundary.tsx new, App.tsx, router.tsx, 6 api wrappers), XANO commit
-  3abd9d9 (F3b: single backend file pts_compute_rate.xs / TR-259).
+  behind 0 as of root commit <fill in after this checkpoint's own commit
+  lands>, FrontEnd commit 9740e00 (unchanged — TR-185 was backend-only),
+  XANO commit 74e19e4 (TR-185: guardian_approvals/id/respond_POST.xs).
 Open blockers: none for Phase 4. Known gaps carried forward (not
   blockers): TR-165 (CORS) needs Xano dashboard access or a plan change.
   admin/wallets/adjust's admin-success path and the standing VGC53
@@ -105,13 +123,17 @@ Open blockers: none for Phase 4. Known gaps carried forward (not
   decision), TR-258 (expenses/me dashboard breakdown aggregates return
   null internals — cosmetic, non-blocking).
 Fixture/persona state: reuse existing disposable personas from
-  E2E_FIXTURE_LEDGER.md (VGC50-VGC75) rather than creating new ones unless
+  E2E_FIXTURE_LEDGER.md (VGC50-VGC76) rather than creating new ones unless
   a fix needs a genuinely fresh/untouched account. VGC75 (FX-031, "Fix
   Phase3a Probe") has real dependent records (1 investment+payout, 1
   sponsorship, 1 loan, 1 expense) backing both F3a and F3b verification —
   and its investment (id 1) is TR-259's regression trigger, so KEEP it
-  until TR-259's fix is independently reconfirmed. VGC72 was never
-  promoted to admin (blocked) — ordinary member only.
+  until TR-259's fix is independently reconfirmed. VGC75 is now also
+  email-verified (done via the real OTP flow for TR-185's guardian
+  precondition) — so it's a handy ready-made verified-email guardian for
+  any future WF-02 work. VGC76 (FX-032) is the minor account TR-185's fix
+  created (is_minor:true, guardian VGC75, 3 empty wallets). VGC72 was
+  never promoted to admin (blocked) — ordinary member only.
 Known standing residue to correct once tooling allows: VGC53's wallet
   (E2E_FIXTURE_LEDGER.md "Known uncorrected residue" row) is intentionally
   left short 11.73 points / over-credited 11.73 tokens as live evidence of

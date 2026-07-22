@@ -267,7 +267,7 @@ No shared root cause ties these together; each is its own fix. Grouped by severi
 | TR | Fix direction | Cross-ref |
 |---|---|---|
 | TR-164 | Add server-side minor-DOB rejection to `signup_POST.xs` requiring the guardian flow below a real age threshold; also block future-dated DOB. | WF-01, WF-02, SRS §2.1/§2.4 minor-safeguarding |
-| TR-185 | `guardian_approvals/id/respond_POST.xs` approve branch must generate a real, non-empty, non-colliding `member_id` (reuse the UUID-workaround pattern already correct in `signup_POST.xs`) before `db.add user`. | WF-02 — currently fully blocked end-to-end by this + TR-184 |
+| TR-185 | **DONE 2026-07-22.** Applied the `signup_POST.xs` UUID-workaround (temp-uuid `member_id` → insert → `db.edit` to `"VGC"~id`). Live-verified end-to-end: a real approval created minor account VGC76 + 3 wallets (was fatal `500`). Reopens WF-02, now Pass (remaining open in that workflow: TR-183 guardian email, TR-182 `VGC<n>` input nicety). | WF-02 |
 | TR-189 | `create_declaration.xs`/`submit_POST.xs`: fix the status-transition contract so `submit` actually sets a status `create_declaration` can produce — the whole INR declaration pipeline has never reached admin review. | WF-04 |
 | TR-199 | Add the missing `game_id` field/selector to `PioneerCandidacyScreen.tsx`; also blocked on at least one real game existing (`FX-014` disposable game already exists as of this session, usable for verification). | WF-12 |
 | TR-207 | `admin/admin/items_GET.xs`: fix the join alias mismatch (`$db.seller.*` not `$db.user.*`) that breaks `/admin/market` outright. | WF-19 |
