@@ -289,9 +289,9 @@ No shared root cause ties these together; each is its own fix. Grouped by severi
 | TR-203 | **DONE 2026-07-22.** `adminListMembers()` now unwraps `{members}` (was `{items}`). | WF-19 |
 | TR-210 | **DONE 2026-07-22.** Market/Activity/Education report wrappers now accept + send `{from,to}`; screen wires its date state through. | WF-19 |
 | TR-212 | **DONE 2026-07-22.** Admin Config placeholder/caption now use the real `tokens_per_inr_surrender_numerator`/`_denominator` fields. | WF-19 |
-| TR-215 | Notification Preferences: reconcile the FE's expected per-event-toggle-list shape against the BE's actual single global object — this needs a shape decision (which side changes), not just a mechanical fix; make the call, document it, then fix both sides to match. | §16.2, WF-18 |
-| TR-224 | `EventDetailScreen.tsx` calls a `gaming-seasons` sub-resource that was never built — either build the missing `GET /events/{id}` route, or point the screen at whatever the real intended data source is; confirm which with the owner if unclear before spending backend effort. | WF-12 |
-| TR-226 | **Corrected 2026-07-21 — not a plan blocker.** Xano's native `storage.create_attachment` genuinely is unavailable on the current plan, but nothing actually needs it: both call sites (`CreatePostScreen.tsx` group-post images, `DeclarationFormScreen.tsx` declaration proof `image/*,.pdf`) only consume the returned `.url`, and the Xano-side `deleteFile()` counterpart is dead code, never called. `uploadToCloudinary()` already exists in `FrontEnd/src/api/system.ts` and already works live for blog images. Fix: point both call sites at Cloudinary instead (generalize `uploadToCloudinary` to accept `resource_type=auto` so the declaration-proof PDF case works, not just images); leave the Xano `files/upload`/`files/{id}` endpoints as unused/dead rather than fixing them. | §17.6 |
+| TR-215 | **DONE 2026-07-22.** Decision: FE adopts the BE's global `{email,in_app,per_event}` model. Two global toggles; verified live. | §16.2, WF-18 |
+| TR-224 | **DONE 2026-07-22.** Built public `GET /events/{id}` (event + season name). Clean app-level 404 now, verified live. | WF-12 |
+| TR-226 | **DONE 2026-07-22.** `uploadToCloudinary(file, resourceType)` supports `auto`; declaration proof + group-post file attachment routed to Cloudinary. | §17.6 |
 | TR-228 | **DEFERRED — needs owner confirmation.** The correct fix is adding `"archived"` to the `blogs.status` enum (an additive schema change); reusing an existing value (`abandoned`/`taken_down`) would break their distinct semantics. The only available schema tool does a full destructive table-schema replace (confirmation-gated), and the plan itself says "confirm the intended status name first" — so this is left Open pending an owner-confirmed additive enum change. | WF-11 |
 | TR-229 | **DONE 2026-07-22.** `games/{id}/groups` now requires auth and returns per-group `is_member`; FE drops `public:true`. Live-verified false→true on join. | — |
 | TR-231 | **DONE 2026-07-22.** `getItems()` sends `category_id` (was `category`). Live-verified the filter now works. | — |
@@ -317,7 +317,7 @@ No shared root cause ties these together; each is its own fix. Grouped by severi
 | TR-225 | **DONE 2026-07-22.** EditBlogScreen now renders an ErrorState/Empty state instead of a blank page. |
 | TR-230 | **DONE 2026-07-22.** `/verify-email` "code sent" copy is now conditional on whether one was actually dispatched. |
 | TR-232 | See Cluster F2a (Phase 2). |
-| TR-233 | Add real `display_name`/`bio` columns and wire `profile_PATCH.xs` to accept them, **or** remove the fields from `EditProfileScreen.tsx` if they're not meant to exist — this is a scope decision (build vs. remove), not a mechanical fix; **note: the "build" option is a schema change and needs explicit user confirmation before the table-alter tool call.** |
+| TR-233 | **DONE 2026-07-22.** Decision: removed the non-functional display_name/bio fields (build would need a schema change). Stops the silent-discard. | — |
 | TR-237 | See Cluster F2c (Phase 2). |
 
 ### Low (accessibility/copy, batch these together — see Phase 5)
