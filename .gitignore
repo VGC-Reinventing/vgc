@@ -30,3 +30,6 @@ vgc/
 /XANO/
 /.local-archive/
 /.claude/settings.local.json
+
+# Playwright MCP session artifacts (transient)
+.playwright-mcp/
