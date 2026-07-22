@@ -90,10 +90,9 @@ Exact next fix: Phase 4 — "Remaining individual defects" (FIX_PLAN.md's
   Recommended first: TR-185, since it directly reopens the WF-02 guardian
   lifecycle that F3b's TR-184 fix left one step short of.
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 /
-  behind 0 as of root commit <fill in after this checkpoint's own commit
-  lands>, FrontEnd commit 9740e00 (F3b: ErrorBoundary.tsx new, App.tsx,
-  router.tsx, 6 api wrappers), XANO commit 3abd9d9 (F3b: single backend
-  file pts_compute_rate.xs / TR-259).
+  behind 0 as of root commit 4fa2e68, FrontEnd commit 9740e00 (F3b:
+  ErrorBoundary.tsx new, App.tsx, router.tsx, 6 api wrappers), XANO commit
+  3abd9d9 (F3b: single backend file pts_compute_rate.xs / TR-259).
 Open blockers: none for Phase 4. Known gaps carried forward (not
   blockers): TR-165 (CORS) needs Xano dashboard access or a plan change.
   admin/wallets/adjust's admin-success path and the standing VGC53
