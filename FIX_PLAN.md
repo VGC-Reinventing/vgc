@@ -266,12 +266,12 @@ No shared root cause ties these together; each is its own fix. Grouped by severi
 
 | TR | Fix direction | Cross-ref |
 |---|---|---|
-| TR-164 | Add server-side minor-DOB rejection to `signup_POST.xs` requiring the guardian flow below a real age threshold; also block future-dated DOB. | WF-01, WF-02, SRS §2.1/§2.4 minor-safeguarding |
+| TR-164 | **DONE 2026-07-22.** Added server-side age-gate to `signup_POST.xs` (dob required, future-dated rejected, under-18 rejected via `now|transform_timestamp:"-18 years"`). Live-verified all 4 cases. | WF-01, WF-02, SRS §2.1/§2.4 minor-safeguarding |
 | TR-185 | **DONE 2026-07-22.** Applied the `signup_POST.xs` UUID-workaround (temp-uuid `member_id` → insert → `db.edit` to `"VGC"~id`). Live-verified end-to-end: a real approval created minor account VGC76 + 3 wallets (was fatal `500`). Reopens WF-02, now Pass (remaining open in that workflow: TR-183 guardian email, TR-182 `VGC<n>` input nicety). | WF-02 |
 | TR-189 | **DONE 2026-07-22.** `submit` now accepts a `draft` and transitions it to `pending`. Live-verified end-to-end (create→submit→pending; re-submit correctly rejected). Unblocks WF-04. | WF-04 |
 | TR-199 | Add the missing `game_id` field/selector to `PioneerCandidacyScreen.tsx`; also blocked on at least one real game existing (`FX-014` disposable game already exists as of this session, usable for verification). | WF-12 |
 | TR-207 | **DONE 2026-07-22.** Fixed the join-alias mismatch (`$db.seller.*`). Deploys clean, non-admin gets clean 403; admin-success path needs an admin session. | WF-19 |
-| TR-213 | Build (or fix) the admin-wide loans-list endpoint — currently queries only the logged-in admin's own loans, no cross-member admin view exists at all; this is new API surface, not a one-line fix, scope accordingly. | WF-19, WF-15 |
+| TR-213 | **DONE 2026-07-22.** Built new `GET /admin/loans` (admin-gated, member join, status filter, paginated) + `adminGetLoans()` + rewired AdminLoansScreen to real backend fields. Endpoint gates non-admin 403; admin-success path needs an admin session. | WF-19, WF-15 |
 | TR-214 | **DONE 2026-07-22.** Replaced the hardcoded `admin_member_id` id-match with a role check via `get_current_user` (both GET/POST); `$admin_id` kept for notification routing. Live-verified clean 403 for a non-party caller. | WF-19, `UI-083` |
 | TR-234 | **DONE 2026-07-22.** Pre-resolved all optional inputs through `?? null` (date/int optionals were throwing "Unable to locate input" when omitted). Live-verified a real save with no `dob` returns 200. Unblocks all profile editing. | WF-01, WF-03, `UI-029` |
 
