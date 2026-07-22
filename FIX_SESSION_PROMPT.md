@@ -108,9 +108,9 @@ Exact next fix: continue Phase 4 — "Remaining individual defects"
   editing, a very common user action) or TR-189 (unblocks the entire INR
   declaration→admin-review pipeline).
 Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 /
-  behind 0 as of root commit <fill in after this checkpoint's own commit
-  lands>, FrontEnd commit 9740e00 (unchanged — TR-185 was backend-only),
-  XANO commit 74e19e4 (TR-185: guardian_approvals/id/respond_POST.xs).
+  behind 0 as of root commit 6f9fa61, FrontEnd commit 9740e00 (unchanged
+  — TR-185 was backend-only), XANO commit 74e19e4 (TR-185:
+  guardian_approvals/id/respond_POST.xs).
 Open blockers: none for Phase 4. Known gaps carried forward (not
   blockers): TR-165 (CORS) needs Xano dashboard access or a plan change.
   admin/wallets/adjust's admin-success path and the standing VGC53
