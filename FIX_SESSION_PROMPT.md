@@ -28,119 +28,79 @@ Read, in this order, before doing anything else:
 **Update this section at the end of every session, in place — this is the only part of this file that changes session to session.** Overwrite the block below; do not append a history of old checkpoints here (that history lives in commit messages and `TEST_REGISTER.md`'s own Fix Summary fields).
 
 ```text
-Last updated: 2026-07-22 (Phase 3 complete; Phase 4 IN PROGRESS — TR-185 done)
-Current phase: Phases 0-3 done. Phase 4 (remaining individual defects, no
-  shared root cause) IN PROGRESS. Done so far this phase: TR-185.
-Most recent fix (Phase 4): TR-185 — guardian-approval approve branch did
-  db.add user with no member_id, colliding on the unique index (every
-  approval 500'd "Duplicate record"). Applied the signup_POST.xs UUID-
-  workaround (temp-uuid member_id -> insert -> db.edit to "VGC"~id).
-  Verified live end-to-end (reopens WF-02, now Pass): created a real minor
-  guardian-registration (approval id 4, guardian VGC75) and approved it →
-  200; minor account VGC76 (member_id "VGC76", is_minor:true) + 3 wallets
-  created. To satisfy the verified-email-guardian precondition, VGC75's
-  email was verified via the real app OTP flow (resend-verification ->
-  read token from email_verification_tokens table -> verify-email) — the
-  direct table-write shortcut was classifier-blocked and correctly NOT
-  routed around. XANO commit 74e19e4 (single file
-  guardian_approvals/id/respond_POST.xs). Fixture: FX-032 (VGC76 minor +
-  approval id 4). WF-02's remaining open items are TR-183 (guardian email
-  never arrives, Medium) and TR-182 (VGC<n> guardian-id input nicety,
-  High).
---- earlier this session (Phase 3) ---
-Phase 3, Cluster F3b — the paginated-envelope-vs-bare-
-  array crash family (TR-184, TR-195, TR-196) plus the missing app-level
-  ErrorBoundary. Two required parts, both done:
-  (1) Added a root-level <ErrorBoundary> (wraps RouterProvider in App.tsx)
-      AND a React-Router errorElement on a pathless root wrapper route in
-      routes/router.tsx. CRITICAL LESSON for any future app-crash work:
-      wrapping RouterProvider in a class ErrorBoundary does NOT catch
-      errors thrown inside route screens — React Router's data router
-      intercepts them first and renders its own default developer error
-      page. You MUST use a route-level errorElement to catch route-screen
-      crashes. Both render one shared friendly "Something went wrong /
-      Reload" fallback (components/ErrorBoundary.tsx: class ErrorBoundary
-      + RouteErrorBoundary + shared CrashFallback). Proven live via a
-      deliberately-injected synthetic throw.
-  (2) Fixed each broken API wrapper to unwrap its ACTUAL verified envelope
-      shape — they do NOT share one wrapper key, confirmed per-endpoint via
-      live curl before coding: listDeclarations ({declarations}),
-      listSurrenders ({data}), getPtsHistory / getMyActivities /
-      getProposals / getGuardianApprovals ({items}). Also hardened
-      getItems/getOrders/getSales (bare arrays live today, but lacked the
-      defensive Array.isArray guard). TR-184's bundled action-body bug
-      ({approve}->{decision}) fixed in the same change.
-  Verified live in a real browser (dev server + seeded VGC75 JWT in
-  localStorage key 'vgc.authToken'): guardian-approvals, wallet/
-  declarations, wallet/surrenders, points/activities, pts History, and
-  market/propose all render their empty-state instead of white-screening.
-  The "2 more marketplace screens" the recurrence hypothesis predicted
-  turned out to return bare arrays live (not envelopes) — verified before
-  assuming, so they were never crash sources; the real set is 6 wrappers /
-  7 screens.
-  ALSO FIXED — a new Critical backend fatal found during F3b (TR-259):
-  GET /pts/rate (and /quote, /convert) fatally 500'd "Not numeric."
-  because pts_compute_rate's L_invest loop did raw arithmetic on the
-  timestamp-typed start_date. This loop only runs when an active
-  investment exists — and THIS SESSION's TR-200 fix created the platform's
-  first-ever one (VGC75), so F3a's success is what exposed this latent
-  crash and began degrading the shared pts/rate endpoint live. Fixed with
-  |to_ms (same class as TR-202's expenses/me fix); pts/rate verified 200
-  after. Watch for this pattern: any raw arithmetic on a timestamp- or
-  date-typed DB field needs |to_ms first in this Xano version.
-  Full detail: TEST_REGISTER.md's Resolved entries (TR-184/195/196/259)
-  and FIX_PLAN.md Cluster F3b's status block.
-Exact next fix: continue Phase 4 — "Remaining individual defects"
-  (FIX_PLAN.md's Phase 4 section). No shared root cause; each is its own
-  fix, grouped by severity. TR-185 is done (see above). Remaining Critical
-  list in FIX_PLAN.md Phase 4: TR-164 (server-side minor-DOB rejection in
-  signup — pairs naturally with the guardian flow just fixed), TR-189 (INR
-  declaration submit status-transition contract — the whole declaration
-  pipeline has never reached admin review), TR-199 (PioneerCandidacy
-  missing game_id; FX-014 disposable game exists), TR-207 (admin/market
-  join alias `$db.seller.*`), TR-213 (build admin-wide loans-list endpoint
-  — new API surface, scope accordingly), TR-214 (dispute-messages
-  hardcoded admin check), TR-234 (profile_PATCH 500s when dob omitted —
-  why no profile save has ever succeeded from the UI). Read each TR's row
-  in TEST_REGISTER.md for the authoritative repro before starting. There
-  is no cluster discipline in Phase 4 — commit one fix (or explicitly-
-  paired fix) at a time. Recommended next: TR-234 (unblocks all profile
-  editing, a very common user action) or TR-189 (unblocks the entire INR
-  declaration→admin-review pipeline).
-Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 /
-  behind 0 as of root commit 6f9fa61, FrontEnd commit 9740e00 (unchanged
-  — TR-185 was backend-only), XANO commit 74e19e4 (TR-185:
-  guardian_approvals/id/respond_POST.xs).
-Open blockers: none for Phase 4. Known gaps carried forward (not
-  blockers): TR-165 (CORS) needs Xano dashboard access or a plan change.
-  admin/wallets/adjust's admin-success path and the standing VGC53
+Last updated: 2026-07-22 (Phases 0-5 substantially COMPLETE; 8 documented deferrals remain)
+Current phase: All planned phases worked through. Phase 0, 1, 2, 3 fully
+  complete. Phase 4 (individual defects) complete except open-ended sweeps.
+  Phase 5 (UX/a11y/polish) complete except one a11y-primitive item.
+Overall: the TEST_REGISTER Active Issues table is down to 8 rows, all of
+  them genuinely blocked on infra / an owner decision / a schema change /
+  a large a11y refactor (listed under "Deferred" below). Everything else
+  that was Open at the start of this fix phase has been fixed, live-
+  verified where possible, and moved to Resolved.
+Most recent work (this session, Phase 4 + Phase 5): fixed the full
+  remaining backlog across Criticals (guardian-approval collision TR-185,
+  profile-save 500 TR-234, declaration pipeline TR-189, admin-market join
+  TR-207, dispute-chat admin check TR-214, signup age-gate TR-164,
+  admin-loans-list TR-213, pioneer-candidacy form TR-199), the two
+  SECURITY bugs (iframe session-hijack TR-197, contract-bid IDOR TR-217),
+  and the long tail of High/Medium/Low FE+BE fixes (see TEST_REGISTER
+  Resolved for the full list — ~50 TRs closed this session). All FrontEnd
+  changes pass typecheck/test/build; all backend changes verified live via
+  the disposable persona VGC75 (and helpers) and synced into the XANO
+  tracked tree via the pull-diff discipline.
+Deferred (the 8 remaining Active rows — each needs something outside a
+  normal code fix; do NOT treat these as "just not done yet"):
+  - TR-172: signed Cloudinary uploads / server-side upload validation —
+    needs the Cloudinary API secret configured in Xano server env + a
+    signing endpoint (secret is deliberately not in the repo).
+  - TR-183: guardian-registration email never arrives — Xano free-plan
+    email deliverability (in-app notification DOES fire); needs a paid
+    email provider, same class as the owner-deferred TR-137.
+  - TR-228: blog archive writes status "archived", not in the blogs.status
+    enum — the correct fix ADDS an enum value (an additive schema change);
+    the only schema tool does a full destructive table-schema replace and
+    is confirmation-gated, and the plan says "confirm the intended status
+    name first". Needs owner go-ahead for the additive enum change.
+  - TR-249: confirm dialogs lack a focus trap / role=dialog / focus return
+    — needs a shared focus-trap Modal primitive + per-screen wiring + a
+    browser a11y audit; not shipped as a partial fix on purpose.
+  - TR-257: POST /investments & /sponsorships never link a logged-in member
+    (this Xano version has no optional-auth mode) — needs an owner decision
+    (accept anonymous / require login / manual JWT decode).
+  - TR-258: GET /expenses/me dashboard breakdown aggregates return null
+    internals — a XanoScript compound-expression quirk; low priority, does
+    not block the flat list or top-level totals.
+  - TR-140 (partial): registration/OTP-resend rate limiting is done; the
+    broader sweep across voting/applications/ratings/financial mutations
+    remains an open standing sweep under the same ID.
+  - TR-167 (partial): several GET-handler "mutations" are intentional,
+    already-proven lazy-expiry patterns; a full verb-correctness audit
+    across every listed family is an open-ended standing sweep.
+  Plus the pre-existing owner-deferred set in FIX_PLAN.md §7 (TR-137/138/
+  139/141/143/144, DPDP erasure exercise, hardware/QR/WCAG-tooling).
+Two carried-forward gaps that are NOT register rows but must not be lost:
+  (1) admin/wallets/adjust's admin-success path + the standing VGC53
   wallet-residue correction still need a real 2FA-verified admin session
-  (blocked twice by the tooling safety classifier so far). DPDP erasure is
-  transaction-safe but needs an explicit owner go-ahead. New open findings
-  from Phase 3 (all in TEST_REGISTER.md Active, NOT blockers for Phase 4
-  but don't lose them): TR-257 (investments/sponsorships never link a
-  logged-in member — Xano has no optional-auth mode, needs owner
-  decision), TR-258 (expenses/me dashboard breakdown aggregates return
-  null internals — cosmetic, non-blocking).
-Fixture/persona state: reuse existing disposable personas from
-  E2E_FIXTURE_LEDGER.md (VGC50-VGC76) rather than creating new ones unless
-  a fix needs a genuinely fresh/untouched account. VGC75 (FX-031, "Fix
-  Phase3a Probe") has real dependent records (1 investment+payout, 1
-  sponsorship, 1 loan, 1 expense) backing both F3a and F3b verification —
-  and its investment (id 1) is TR-259's regression trigger, so KEEP it
-  until TR-259's fix is independently reconfirmed. VGC75 is now also
-  email-verified (done via the real OTP flow for TR-185's guardian
-  precondition) — so it's a handy ready-made verified-email guardian for
-  any future WF-02 work. VGC76 (FX-032) is the minor account TR-185's fix
-  created (is_minor:true, guardian VGC75, 3 empty wallets). VGC72 was
-  never promoted to admin (blocked) — ordinary member only.
-Known standing residue to correct once tooling allows: VGC53's wallet
-  (E2E_FIXTURE_LEDGER.md "Known uncorrected residue" row) is intentionally
-  left short 11.73 points / over-credited 11.73 tokens as live evidence of
-  TR-239/240. admin/wallets/adjust is fixed in code but its live
-  admin-session test is still the open gap above — correct this residue
-  the moment a real admin session is available, then update that fixture-
-  ledger row.
+  (creating one by promoting a fresh account was classifier-blocked twice).
+  Many admin-only success paths fixed this session (TR-207/213/214, etc.)
+  are code-verified + non-admin-gate-verified but not admin-success-clicked
+  for the same reason. (2) TR-165 (CORS) still needs Xano dashboard access
+  or a plan change — not fixable via any MCP tool.
+Exact next work if resumed: there is no queued "next fix" — the plan's
+  open backlog is worked through. A future session should either (a) pick
+  up one of the 8 deferrals once its blocker is resolved (owner decision /
+  email provider / schema go-ahead / a11y primitive), or (b) do the
+  admin-session-dependent live re-verification of the admin-only success
+  paths once a real 2FA admin session is available.
+Repo sync state at last checkpoint: root/FrontEnd/XANO all ahead 0 /
+  behind 0 (verify with git status -sb in each before continuing).
+Fixture/persona state: VGC75 (FX-031) is the primary live-verification
+  persona this session (email-verified, has an investment/sponsorship/loan/
+  expense + is guardian of minor VGC76/FX-032); reuse it. VGC50-VGC76 all
+  ledgered in E2E_FIXTURE_LEDGER.md.
+Known standing residue: VGC53's wallet is intentionally left short 11.73
+  points / over 11.73 tokens as live TR-239/240 evidence — correct it the
+  moment a real admin session is available (needs admin/wallets/adjust).
 ```
 
 ## Preserve the project

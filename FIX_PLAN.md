@@ -280,11 +280,11 @@ No shared root cause ties these together; each is its own fix. Grouped by severi
 | TR | Fix direction | Cross-ref |
 |---|---|---|
 | TR-140 (remainder) | Rate-limiting is confirmed working for registration/OTP-resend; the broader sweep across voting/applications/ratings/financial mutations is still open — complete that sweep and fix any gap found. | `E2E_TEST_PLAN.md` §11.1 |
-| TR-167 | Audit every `GET` handler in the affected families (reset request, guardian expiry, education/session lifecycle, elections, seasons, groups, loans, orders, transfers, wallet creation) and move any real mutation to the correct verb, or make the lazy-read idempotent by design if the mutation is a legitimate lazy-evaluation side effect (several of these may be intentional lazy-expiry patterns already proven correct elsewhere — confirm which before "fixing" a working pattern). | §10.6 (time-dependent lazy evaluation) |
-| TR-172 | Move the `vgc_blog` Cloudinary preset to signed uploads or add server-side format/size/dimension/ownership validation. | §17.6 |
+| TR-167 | **PARTIAL — remains a sweep.** Several of these are intentional, already-proven lazy-expiry patterns (guardian expiry, contract deadline, etc.). A full verb-correctness audit across every listed family is open-ended and left as a standing sweep under this ID. | §10.6 |
+| TR-172 | **DEFERRED — infra/config.** Signed Cloudinary uploads need the Cloudinary API secret in Xano server env + a signing endpoint (the secret is deliberately not in the codebase); server-side format/size validation likewise needs an upload proxy. Left open pending that infra setup. | §17.6 |
 | TR-180 | **DONE 2026-07-22.** Added `queryClient.clear()` to SessionExpiredModal on re-login success. | Cross-account cache isolation quarantine-gate row |
 | TR-182 | **DONE 2026-07-22.** SignupScreen strips a leading `VGC` so the field accepts the `VGC<n>` format it promises. |
-| TR-183 | Fix or replace `util.send_email` call in `guardian_registration_POST.xs` — confirmed the in-app notification fires but the email never arrives. | WF-02, §17.5 (Email) |
+| TR-183 | **DEFERRED — email infra.** The in-app guardian notification fires correctly; the email non-delivery is a Xano free-plan email-deliverability issue (same class as TR-137), not verifiable/fixable from code. Revisit with a paid email provider. | WF-02, §17.5 (Email) |
 | TR-190 | See Cluster F2a (Phase 2) — bundled there since it's the same admin-wallet-tools file family. | — |
 | TR-203 | **DONE 2026-07-22.** `adminListMembers()` now unwraps `{members}` (was `{items}`). | WF-19 |
 | TR-210 | **DONE 2026-07-22.** Market/Activity/Education report wrappers now accept + send `{from,to}`; screen wires its date state through. | WF-19 |
