@@ -268,12 +268,12 @@ No shared root cause ties these together; each is its own fix. Grouped by severi
 |---|---|---|
 | TR-164 | Add server-side minor-DOB rejection to `signup_POST.xs` requiring the guardian flow below a real age threshold; also block future-dated DOB. | WF-01, WF-02, SRS §2.1/§2.4 minor-safeguarding |
 | TR-185 | **DONE 2026-07-22.** Applied the `signup_POST.xs` UUID-workaround (temp-uuid `member_id` → insert → `db.edit` to `"VGC"~id`). Live-verified end-to-end: a real approval created minor account VGC76 + 3 wallets (was fatal `500`). Reopens WF-02, now Pass (remaining open in that workflow: TR-183 guardian email, TR-182 `VGC<n>` input nicety). | WF-02 |
-| TR-189 | `create_declaration.xs`/`submit_POST.xs`: fix the status-transition contract so `submit` actually sets a status `create_declaration` can produce — the whole INR declaration pipeline has never reached admin review. | WF-04 |
+| TR-189 | **DONE 2026-07-22.** `submit` now accepts a `draft` and transitions it to `pending`. Live-verified end-to-end (create→submit→pending; re-submit correctly rejected). Unblocks WF-04. | WF-04 |
 | TR-199 | Add the missing `game_id` field/selector to `PioneerCandidacyScreen.tsx`; also blocked on at least one real game existing (`FX-014` disposable game already exists as of this session, usable for verification). | WF-12 |
-| TR-207 | `admin/admin/items_GET.xs`: fix the join alias mismatch (`$db.seller.*` not `$db.user.*`) that breaks `/admin/market` outright. | WF-19 |
+| TR-207 | **DONE 2026-07-22.** Fixed the join-alias mismatch (`$db.seller.*`). Deploys clean, non-admin gets clean 403; admin-success path needs an admin session. | WF-19 |
 | TR-213 | Build (or fix) the admin-wide loans-list endpoint — currently queries only the logged-in admin's own loans, no cross-member admin view exists at all; this is new API surface, not a one-line fix, scope accordingly. | WF-19, WF-15 |
-| TR-214 | `dispute-messages` GET/POST: replace the hardcoded `$auth.id == system_config.admin_member_id` check with the platform's real role-based admin check. | WF-19, `UI-083` |
-| TR-234 | `profile_PATCH.xs` throws `500` whenever `dob` is omitted despite being declared optional — fix the runtime behavior to actually honor `date dob?`; this is why **no profile save has ever succeeded** from the real UI. | WF-01, WF-03, `UI-029` |
+| TR-214 | **DONE 2026-07-22.** Replaced the hardcoded `admin_member_id` id-match with a role check via `get_current_user` (both GET/POST); `$admin_id` kept for notification routing. Live-verified clean 403 for a non-party caller. | WF-19, `UI-083` |
+| TR-234 | **DONE 2026-07-22.** Pre-resolved all optional inputs through `?? null` (date/int optionals were throwing "Unable to locate input" when omitted). Live-verified a real save with no `dob` returns 200. Unblocks all profile editing. | WF-01, WF-03, `UI-029` |
 
 ### High
 
