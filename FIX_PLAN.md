@@ -283,7 +283,7 @@ No shared root cause ties these together; each is its own fix. Grouped by severi
 | TR-167 | Audit every `GET` handler in the affected families (reset request, guardian expiry, education/session lifecycle, elections, seasons, groups, loans, orders, transfers, wallet creation) and move any real mutation to the correct verb, or make the lazy-read idempotent by design if the mutation is a legitimate lazy-evaluation side effect (several of these may be intentional lazy-expiry patterns already proven correct elsewhere — confirm which before "fixing" a working pattern). | §10.6 (time-dependent lazy evaluation) |
 | TR-172 | Move the `vgc_blog` Cloudinary preset to signed uploads or add server-side format/size/dimension/ownership validation. | §17.6 |
 | TR-180 | **DONE 2026-07-22.** Added `queryClient.clear()` to SessionExpiredModal on re-login success. | Cross-account cache isolation quarantine-gate row |
-| TR-182 | Either accept the public `VGC<n>` format in `guardian_registration_POST.xs`, or surface the raw internal id somewhere reachable — the field's own label already promises `VGC<n>` format, make the backend match its own UI copy. | WF-02 |
+| TR-182 | **DONE 2026-07-22.** SignupScreen strips a leading `VGC` so the field accepts the `VGC<n>` format it promises. |
 | TR-183 | Fix or replace `util.send_email` call in `guardian_registration_POST.xs` — confirmed the in-app notification fires but the email never arrives. | WF-02, §17.5 (Email) |
 | TR-190 | See Cluster F2a (Phase 2) — bundled there since it's the same admin-wallet-tools file family. | — |
 | TR-203 | **DONE 2026-07-22.** `adminListMembers()` now unwraps `{members}` (was `{items}`). | WF-19 |
@@ -302,20 +302,20 @@ No shared root cause ties these together; each is its own fix. Grouped by severi
 
 | TR | Fix direction |
 |---|---|
-| TR-132 | Point the `contract_disputed` admin notification's deep link at `/admin/contracts`, not `/contracts`. |
-| TR-145 | Add City/State/Country fields somewhere reachable (signup or, matching Mobile's precedent, editable later from profile) per SRS §2.1.1. |
-| TR-174 | Wrap `resend-verification_POST.xs`'s token invalidation in a proper read-then-write transaction (TOCTOU fix); separately fix `VerifyEmailScreen.tsx`'s `useState`→`useRef` StrictMode double-fire artifact. |
-| TR-175 | Render the member's own `VGC<n>` ID somewhere on Profile/Home/Wallet — currently only incidentally visible on Declaration/Surrender forms. |
-| TR-188 | Change `VerifyEmailScreen.tsx`'s code field from a 6-digit numeric keyboard to a field that can actually hold the real 36-character UUID token. |
-| TR-192 | Add an `emit_notification`/email call to `points_transfer_POST.xs` for the recipient. |
-| TR-193 | Fix `ItemDetailScreen.tsx` to call `formatAmount()` with the item's real currency, not a hardcoded token; fix `formatAmount()` to append a unit for every currency, not just INR. |
-| TR-198 | `AdminBlogScreen.tsx` (list view) reads `author_name`/`author_id`; real field is `author_member_id` — the detail screen already gets this right, mirror its fix. |
+| TR-132 | **DONE 2026-07-22.** `getNotifRoute` routes `contract_disputed` → `/admin/contracts`. |
+| TR-145 | **DONE 2026-07-22.** Added city/state/country to `GET /profile` + EditProfileScreen; PATCH round-trip verified live. |
+| TR-174 | **DONE 2026-07-22.** resend-verification token invalidate+insert wrapped in a transaction; VerifyEmailScreen auto-send guard useState→useRef. |
+| TR-175 | **DONE 2026-07-22.** Profile screen now shows the member's `VGC<n>` public ID. |
+| TR-188 | **DONE 2026-07-22.** Verify-email code field is now `inputMode="text"` (UUID-capable), placeholder updated. |
+| TR-192 | **DONE 2026-07-22.** Added a recipient `emit_notification` to points_transfer_POST. |
+| TR-193 | **DONE 2026-07-22.** `formatAmount()` appends the unit for every currency; ItemDetailScreen uses the item's real currency. |
+| TR-198 | **DONE 2026-07-22.** Admin blog list/detail fall back to `Member #{author_member_id}` (the real field). |
 | TR-206 | See Cluster F2b (Phase 2) — same always-zero expression as TR-205's write-side bug. |
-| TR-211 | Fix the Audit Log "to" filter to include the full end day (end-of-day, not midnight-start) rather than excluding same-day entries. |
-| TR-216 | Add an `auth` requirement to `send_welcome_email_POST.xs`, or remove it entirely if genuinely dead scaffolding — confirm which via a call-site grep first. |
-| TR-222 | Add a membership check before rendering `/groups/{id}/post/new`'s full compose UI for non-members — currently UX-only since the backend already correctly blocks submission. |
-| TR-225 | Add `isError` handling to `EditBlogScreen` — currently renders nothing at all on a 403/404 fetch failure. |
-| TR-230 | Make `/verify-email`'s "a code has been sent" copy conditional on whether one actually was (signup-flow arrival vs. direct URL visit). |
+| TR-211 | **DONE 2026-07-22.** Audit-log query sends `to` as end-of-day so same-day entries are included. |
+| TR-216 | **DONE 2026-07-22.** Confirmed dead scaffolding (zero callers); added `auth="user"` (was public) + fixed missing `to`. Verified 401 unauthenticated. |
+| TR-222 | **DONE 2026-07-22.** CreatePostScreen shows a "Join to post" state for non-members instead of the full composer. |
+| TR-225 | **DONE 2026-07-22.** EditBlogScreen now renders an ErrorState/Empty state instead of a blank page. |
+| TR-230 | **DONE 2026-07-22.** `/verify-email` "code sent" copy is now conditional on whether one was actually dispatched. |
 | TR-232 | See Cluster F2a (Phase 2). |
 | TR-233 | Add real `display_name`/`bio` columns and wire `profile_PATCH.xs` to accept them, **or** remove the fields from `EditProfileScreen.tsx` if they're not meant to exist — this is a scope decision (build vs. remove), not a mechanical fix; **note: the "build" option is a schema change and needs explicit user confirmation before the table-alter tool call.** |
 | TR-237 | See Cluster F2c (Phase 2). |
