@@ -30,8 +30,8 @@ row confirms a specific fixed TR (e.g. "confirms TR-234").
 |---|---|---|---|---|---|
 | WF-03 | Password/profile/account data | VGC75 | Pass | `/profile/edit` loads real Full name/Mobile + City/State/Country (Mumbai/Maharashtra/India), no display_name/bio fields; clicking Save persists and navigates home, 0 console errors | Confirms TR-234, TR-145, TR-233 |
 | WF-04 | INR declaration → token purchase | VGC75 | Partial | `/wallet/declarations` renders the real "Donation ₹500 · Pending" record (draft→pending pipeline reached admin review). Admin verify/credit step needs an admin session (blocker). | Confirms TR-189, TR-196 |
-| WF-14 | Financial donation/investment/sponsorship | VGC75 | **Fail** | `/financial/investments/new` renders correctly (Option A/B, Amount, Start Date — TR-200 fix), but submitting as a **logged-in member** dead-ends: "investor_email is required for unauthenticated submissions" (**TR-257**, escalated to Critical — the form has no email field for authed users). Sponsorship form shares the same TR-257 issue. | TR-200 (form ✓), **TR-257** |
-| WF-15 | Loan lifecycle | VGC75 | **Fail** | Request Loan form has the UPI ID field (TR-201 ✓) and renders correctly; but the "My Loans" tab shows "No loans" while `GET /loans/me` returns the real loan — **TR-260** (envelope-key mismatch, member can never see their loans). Admin approval still gated (TR-213 needs admin session). | TR-201 (form ✓), **TR-260** |
+| WF-14 | Financial donation/investment/sponsorship | VGC75 | **Fixed (re-verified)** | TR-257 fixed: both `POST /investments` and `POST /sponsorships` now `auth = "user"` with `member_id` from `$auth.id`. Live: no-token → 401; token + non-positive amount → the positive-amount precondition (the "investor_email required for unauthenticated submissions" dead-end is gone). Forms are `RequireAuth`-only so no functionality lost. Not exercised to a real created record (financial write held under the classifier gate); auth path proven negative-side. | TR-200 (form ✓), **TR-257 ✓** |
+| WF-15 | Loan lifecycle | VGC75 | **Fixed (re-verified)** | TR-260 fixed: `getMyLoans` unwraps `.loans`; the "My Loans" tab now renders the real loan (₹2,000, Pending) in the browser. Repay button correctly gated to `status == "active"` with `outstanding_tokens > 0`. Admin approval still gated (TR-213 needs admin session). | TR-201 (form ✓), **TR-260 ✓** |
 | WF-08 | Point Token Scheme | VGC75 | Pass w/risk | `/pts` loads with 0 console errors (TR-259 rate-crash fixed); Convert correctly shows suspended, History renders. Live convert not exercised (conversion suspended platform-wide, a legitimate computed state). | Confirms TR-259 |
 
 ## C. Route browser coverage (§13)
@@ -45,10 +45,10 @@ row confirms a specific fixed TR (e.g. "confirms TR-234").
 | /market/propose | ProposeItemScreen | Pass | default | Renders, 0 errors | TR-195 |
 | /profile/guardian-approvals | GuardianApprovalsScreen | Pass | default | Renders, 0 errors | TR-184 |
 | /points/activities | ActivityRewardsScreen | Pass | default | Renders, 0 errors | TR-196 |
-| /financial/investments/new | CreateInvestmentScreen | Pass w/risk | default | Form renders (TR-200); submit blocked by TR-257 (backend) | TR-200/257 |
-| /loans | LoansScreen | Partial | default | Request form OK (TR-201); My Loans list empty (TR-260) | TR-201/260 |
+| /financial/investments/new | CreateInvestmentScreen | Pass | default | Form renders (TR-200); backend now `auth = "user"` (TR-257 fixed) — submit no longer dead-ends | TR-200/257 |
+| /loans | LoansScreen | Pass | default | Request form OK (TR-201); My Loans now shows the ₹2,000 Pending loan (TR-260 fixed) | TR-201/260 |
 | /expenses/new | AddExpenseScreen | Pass | default | Real expense created end-to-end via the form (payment-mode labels correct, TR-202); appears in list | TR-202 |
-| /expenses | ExpensesScreen | **Fail** | default | Entries list renders but **every row shows ₹0** (`amount` vs `amount_inr` — **TR-261**) | TR-261 |
+| /expenses | ExpensesScreen | Pass | default | Entries render real amounts ₹250 and ₹150.5 (was ₹0 — **TR-261 fixed**, reads `amount_inr`/`settlement_status`) | TR-261 |
 | /explore | MarketplaceScreen | Pass | default | 11 items render with "X Tokens" prices; category chip "Blog Tickets" correctly filters to the 4 ticket items (**TR-231 confirmed in UI**) | TR-231/193 |
 | /wallet | WalletScreen | Pass | default | Renders, 0 errors | — |
 | /community | CommunityScreen | Pass | default | Renders, 0 errors | — |
