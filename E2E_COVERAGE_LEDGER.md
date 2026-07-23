@@ -96,3 +96,25 @@ row confirms a specific fixed TR (e.g. "confirms TR-234").
 | `GET /loans/me` | loans | Pass | `200` `{loans:[{id:1, amount_inr:2000, outstanding_tokens:0, status:"pending"}], consolidated_schedule, total_outstanding_tokens}` — confirms the `{loans}` envelope (TR-260) | TR-260 |
 | `GET /expenses/me` | expenses | Pass | `page`/`per_page` are `min:1` (page=0 → `400`); with valid paging `200` `{items:[{amount_inr, settlement_status, ...}]}` — confirms `amount_inr` (TR-261). Dashboard breakdown nulls still open (TR-258) | TR-261/258 |
 | `GET /notifications` | notifications | Pass | `200`, paginated `{items:[…]}` (1 real notification for VGC75) | — |
+| `GET /games` | gamingCommunity | Pass | `200` standard `{items}` envelope | — |
+| `GET /groups` | groups | Pass | `200` standard `{items}` envelope; FE renders (ids 11/10/7) | — |
+| `GET /blog/public` | blog | Pass | `200` `{items, total}`; FE `getPublicBlogs` handles it | — |
+| `GET /marketplace/items` | marketplace | Pass | `200` bare **array** (not `{items}`); FE `getMarketItems` handles both — no envelope bug. Real catalog is a currency mix (INR×2, VGC_TOKEN×5, VGC_POINTS×4) — see TR-262 | TR-262 |
+| `GET /marketplace/items/11` | marketplace | Pass | `200`, `{price:22.91, currency:"INR", …}` — detail reads currency correctly | TR-262 |
+| `GET /proposals` | proposals | Pass | `200` standard `{items}` envelope | — |
+
+### D.1 Envelope-key family sweep (TR-260 class)
+
+Swept the member list endpoints for the custom-envelope mismatch that caused TR-260. Result: `/loans/me` (`{loans}`) was the sole outlier (now fixed); `games`, `groups`, `proposals`, `expenses/me`, `pts/history`, `notifications`, `investments/me` all use the standard `{items}` envelope, `blog/public` uses `{items,total}`, and `marketplace/items` returns a bare array — **all of which the corresponding FE unwrappers already handle**. No further envelope-key defects found.
+
+## E. Responsive / visual matrix (§13 widths)
+
+| Screen | Width | Result | Evidence |
+|---|---|---|---|
+| /home | 320 | Pass | `scrollWidth == clientWidth == 320`, no element wider than viewport (no horizontal overflow) |
+| /explore | 320 | Pass | No horizontal overflow; currency labels render (post-TR-262) |
+| /expenses/ledger | 320 | Pass | No horizontal overflow (a table-dense screen — clean) |
+| /pts | 320 | Pass | No horizontal overflow |
+| /points/passbook | 320 | Pass | No horizontal overflow (passbook table clean) |
+
+Method: at 320×720, checked `documentElement.scrollWidth` vs `clientWidth` and scanned every element's bounding box for `right > viewport`. No offenders on any screen tested — the global `overflow-wrap: anywhere` rule (TR-241/243) and the scrollable `.vgc-tabs` (TR-244) hold up on member screens. Full member-screen ×320 sweep + a11y (focus-trap/landmark) matrix remains to be completed.
