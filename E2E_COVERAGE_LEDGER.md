@@ -76,6 +76,11 @@ row confirms a specific fixed TR (e.g. "confirms TR-234").
 | /gaming/pioneer-candidacy | PioneerCandidacyScreen | Pass | default | Renders, 0 errors | — |
 | /education/teacher | TeacherDashboardScreen | Pass | default | Renders, 0 errors | — |
 | /financial/investments/1 | InvestmentDetailScreen | Pass (authz) | default | VGC75 (non-owner; `investments/me` is empty) correctly gets a `403 Access denied` from `GET /investments/1`, and the screen renders a graceful "Couldn't load this / Access denied / Retry" state (no crash). Confirms the F3a IDOR gate on `investments/{id}`. | TR-217-family |
+| /blog/73 | BlogDetailScreen | Pass | default | Renders real blog content (title/body), 0 errors | — |
+| /groups/11 | GroupDetailScreen | Pass | default | Renders, 0 errors | — |
+| /market/item/11 | ItemDetailScreen | Pass | default | Renders real item (bergamot jaboticaba, ₹22.91 INR — correct currency), Add-to-cart/Buy-now controls, QUANTITY/TOTAL. **Cross-check exposed TR-262** (list mislabeled currencies). | TR-262 |
+| /gaming/games/1 | GameDetailScreen | Pass | default | Renders real game (E2E-20260719-01 Test Game) with Seasons/Candidates/Groups tabs, 0 errors | — |
+| /explore (post-TR-262) | MarketplaceScreen | Pass | default | After the TR-262 fix, list prices render per real currency: ₹22.91 (INR), 71.75 Tokens (VGC_TOKEN), 57.01 Points (VGC_POINTS) | TR-262 |
 
 ## D. API endpoint coverage (§15.2)
 
