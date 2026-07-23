@@ -57,8 +57,37 @@ row confirms a specific fixed TR (e.g. "confirms TR-234").
 | /wallet/surrenders | TokenSurrendersListScreen | Pass | default | Renders, 0 errors | TR-196 |
 | /notifications | NotificationsScreen | Pass | default | Renders, 0 errors | — |
 | /profile | ProfileScreen | Pass | default | Shows public ID "VGC75" (TR-175), "Name, mobile, location" edit label (TR-233), Email verified badge | TR-175/233 |
+| /financial | FinancialScreen | Pass | default | Renders, 0 errors | — |
+| /education | EducationScreen | Pass | default | Renders, 0 errors | — |
+| /gaming/seasons | SeasonsScreen | Pass | default | Renders, 0 errors | — |
+| /groups | GroupsScreen | Pass | default | Renders, 0 errors | — |
+| /points/passbook | PointsPassbookScreen | Pass | default | Renders, 0 errors | — |
+| /points/pending | PendingTransfersScreen | Pass (by design) | default | Intentionally `<Navigate replace>` → `/points/passbook` (points transfer is instant post-TR-081; the pending screen is a deliberate stale-link redirect stub, not a dead route) | TR-081 |
+| /points/send | SendPointsScreen | Pass | default | Renders, 0 errors | — |
+| /cart | CartScreen | Pass | default | Renders, 0 errors | — |
+| /market/orders | OrdersScreen | Pass | default | Renders, 0 errors | — |
+| /wallet/declare | DeclarationFormScreen | Pass | default | Renders, 0 errors | — |
+| /wallet/surrender | TokenSurrenderScreen | Pass | default | Renders, 0 errors | — |
+| /expenses/ledger | ExpenseLedgerScreen | Pass | default | Renders, 0 errors | — |
+| /search | SearchScreen | Pass | default | Renders, 0 errors | — |
+| /profile/password | ChangePasswordScreen | Pass | default | Renders, 0 errors | — |
+| /profile/erasure | ErasureScreen | Pass | default | Renders, 0 errors | — |
+| /notifications/preferences | NotifPreferencesScreen | Pass | default | Renders, 0 errors (TR-215 global-model form) | TR-215 |
+| /gaming/pioneer-candidacy | PioneerCandidacyScreen | Pass | default | Renders, 0 errors | — |
+| /education/teacher | TeacherDashboardScreen | Pass | default | Renders, 0 errors | — |
+| /financial/investments/1 | InvestmentDetailScreen | Pass (authz) | default | VGC75 (non-owner; `investments/me` is empty) correctly gets a `403 Access denied` from `GET /investments/1`, and the screen renders a graceful "Couldn't load this / Access denied / Retry" state (no crash). Confirms the F3a IDOR gate on `investments/{id}`. | TR-217-family |
 
 ## D. API endpoint coverage (§15.2)
 
 | Endpoint | Group | Status | Evidence | TRs |
 |---|---|---|---|---|
+| `GET /profile` | userProfile | Pass | No-token → `401`; VGC75 token → `200` with `{status:"success", data:{member_id:"VGC75", email, ...}}` | — |
+| `GET /wallets/me` | wallets | Pass | `200`, returns the wallets array incl. the real `inr` wallet (id 153, member_id 75) | TR-181/227 |
+| `GET /pts/rate` | pts | Pass | `200` with a rate object (`r_published`, `r_user`, `conversion_suspended`); no `"Not numeric."` crash. Note: `r_eq` computes negative here (pool state), but `conversion_suspended` gates any use — behavioural, not a bug | TR-259 |
+| `GET /pts/history` | pts | Pass | `200`, paginated `{items:[]}` (VGC75 has no PTS history) | — |
+| `GET /investments/1` | finInvest | Pass (authz) | VGC75 (non-owner) → `403 Access denied`; `GET /investments/me` → `200 {items:[]}` (owns none) — correct IDOR gate | TR-217-family |
+| `POST /investments` | finInvest | Pass | No-token → `401`; token + non-positive principal → `400 "principal_inr must be positive"` (auth + member_id resolve; email dead-end gone) | TR-257 |
+| `POST /sponsorships` | finSponsor | Pass | No-token → `401`; token + non-positive amount → `400 "amount_inr must be positive"` | TR-257 |
+| `GET /loans/me` | loans | Pass | `200` `{loans:[{id:1, amount_inr:2000, outstanding_tokens:0, status:"pending"}], consolidated_schedule, total_outstanding_tokens}` — confirms the `{loans}` envelope (TR-260) | TR-260 |
+| `GET /expenses/me` | expenses | Pass | `page`/`per_page` are `min:1` (page=0 → `400`); with valid paging `200` `{items:[{amount_inr, settlement_status, ...}]}` — confirms `amount_inr` (TR-261). Dashboard breakdown nulls still open (TR-258) | TR-261/258 |
+| `GET /notifications` | notifications | Pass | `200`, paginated `{items:[…]}` (1 real notification for VGC75) | — |
