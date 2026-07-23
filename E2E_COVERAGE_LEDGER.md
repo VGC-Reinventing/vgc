@@ -81,6 +81,8 @@ row confirms a specific fixed TR (e.g. "confirms TR-234").
 | /market/item/11 | ItemDetailScreen | Pass | default | Renders real item (bergamot jaboticaba, ₹22.91 INR — correct currency), Add-to-cart/Buy-now controls, QUANTITY/TOTAL. **Cross-check exposed TR-262** (list mislabeled currencies). | TR-262 |
 | /gaming/games/1 | GameDetailScreen | Pass | default | Renders real game (E2E-20260719-01 Test Game) with Seasons/Candidates/Groups tabs, 0 errors | — |
 | /explore (post-TR-262) | MarketplaceScreen | Pass | default | After the TR-262 fix, list prices render per real currency: ₹22.91 (INR), 71.75 Tokens (VGC_TOKEN), 57.01 Points (VGC_POINTS) | TR-262 |
+| /contracts/31 | ContractDetailScreen | Pass | default | Renders a real listed contract (title/status "listed"/"Secure Contract"/sector "Creative & Design Services"/requirements/budget 200) with an "Express Interest" CTA for a non-party viewer (VGC75). No applications shown to the non-party — re-confirms the TR-217 IDOR gate. 0 errors. | TR-217 |
+| /members/75/reputation | ReputationScreen | Pass | default | Renders "Contract Reputation" with the member's real name/public ID (VGC75) + "Copy link" and "No ratings yet" empty state. 0 errors. | — |
 
 ## D. API endpoint coverage (§15.2)
 
