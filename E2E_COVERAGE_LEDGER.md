@@ -47,6 +47,16 @@ row confirms a specific fixed TR (e.g. "confirms TR-234").
 | /points/activities | ActivityRewardsScreen | Pass | default | Renders, 0 errors | TR-196 |
 | /financial/investments/new | CreateInvestmentScreen | Pass w/risk | default | Form renders (TR-200); submit blocked by TR-257 (backend) | TR-200/257 |
 | /loans | LoansScreen | Partial | default | Request form OK (TR-201); My Loans list empty (TR-260) | TR-201/260 |
+| /expenses/new | AddExpenseScreen | Pass | default | Real expense created end-to-end via the form (payment-mode labels correct, TR-202); appears in list | TR-202 |
+| /expenses | ExpensesScreen | **Fail** | default | Entries list renders but **every row shows ₹0** (`amount` vs `amount_inr` — **TR-261**) | TR-261 |
+| /explore | MarketplaceScreen | Pass | default | 11 items render with "X Tokens" prices; category chip "Blog Tickets" correctly filters to the 4 ticket items (**TR-231 confirmed in UI**) | TR-231/193 |
+| /wallet | WalletScreen | Pass | default | Renders, 0 errors | — |
+| /community | CommunityScreen | Pass | default | Renders, 0 errors | — |
+| /blog | BlogListScreen | Pass | default | Renders, 0 errors | — |
+| /contracts | ContractsScreen | Pass | default | Renders, 0 errors | — |
+| /wallet/surrenders | TokenSurrendersListScreen | Pass | default | Renders, 0 errors | TR-196 |
+| /notifications | NotificationsScreen | Pass | default | Renders, 0 errors | — |
+| /profile | ProfileScreen | Pass | default | Shows public ID "VGC75" (TR-175), "Name, mobile, location" edit label (TR-233), Email verified badge | TR-175/233 |
 
 ## D. API endpoint coverage (§15.2)
 
