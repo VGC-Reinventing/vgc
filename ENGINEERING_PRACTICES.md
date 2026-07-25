@@ -70,6 +70,26 @@ On failure this matches nothing, prints nothing, and reads as success. Check exi
 codes, or print the tail of the output. Same incident as above: this is *why* the
 failed deploy went unnoticed.
 
+**Grepping for a success string is just as wrong as grepping for silence**, and
+`npm run build` will catch you out specifically:
+
+```bash
+npm run build | grep -E "built in"     # WRONG — matches on a FAILING build
+```
+
+Vite prints `✓ built in 1.70s` when the bundle is written, then runs the PWA
+plugin, which can fail *afterwards*. The success line is already on stdout by
+then, and `grep` in a pipeline reports its own exit status, not the build's.
+
+> **Incident (2026-07-26):** the app bundle crossed workbox's 2 MiB precache
+> limit and `vite build` started exiting non-zero. Two consecutive "verified"
+> builds reported `✓ built in` and were treated as passing; the failure only
+> surfaced when the pre-push hook refused the push.
+
+```bash
+npm run build > /tmp/build.log 2>&1; echo "EXIT: $?"   # RIGHT
+```
+
 ### Never `git push` in the same command as a deploy.
 
 Order is: **verify → commit → push → deploy**, checking each step. Pushing
