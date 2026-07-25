@@ -52,17 +52,13 @@ Two consequences:
    with full github metadata and one with `actor: claude-code…`). Deploy via
    push; use the CLI only to deploy something that is deliberately *not*
    committed.
-2. **GitHub Actions is largely redundant here** — with one real gap: Vercel runs
-   `npm run build` but **not** `npm test`, so vitest runs nowhere automatically
-   except the local pre-push hook. A committed template sits at
-   `FrontEnd/.github/ci-workflow.yml.template` if that gap is worth closing
-   (enabling it needs credentials with the `workflow` OAuth scope):
-
-   ```bash
-   cd FrontEnd && mkdir -p .github/workflows
-   git mv .github/ci-workflow.yml.template .github/workflows/ci.yml
-   git commit -m "ci: enable build + test workflow" && git push
-   ```
+2. **There is deliberately no GitHub Actions CI.** It would be redundant with
+   Vercel's push build, and it was removed rather than left parked. One gap is
+   accepted as a consequence: Vercel runs `npm run build` but **not** `npm test`,
+   so vitest runs only in the local pre-push hook. If this project ever gains a
+   second contributor or machine, that is the trigger to reconsider — until then
+   the hook is the test gate, so keep it enabled (`git config core.hooksPath
+   .githooks`).
 
 ### Never grep command output for success strings only.
 
