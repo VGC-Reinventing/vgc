@@ -146,18 +146,49 @@ cd XANO && grep -rnE "(now[[:space:]]*[+-]|[+-][[:space:]]*now)" --include="*.xs
 (Quote the `--include` glob — unquoted, zsh expands it and grep silently scans
 nothing, which is its own instance of §1's "a check that cannot fail".)
 
-### Omitted numeric inputs resolve to `0`, never `null`.
+### Omitted inputs are never `null` — of any type.
 
-So `$input.foo ?? $fallback` never fires for an absent `int`/`decimal`.
+`$input.foo ?? $fallback` **never fires** for an absent input. Each type has its
+own empty value, and none of them is null:
 
-```xanoscript
-int window?=1                    // declare an explicit default, or
-                                 // treat 0 as "not supplied" in the stack
-```
+| declared type | value when omitted |
+|---|---|
+| `int` / `decimal` | `0` |
+| `text` / `enum` | `""` |
+| `bool` | `false` |
+| `int[]` / `json` | `[]` / `{}` |
 
-Hit as TR-280 (`totp_verify_code` clock-drift window) and TR-284 (proposal
-acceptance — the revenue split summed to 0, so **every** proposal acceptance from
-the admin UI failed and the member-proposal pipeline was dead).
+So never write `?? $row.x` against an input. Start from the stored value and
+override it inside a `conditional` that tests for a *meaningfully supplied*
+value (`!= ""`, `> 0`, `|count > 0`).
+
+Hit **six** times, and the failure gets worse the further you go down that table:
+
+- TR-280 `totp_verify_code` clock-drift window (`int`).
+- TR-284 proposal acceptance revenue split (`decimal`) — summed to 0, so every
+  acceptance from the admin UI failed and the member-proposal pipeline was dead.
+- TR-294 proposal acceptance category (`int[]`) — same endpoint, missed by
+  TR-284; every accepted listing was uncategorised.
+- TR-300 donor publication amount (`decimal`) — every public donor record was
+  published showing 0.
+- TR-302 activity-catalog PATCH (`text`, `int`, **`bool`**) — the destructive
+  one. A PATCH that set a single field overwrote every field the caller did not
+  mention, blanking the label, zeroing the reward and flipping `active` to
+  false. A partial update silently deleted data.
+
+**Booleans have no safe form.** An omitted `bool` is indistinguishable from an
+explicit `false`, so a partial update cannot honour one. Where a PATCH must
+support "leave this alone", declare the field as a tri-state
+`enum { values = ["true","false"] }` and map it in the stack (TR-302).
+
+### `type?` means nullable; `name?` means optional. They are not the same.
+
+`int[]? evidence_file_ids` is nullable but **still required to be present** — omit
+the key and Xano 400s with `Missing param`. `int[] evidence_file_ids?` is the
+optional form. Hit as TR-305: `POST /contracts/{id}/dispute` used the first form
+while its three sibling dispute endpoints used the second, so no contract-level
+dispute could be opened. The same required-but-nullable trap is why
+`POST /expenses` needs `reason`/`platform_ref` present-but-null.
 
 ### Compound `A != null && A.field == true` evaluates to `null`.
 
@@ -244,6 +275,25 @@ hides contract mismatches.
 > **Incident (2026-07-25):** a group post written via the API stored
 > `media: [url]`, but the app reads `media: { urls: [...] }`. The image silently
 > never rendered. Only exercising the actual upload path surfaced it.
+
+When a script must drive the API directly for volume, **copy the payload out of
+the frontend's own `api/*.ts` module** rather than writing what the endpoint
+looks like it wants. Population then doubles as a contract test.
+
+> **Incident (2026-07-26):** doing exactly that turned up **nine** endpoints the
+> app could never successfully call — proof of delivery, loan approve and
+> write-off, expense settle, donor publish, investor payout mark-paid,
+> marketplace partial-refund, sponsorship dispute, course amendments — each
+> failing on a required input the screen never sent. Several sat behind buttons
+> that had been "exercised" in an earlier pass by calling the endpoint with
+> backend-shaped input, which is why they read as working.
+
+A cheap way to find the rest of that class without firing anything:
+
+```bash
+# every write endpoint's REQUIRED body inputs, to diff against what the FE sends
+grep -A40 'input {' XANO/api/**/*_POST.xs   # or scratchpad/contract_audit.py
+```
 
 Likewise use **real image files** of varied and hostile aspect ratios (64×64
 through 2400×1800, plus 1600×600 and 600×1600) rather than hotlinked
