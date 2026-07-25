@@ -35,18 +35,34 @@ Enforced by `FrontEnd/.githooks/pre-push` (runs build + tests). Enable per clone
 git config core.hooksPath .githooks
 ```
 
-A matching GitHub Actions workflow is committed as
-`FrontEnd/.github/ci-workflow.yml.template` — **not active**, because pushing a
-file under `.github/workflows/` needs credentials with the `workflow` OAuth
-scope. Enable it with:
+**Vercel is git-connected: every push to `main` triggers a production build.**
+Verified from the deployment history — pushes carry `githubDeployment: 1` and a
+`frontend-git-main-…` branch alias. A failed build is *not* promoted, so a broken
+commit on `main` leaves production serving the last good deploy.
 
-```bash
-cd FrontEnd && mkdir -p .github/workflows
-git mv .github/ci-workflow.yml.template .github/workflows/ci.yml
-git commit -m "ci: enable build + test workflow" && git push
-```
+That means the build is already checked on every push, by Vercel, whether or not
+GitHub Actions exists. The broken commit of 2026-07-25 produced three
+`state: ERROR` deployments and never reached `baroda.app`.
 
-Worth doing: the hook is local-only and can be bypassed with `--no-verify`.
+Two consequences:
+
+1. **Do not run `vercel --prod` after pushing.** The push already deploys.
+   Doing both creates two production deployments per commit — which is exactly
+   what happened throughout 2026-07-25 (visible in the history as pairs, one
+   with full github metadata and one with `actor: claude-code…`). Deploy via
+   push; use the CLI only to deploy something that is deliberately *not*
+   committed.
+2. **GitHub Actions is largely redundant here** — with one real gap: Vercel runs
+   `npm run build` but **not** `npm test`, so vitest runs nowhere automatically
+   except the local pre-push hook. A committed template sits at
+   `FrontEnd/.github/ci-workflow.yml.template` if that gap is worth closing
+   (enabling it needs credentials with the `workflow` OAuth scope):
+
+   ```bash
+   cd FrontEnd && mkdir -p .github/workflows
+   git mv .github/ci-workflow.yml.template .github/workflows/ci.yml
+   git commit -m "ci: enable build + test workflow" && git push
+   ```
 
 ### Never grep command output for success strings only.
 
