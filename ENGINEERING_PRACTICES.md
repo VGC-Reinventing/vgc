@@ -300,5 +300,19 @@ through 2400×1800, plus 1600×600 and 600×1600) rather than hotlinked
 placeholders, and verify rendered `<img>` elements for distortion, overflow and
 broken loads.
 
-Credentials, IDs and the current data inventory live in
-`.local-archive/AUTH_REFERENCE.md` (gitignored, machine-local — never committed).
+## Starting a session
+
+Read **`.local-archive/SESSION_START.md`** first. It is the single entry point
+for every credential and tool on this project — Xano metadata token and CLI,
+admin 2FA (including the TOTP secret), the test-member roster, Cloudinary,
+Resend, Vercel — plus the free-plan constraints and the current state of the
+data. `AUTH_REFERENCE.md` alongside it holds the longer-form auth flows and the
+test-data inventory; `RENDER_LOG.md` holds the sweep history.
+
+Reusable tooling is preserved in `.local-archive/tools/` (Xano API wrappers, a
+TOTP-aware admin login, the paced route sweeps, the required-input contract
+audit, image generators, and a table-name → id map).
+
+All of `.local-archive/` is gitignored and machine-local — **never commit it**,
+and never paste its contents into a commit message, issue, PR, or any external
+service. Verify with `git check-ignore -v .local-archive/SESSION_START.md`.
