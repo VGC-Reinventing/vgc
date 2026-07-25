@@ -272,9 +272,31 @@ warning either way.
 
 ## 4. Free-plan constraints
 
-- **API rate limit: 10 requests / 20 seconds.** Bulk operations and test sweeps
-  must be paced or they fail with 429 — and a 429-starved screen renders
-  skeletons that pass a naive audit (§1).
+- **API rate limit: 10 requests / 20 seconds — one bucket for the whole
+  instance.** Measured 2026-07-26, not assumed. It is *not* per token, per
+  session or per IP: exhausting the budget with one member's token immediately
+  429s a second member's token, and an unauthenticated `GET /config` too. So
+  spreading test load across accounts or machines buys nothing.
+
+  Consequences worth holding on to:
+
+  - **The metadata API (`/api:meta/...`) is on a separate budget.** It answered
+    200 while the app API was fully throttled. Use it for verification, row
+    counts and fixture seeding (`addTableContentBulk`, `patchTableContentBulk`
+    write many rows in one request) and reserve app-endpoint calls for the
+    behaviour actually under test. Metadata writes bypass business logic, so
+    they are for fixtures — never for contract tests.
+  - **Pace browser sweeps at ~24s per route.** Bulk operations and test sweeps
+    must be paced or they fail with 429 — and a 429-starved screen renders
+    skeletons that pass a naive audit (§1). At 7s per route, 45 of 52 routes
+    came back rate-limited.
+  - **Never retry a 429.** The default TanStack backoff is far shorter than the
+    20s window, so retries are throttled too and one over-budget request
+    becomes three. `lib/queryClient.ts` allows a single retry delayed past the
+    window; keep it that way.
+  - **~30 requests/minute is the whole platform's ceiling.** Budget polling
+    against it: every `refetchInterval` needs a `document.hidden` guard, and a
+    10s poll costs 6 req/min — 20% of the instance — per open tab.
 - **Email** goes through **Resend** (`no-reply@baroda.app`), not Xano's native
   sender, which only delivers to the workspace owner. Key is the workspace env
   var `RESEND_API_KEY`.
