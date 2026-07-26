@@ -175,6 +175,36 @@ Match on the condition itself instead — here "no sticky header inside me" — 
 prefer `:last-child`-style tests only when the sibling being tested for is the
 thing that owns the edge.
 
+### Never size the app shell in `vh`/`dvh` on iOS. Fix it to the viewport.
+
+`height: 100dvh` is resolved against a viewport iOS is still settling on at
+launch and revises on every toolbar transition. The shell came out short, which
+made the *document* scrollable, and everything downstream of that looked like a
+different bug.
+
+> **Incident (2026-07-26):** on the first open of the installed PWA the bottom
+> nav sat well above the bottom of the screen and a scroll "over the nav"
+> snapped it into place. The same document scroll was also stealing the
+> pull-to-refresh drag — iOS sent `touchcancel` mid-pull, the pull ended below
+> its threshold, and the gesture animated perfectly while refreshing nothing.
+
+`position: fixed; inset: 0` on the shell plus `body { overflow: hidden }` (phone
+widths only — the ≥600px device mock still needs the page scrollbar). Nothing to
+mis-measure, and only `.vgc-screen` scrolls.
+
+### A sticky box rests against the scroll container's *content* box.
+
+Not its scrollport. `bottom: 0` on a bar inside `.vgc-screen` parks it
+`padding-bottom` (32px) above where it looks like it should be, and that gap
+reads as a floating card.
+
+> **Incident (2026-07-26):** the Buy now bar sat ~66px above the bottom nav —
+> 32px from this, plus a home-indicator inset it added itself on top of the one
+> `.vgc-nav` already owns. Measured at 634→715 inside a 747px region.
+
+Offset by the padding (`bottom: calc(-1 * var(--s-8))`) and let exactly one
+element per edge carry the safe-area inset.
+
 ### Layout checks are not correctness checks.
 
 The route sweep verifies overflow, clipping, opaque bars, tap targets and safe
