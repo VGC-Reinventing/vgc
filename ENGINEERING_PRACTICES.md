@@ -148,6 +148,33 @@ Practical form: assert the subject actually materialised (not merely that no
 error was thrown), fail loudly when a measurement precondition is unmet, and pace
 requests so starvation cannot masquerade as a pass.
 
+### Safe-area insets are only checkable through the `--sa-*` variables.
+
+`env(safe-area-inset-*)` cannot be set from script, so on a desktop browser it
+is 0 and a padded and an unpadded layout measure identically. Every call site
+therefore reads `--sa-top` / `--sa-right` / `--sa-bottom` / `--sa-left`, defined
+once in `FrontEnd/src/styles/tokens.css`; a check overrides those on `:root` to
+reproduce a notched iPhone (47px top / 34px bottom), and asserts the top-edge
+element's computed `padding-top` actually changed before trusting anything else.
+Reusable audit: `.local-archive/tools/safearea_audit.js`. **Never write a bare
+`env()` at a call site** — it re-creates a layout no test can see.
+
+The other half of the same lesson: **do not express "nothing above me paints the
+top edge" as a structural selector.** `:first-child` is a claim about the DOM at
+the time of writing, and it decays silently — no error, no failing test, just a
+rule that stops matching.
+
+> **Incident (2026-07-26):** the redesign gave the tab shell's scroll region the
+> top inset via `.vgc-phone > .vgc-screen:first-child`. Two commits later the
+> motion system inserted the pull-to-refresh indicator as `.vgc-phone`'s first
+> child. The selector then matched **zero** elements, every tab screen lost its
+> top inset, and on a home-screen PWA the greeting and the bell rendered under
+> the status bar. It shipped and was only caught from a member's screenshot.
+
+Match on the condition itself instead — here "no sticky header inside me" — and
+prefer `:last-child`-style tests only when the sibling being tested for is the
+thing that owns the edge.
+
 ### Layout checks are not correctness checks.
 
 The route sweep verifies overflow, clipping, opaque bars, tap targets and safe
