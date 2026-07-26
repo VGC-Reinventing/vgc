@@ -261,12 +261,36 @@ that very workspace and are byte-identical in intent:
 
 This is an import/export comparator artifact, not local drift.
 
-### Scoped pushes emit bogus "table does not exist" warnings.
+A pull-diff also reports `function/pts_compute_rate.xs` as differing when the
+only difference is trailing whitespace on otherwise-blank lines — the exporter
+emits it, the tracked copy has it stripped. Same class: ignore it, don't push it.
+
+### Scoped pushes emit bogus "does not exist" warnings — for functions too.
 
 Pushing a subset of files without their table definitions warns e.g.
 `db.* → table "loans" does not exist` for tables that plainly do exist. The push
 still succeeds — verify the endpoint by calling it rather than trusting the
 warning either way.
+
+The same happens for **cross-file function references**, and there the wording is
+alarming enough to be worth naming. Pushing `reset/request-reset-link` alone
+warned:
+
+```
+=== Unresolved References ===
+  WARNING   query   reset/request-reset-link
+            function.run → function "Quick Start/generate_magic_link" does not exist
+```
+
+"These will become placeholder statements after import" would mean a silently
+gutted function stack — password reset generating no token at all. It did not
+happen: the function was untouched on the server, and the warning only means the
+referenced function wasn't part of *this* push. **Verify rather than assume, in
+the direction that catches the bad case** — pull the workspace back to a scratch
+dir and diff the pushed file against local. Byte-identical, with the
+`function.run` line intact, is the proof. A 200 from the endpoint is not: the
+call sits inside a `try_catch`, so a placeholder would be swallowed and still
+return 200.
 
 ---
 
