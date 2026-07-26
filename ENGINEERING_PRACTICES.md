@@ -60,6 +60,36 @@ Two consequences:
    the hook is the test gate, so keep it enabled (`git config core.hooksPath
    .githooks`).
 
+### `baroda.app` is the only serving origin. Everything else 308s to it.
+
+Four hostnames point at the Vercel project. Exactly one returns content:
+
+| hostname | behaviour |
+|---|---|
+| `baroda.app` | serves the app — the canonical origin |
+| `www.baroda.app` | 308 → `baroda.app` |
+| `vadodara.app` | 308 → `baroda.app` |
+| `www.vadodara.app` | 308 → `baroda.app` |
+
+`vadodara.app` was bought 2026-07-26 as an alias, not a second brand. The
+redirects are **Vercel project-domain redirects** (edge-level, set per domain via
+`PATCH /v9/projects/{id}/domains/{domain}` with `redirect` + `redirectStatusCode`)
+— *not* rules in `vercel.json`. So they apply to every deployment, need no
+rebuild, and grepping the repo for them finds nothing. Check them with:
+
+```bash
+curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://vadodara.app/
+```
+
+**Why one origin and not several:** the auth token lives in `localStorage`
+(`src/store/auth.ts`), which is per-origin. Two hostnames both serving 200 means
+two separate sessions, two separate PWA installs with separate caches, and
+duplicate content for crawlers. A member logged in on one would appear logged out
+on the other. Any future domain gets a 308, not a second front door.
+
+Path is preserved through the redirect, so emailed deep links survive it — but
+generate them against `baroda.app` anyway rather than relying on the hop.
+
 ### Never grep command output for success strings only.
 
 ```bash
