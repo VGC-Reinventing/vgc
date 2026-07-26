@@ -192,6 +192,39 @@ different bug.
 widths only — the ≥600px device mock still needs the page scrollbar). Nothing to
 mis-measure, and only `.vgc-screen` scrolls.
 
+### In a standalone iOS web app, `inset: 0` stops one status bar short.
+
+The web view covers the whole screen — content painted at y=0 appears under the
+clock — but the layout viewport iOS reports is the screen *minus* the status-bar
+inset, still anchored at the top. A fixed, full-inset shell therefore ends that
+far above the bottom of the screen, leaving a dead strip under the bottom nav.
+Safari on the same device is fine, which is the tell that it is the viewport and
+not the layout.
+
+> **Incident (2026-07-27):** 59px of dead space under the nav on a 393×852pt
+> iPhone. Confirmed by sampling the screenshot's pixel column: nav ended at
+> y=793, screen is 852, and the device's top inset is 59.
+
+`lib/standaloneViewport.ts` measures `screen.height - innerHeight` and extends
+the shell by it. **Measure it; never assume it equals the top inset** — on an iOS
+that reports the height correctly the difference is 0 and nothing should move.
+Guard the reading: standalone only, portrait only (iOS reports `screen.height`
+orientation-independently, so the landscape subtraction is nonsense), and reject
+anything implausible.
+
+### Read the screenshot's pixels instead of eyeballing it.
+
+Both of the above were diagnosed by decoding the user's screenshot in a canvas
+and printing the colour transitions down one column, clear of text. The device
+pixel row of each boundary, divided by the DPR, gives exact CSS coordinates to
+compare against a local measurement. Eyeballing the same image had produced an
+estimate 60px out — enough to have chased the wrong cause.
+
+```bash
+# serve the image somewhere http (a file:// canvas is tainted and cannot be read)
+cd .playwright-mcp && python3 -m http.server 8899
+```
+
 ### A sticky box rests against the scroll container's *content* box.
 
 Not its scrollport. `bottom: 0` on a bar inside `.vgc-screen` parks it
