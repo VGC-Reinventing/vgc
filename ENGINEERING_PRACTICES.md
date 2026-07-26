@@ -192,25 +192,37 @@ different bug.
 widths only — the ≥600px device mock still needs the page scrollbar). Nothing to
 mis-measure, and only `.vgc-screen` scrolls.
 
-### In a standalone iOS web app, `inset: 0` stops one status bar short.
+### A standalone iOS web app is given less screen than it appears to have.
 
-The web view covers the whole screen — content painted at y=0 appears under the
-clock — but the layout viewport iOS reports is the screen *minus* the status-bar
-inset, still anchored at the top. A fixed, full-inset shell therefore ends that
-far above the bottom of the screen, leaving a dead strip under the bottom nav.
-Safari on the same device is fine, which is the tell that it is the viewport and
-not the layout.
+With a translucent status bar, the layout viewport is the screen *minus* the
+status-bar height, still anchored at the physical top. The leftover strip at the
+bottom belongs to iOS: it holds the home indicator, it is painted from the
+**manifest's `background_color`** — not `<meta name="theme-color">` — and page
+content cannot be drawn into it. Safari on the same device has no such strip,
+which is the tell that it is the viewport and not the layout.
 
-> **Incident (2026-07-27):** 59px of dead space under the nav on a 393×852pt
-> iPhone. Confirmed by sampling the screenshot's pixel column: nav ended at
-> y=793, screen is 852, and the device's top inset is 59.
+> **Incident (2026-07-27):** 59px of dead space under the bottom nav on a
+> 393×852pt iPhone: viewport ended at y=793, screen 852, and 59 is that device's
+> top inset. The first fix extended the shell past 793 with a negative `bottom`.
+> The nav's box duly moved down 59px — and its labels disappeared, because
+> nothing below the viewport renders. **The strip cannot be reclaimed.**
 
-`lib/standaloneViewport.ts` measures `screen.height - innerHeight` and extends
-the shell by it. **Measure it; never assume it equals the top inset** — on an iOS
-that reports the height correctly the difference is 0 and nothing should move.
-Guard the reading: standalone only, portrait only (iOS reports `screen.height`
-orientation-independently, so the landscape subtraction is nonsense), and reject
-anything implausible.
+Two things follow, and both are in the code:
+
+1. Colour the strip so it is not a hole. `background_color` matching the bottom
+   bar makes it read as the bar continuing to the edge of the screen.
+2. Do not reserve the home-indicator inset *again* inside the viewport — the
+   strip already is that clearance. `--sa-bottom-eff` (tokens.css) subtracts the
+   measured strip from `env(safe-area-inset-bottom)`, and every bottom bar uses
+   it instead of the raw inset. Reserving both stranded the tab labels ~100px
+   above the bottom of the screen.
+
+`lib/standaloneViewport.ts` measures the strip as `screen.height - innerHeight`.
+**Measure it; never assume it equals the top inset** — on an iOS that reports the
+viewport correctly the difference is 0 and everything falls back to the plain
+inset. Guard the reading: standalone only, portrait only (iOS reports
+`screen.height` orientation-independently, so the landscape subtraction is
+nonsense), and reject anything implausible.
 
 ### Read the screenshot's pixels instead of eyeballing it.
 
