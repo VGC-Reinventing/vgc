@@ -52,6 +52,21 @@ Two consequences:
    with full github metadata and one with `actor: claude-code…`). Deploy via
    push; use the CLI only to deploy something that is deliberately *not*
    committed.
+
+   **But confirm the push actually produced one.** On 2026-07-27 a push to
+   `main` (`4c5d35a`) landed on GitHub and no deployment was ever created —
+   the hook simply did not fire, and production sat on the previous commit
+   with nothing reporting a failure. So the check after a push is not "did the
+   build pass" but "does a deployment for *this SHA* exist":
+
+   ```bash
+   npx vercel ls --yes | head -3          # newest deployment + age
+   ```
+
+   If there is none after a few minutes, `npx vercel --prod --yes` from
+   `FrontEnd/` deploys the committed tree — that is the exception to the rule
+   above, not a contradiction of it. Verify by fetching something from the new
+   build off `baroda.app`, not by reading the CLI's output.
 2. **There is deliberately no GitHub Actions CI.** It would be redundant with
    Vercel's push build, and it was removed rather than left parked. One gap is
    accepted as a consequence: Vercel runs `npm run build` but **not** `npm test`,
