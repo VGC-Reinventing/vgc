@@ -368,6 +368,34 @@ gating a `var.update`. Documented in `enforce_role.xs`; hit again as TR-281
 It fails input validation, so the endpoint 400s for every caller before running.
 Use `in` against an explicit list, or `includes`. Hit as TR-288 (`pts/audit-log`).
 
+### Admin access needs a live 2FA session, and three constants define it.
+
+`enforce_role.xs` gates admin endpoints on more than `is_admin`: it also
+requires `admin_totp.last_login_at` to be inside a window, and that field is
+written **only** by `admin/2fa/verify` — never by plain `/login`. So an admin
+who signs in through the member screen holds a token every admin endpoint
+refuses, with the error naming an HTTP method at whoever is running the
+platform.
+
+The window is **2592000s (30 days)** as of 2026-07-27, up from 86400s. Three
+values have to move together, or the pair goes wrong in one of two ways:
+
+| where | what |
+|---|---|
+| `function/quick_start/enforce_role.xs` | the 2FA window |
+| `api/admin/admin/2_fa/verify_POST.xs` | token `expiration` |
+| `api/admin/admin/2_fa/recover_POST.xs` | token `expiration` |
+
+A window **longer** than the token buys nothing — the token dies first and the
+admin is signed out regardless. A window **shorter** than the token strands a
+signed-in admin in a console that refuses every screen inside it. Member login
+(`api/authentication/login_POST.xs`) is separate and stays at 86400.
+
+The frontend mirrors this: `setToken(token, { adminSession: true })` on the two
+2FA success paths, and `RequireAdmin` sends an admin without that marker to
+`/admin/login`. The marker is only sound while the token and the window are the
+same span — one more reason they move together.
+
 ### Date-only bounds parse to that day's midnight.
 
 `created_at <= to` with `to = "2026-07-25"` excludes all of 25 July. Widen the
