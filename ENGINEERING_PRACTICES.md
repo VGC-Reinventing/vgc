@@ -348,6 +348,61 @@ explicit `false`, so a partial update cannot honour one. Where a PATCH must
 support "leave this alone", declare the field as a tri-state
 `enum { values = ["true","false"] }` and map it in the stack (TR-302).
 
+### Unknown input keys are dropped silently, with a 200.
+
+Xano validates the inputs an endpoint *declares* and discards everything else
+without a word. So a frontend can post a complete form to a real endpoint, get
+`200` and a row id back, and have stored almost none of it.
+
+> **Incident (2026-07-29):** the INR declaration form posted `full_name`,
+> `contact_number`, `email`, `member_id`, `payment_mode`, `upi_transaction_id`,
+> `payment_datetime` and `supporting_document`. The endpoint declared none of
+> those names — it wanted `contact_email`, `contact_mobile` and `file_url`. Every
+> declaration the app had ever created was stored as an amount and a payment
+> type. Admin had no payment proof to review and no way to contact an
+> unauthenticated donor. Nothing had ever errored.
+
+This is the failure mode §5's "copy the payload out of the frontend's own
+`api/*.ts` module" exists to catch, running in the other direction. The cheap
+check is to read a row back after writing one:
+
+```bash
+# not "did it 200" — "is what I sent in the row"
+mcp__xano__getTableContent  # or GET the record
+```
+
+A field that is empty on **every** row of a table is the signature: it means no
+caller has ever populated it, which for a form field means the name is wrong.
+
+### The `password` input type hashes on the way in. Never compare against it.
+
+A value declared `password` in an `input {}` block is hashed before the stack
+runs, so `security.check_password` receives a hash where it expects the
+plaintext, compares it to the stored hash, and returns `false` for every caller
+— including one supplying the correct password.
+
+> **Incident (2026-07-29):** `change-password` declared `password
+> current_password` and had never once succeeded. "Incorrect current password"
+> was reproduced against a login that had just accepted the same string.
+> `login_POST.xs` reads the same field for the same comparison and declares it
+> `text` — this endpoint was the odd one out.
+
+Compare with `text`. Keep `password` only for a value being *written*, where the
+hashing is what you want (`signup_POST.xs`).
+
+There is a trap in the fix: **`minAlpha` and `minDigit` are only valid on the
+`password` type.** Switching an input to `text` and keeping the filters 400s
+every request with `Invalid method for filter - minAlpha`, naming the field but
+not the cause. `min:8` is valid on both.
+
+### `digitOk` rejects `+`, so it rejects phone numbers.
+
+The error is `Invalid characters detected.` — it names no field, so it surfaces
+to the member as the whole form being broken. Hit as TR-315 on `profile PATCH`,
+where the number is stored as a display string and never parsed, so the filter
+protected nothing. Validate number shape on the client, where the message can
+say which field is wrong.
+
 ### `type?` means nullable; `name?` means optional. They are not the same.
 
 `int[]? evidence_file_ids` is nullable but **still required to be present** — omit
