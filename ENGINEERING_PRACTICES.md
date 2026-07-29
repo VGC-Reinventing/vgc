@@ -399,6 +399,18 @@ without a word. So a frontend can post a complete form to a real endpoint, get
 > type. Admin had no payment proof to review and no way to contact an
 > unauthenticated donor. Nothing had ever errored.
 
+**The tell is not always silence.** When the dropped key has a `filters=` rule,
+the endpoint rejects the request by complaining about the field the caller
+*thought* it sent — a validation error that reads as a bug in the member's input.
+
+> **Incident (2026-07-29):** the reset screen posted `new_password` to
+> `reset/update_password`, which declares `password filters=min:8`. The declared
+> input arrived as `""` (an omitted text input is never null, §2), so every reset
+> failed with *"Input does not meet minimum length requirement of 8 characters"*
+> — for a 10-character password. Reported as a length-validation bug; it was a
+> field-name bug. Reproduced by posting the old key and the new one back to back:
+> `Missing param: password` versus `200`.
+
 This is the failure mode §5's "copy the payload out of the frontend's own
 `api/*.ts` module" exists to catch, running in the other direction. The cheap
 check is to read a row back after writing one:
@@ -426,6 +438,20 @@ plaintext, compares it to the stored hash, and returns `false` for every caller
 
 Compare with `text`. Keep `password` only for a value being *written*, where the
 hashing is what you want (`signup_POST.xs`).
+
+**And the inverse is just as costly: a value being written must be `password`.**
+A `text` input goes into the column verbatim, so `security.check_password` at the
+next login compares a plaintext against a plaintext-shaped "hash" and fails — the
+member is locked out by the very reset that was meant to let them back in.
+
+> **Incident (2026-07-29):** `reset/update_password` declared `text password?`
+> and wrote it straight to `user.password`. Nobody had hit it only because the
+> field-name bug above meant the write never ran. Fixing one without the other
+> would have converted a visible error into a silent lockout.
+
+A `password` input also cannot be confirmed server-side — two hashes of the same
+plaintext differ, so `password == confirm_password` never holds. Enforce re-entry
+on the client and declare one input.
 
 There is a trap in the fix: **`minAlpha` and `minDigit` are only valid on the
 `password` type.** Switching an input to `text` and keeping the filters 400s
@@ -632,6 +658,33 @@ Likewise use **real image files** of varied and hostile aspect ratios (64×64
 through 2400×1800, plus 1600×600 and 600×1600) rather than hotlinked
 placeholders, and verify rendered `<img>` elements for distortion, overflow and
 broken loads.
+
+## 6. Form inputs
+
+### `inputMode` is a promise about the character set. Check it against the format.
+
+A phone shows the keyboard the field asks for and offers no way back. So an
+`inputMode="numeric"` field whose value is not purely digits is not awkward — it
+is impossible to fill.
+
+> **Incident (2026-07-29):** the under-18 signup asks for the guardian's VGC
+> Member ID, which is `"VGC" ~ user.id` ("VGC21"), and the field carried
+> `inputMode="numeric"`. Members got a number pad and could not type the letters
+> the label was asking for. Reported from a real phone; no test catches it,
+> because on a desktop browser every keyboard is the same keyboard.
+
+The field's *display* format and the endpoint's *declared* type are allowed to
+differ — `guardian-registration` declares `int guardian_member_id` — but the
+frontend does the narrowing (`raw.replace(/\D+/g, '')`), and the input stays
+text. Any field showing an ID, a code or a reference is in this class.
+
+### Mirror server-side `filters=` in the client check.
+
+Otherwise the member gets Xano's raw validation string, which names a filter and
+not a rule. `ResetPasswordScreen`/`SignupScreen` restate `min:8|minAlpha:1|
+minDigit:1` in a sentence; if the endpoint's filters change, these change too.
+
+---
 
 ## Starting a session
 
