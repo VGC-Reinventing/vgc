@@ -163,6 +163,43 @@ Practical form: assert the subject actually materialised (not merely that no
 error was thrown), fail loudly when a measurement precondition is unmet, and pace
 requests so starvation cannot masquerade as a pass.
 
+**A security control needs the control run most of all**, because it fails
+silently in the safe direction: a sanitiser that has been quietly turned into a
+pass-through still renders every page correctly.
+
+> **Incident (2026-07-29):** adding HTML sanitising, the seven attack tests
+> passed on the first run. Replacing `sanitizeHtml` with `(h) => h ?? ''` and
+> re-running proved they *could* fail — all seven did, and the seven
+> "legitimate content survives" tests passed either way, which is exactly why
+> they cannot be the only tests present.
+
+Pair every "we block X" test with a "we still allow Y" test, and keep both:
+the first run of the same suite caught the tightened `ALLOWED_URI_REGEXP`
+described below stripping `target="_blank"` and `colspan="2"` — a
+sanitiser-shaped bug that would have quietly damaged existing content rather
+than exposed it.
+
+### DOMPurify tests `ALLOWED_URI_REGEXP` against *every* attribute value.
+
+Not only `href`/`src`. Its default pattern ends in an alternation that lets
+non-scheme values through, so plain attribute values survive. Replace it with
+something scheme-only — the obvious hardening — and every non-URI attribute in
+the document is dropped too:
+
+```js
+// WRONG — also strips target="_blank", colspan="2", data-cols="3"
+ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|#|\/)/i
+```
+
+Leave the default in place (it already blocks `javascript:`) and scope any extra
+rule to the attributes you mean, in an `afterSanitizeAttributes` hook.
+
+Verified against content, not just unit tests: sanitising all 11 stored rich-text
+rows left element counts and text byte-identical. `src/lib/sanitizeHtml.ts` is
+the only place member HTML is cleaned, and `components/RichContent.tsx` the only
+place it enters the DOM — **never add a second `dangerouslySetInnerHTML`**; nine
+un-sanitised call sites had accumulated before this, three of them admin screens.
+
 ### Safe-area insets are only checkable through the `--sa-*` variables.
 
 `env(safe-area-inset-*)` cannot be set from script, so on a desktop browser it
