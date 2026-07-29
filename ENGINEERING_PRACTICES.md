@@ -686,6 +686,49 @@ minDigit:1` in a sentence; if the endpoint's filters change, these change too.
 
 ---
 
+## 7. Token flows
+
+### A token is only a token if the reader looks where the writer wrote it.
+
+There are two token stores in this workspace — `email_verification_tokens` (rows,
+read by `verify-email`) and `user.password_reset` (an object on the user row,
+read by `reset/magic-link-login`). They are not interchangeable, and writing to
+one while pointing the member at the other fails *politely*: the reader finds
+nothing and says the token is invalid, which reads as an expired link rather than
+a wiring mistake.
+
+> **Incident (2026-07-29):** guardian approval issued a setup token into
+> `email_verification_tokens` and emailed the minor to "use it with the
+> magic-link-login endpoint" — which reads `user.password_reset.token`. Every
+> approved minor was handed a token that could only answer "The token did not
+> match". Both accounts ever created this way still had `password = null` and had
+> never logged in, months apart, with nothing in any log to say so.
+
+Two habits fall out of it:
+
+- **Trace a token end to end before believing the flow exists.** Grep for the
+  field the *reader* reads, not the table the writer writes.
+- **An account with `password = null` and no successful login is the signature.**
+  A completed onboarding flow leaves a hash there. Check the column, not the
+  happy-path 200 the endpoint returned.
+
+### Never put an API endpoint name in a member-facing email.
+
+The same email told a child to use a token "with the magic-link-login endpoint".
+Emails carry links to `baroda.app` routes; if a flow has no route to link to,
+that is the missing piece — not something the member can work around.
+
+### Data the flow was told to discard has to actually be deleted.
+
+`guardian_approvals` kept every rejected and expired applicant's name, DOB, email
+and mobile with only `status` flipped, against SRS §2.1.2 5b. Blanking was not
+available — `minor_name`, `minor_dob` and `minor_email` are non-nullable — so the
+row is deleted and an `event_log` entry records the outcome without the details.
+**Check the column types before promising to blank a field**; "set it to empty"
+is not always a thing the schema allows.
+
+---
+
 ## Starting a session
 
 Read **`.local-archive/SESSION_START.md`** first. It is the single entry point
