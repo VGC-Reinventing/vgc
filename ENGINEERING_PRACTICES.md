@@ -554,9 +554,19 @@ that very workspace and are byte-identical in intent:
 
 This is an import/export comparator artifact, not local drift.
 
-A pull-diff also reports `function/pts_compute_rate.xs` as differing when the
-only difference is trailing whitespace on otherwise-blank lines — the exporter
-emits it, the tracked copy has it stripped. Same class: ignore it, don't push it.
+A pull-diff also reports files as differing when the only difference is trailing
+whitespace on otherwise-blank lines — the exporter emits it, the tracked copy has
+it stripped. Same class: ignore, don't push. As of 2026-07-31 that set is nine
+files (`admin/declarations` GET, `admin/system/config` PATCH,
+`declarations/{id}/verify` PATCH, `change-password`, `reset/update_password`,
+`inr_forms/declarations` POST, `profile` PATCH, `function/pts_compute_rate.xs`,
+`table/system_config.xs`) and it grows every time one of them is pushed.
+
+Classify before believing it, rather than eyeballing the file list:
+
+```bash
+diff -q -b -B /tmp/xano-check/$f XANO/$f   # silent => whitespace-only
+```
 
 ### Scoped pushes emit bogus "does not exist" warnings — for functions too.
 
