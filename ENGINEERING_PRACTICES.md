@@ -712,6 +712,39 @@ Two habits fall out of it:
   A completed onboarding flow leaves a hash there. Check the column, not the
   happy-path 200 the endpoint returned.
 
+### Read the session token with `sessionTokenFrom`, never by key.
+
+The auth endpoints spell it three ways — `token` (login, signup, admin 2FA),
+`authToken` (`reset/magic-link-login`), `auth_token` (admin impersonate). Reading
+the wrong one throws nothing: no token is stored, and the *next* request goes out
+unauthenticated. The error surfaces on a different screen from the mistake, as
+`Unauthorized - Authentication Required` — or, if a stale token is still in
+`localStorage`, as `This token is expired.`
+
+> **Incident (2026-07-31):** the reset screen read `token` from a response
+> carrying `authToken`, so every member reached the password form, submitted it,
+> and was refused. Admin impersonation had the identical bug on `auth_token`.
+> Both had been "verified" the day before by calling the endpoints with a Bearer
+> token supplied by hand — which is precisely the part the app was getting wrong.
+
+`api/session.test.ts` pins all four live response shapes plus the
+no-session case; keep it updated when an endpoint's response changes.
+
+### Verify a flow by driving the app, not by calling its endpoints.
+
+§5 says this about test *data*; it is just as true of verification. A curl run
+supplies the Authorization header itself and so cannot see a session that was
+never stored, a route that never navigates, or a cached service worker still
+serving last week's bundle. The rule that would have caught all three:
+**the last step of verifying a member-facing fix is a browser on `baroda.app`.**
+
+Two things that bite specifically there:
+
+- The PWA serves the previous bundle until the update banner is accepted, so the
+  first load after a deploy can exercise the *old* code. Reload, then test.
+- `localStorage` persists between runs, so a stale token can mask a missing one.
+  Sign out (or clear the origin) before testing an auth flow.
+
 ### Never put an API endpoint name in a member-facing email.
 
 The same email told a child to use a token "with the magic-link-login endpoint".
