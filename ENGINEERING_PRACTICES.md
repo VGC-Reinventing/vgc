@@ -756,6 +756,50 @@ Otherwise the member gets Xano's raw validation string, which names a filter and
 not a rule. `ResetPasswordScreen`/`SignupScreen` restate `min:8|minAlpha:1|
 minDigit:1` in a sentence; if the endpoint's filters change, these change too.
 
+### Anything typed into a `<textarea>` needs `white-space: pre-wrap` where it is read.
+
+A `<textarea>` offers no formatting but the Enter key, so the member's line
+breaks and blank lines **are** the formatting. HTML collapses every run of
+whitespace by default, so the reading surface has to opt back in — and nothing
+about the code says otherwise. The component renders, every character is
+present, and no test in this repo can see the difference.
+
+> **Incident (2026-08-01):** a teacher's five-line class notice ("Dear Students,
+> / Subject : English (Beehive) / Chapter 1: … / Message: …") posted to a group
+> rendered as one run-on paragraph. The newlines were in `group_posts.content`
+> the whole time — `.group-post-text` simply had no `white-space` declaration.
+> Reported by the owner from the live app, months after the feature shipped.
+
+Two things travel with the rule:
+
+1. **`overflow-wrap: anywhere` is not optional alongside it.** `pre-wrap` also
+   stops the browser breaking a long unbroken token, so a pasted URL walks out
+   of the card. Fixing the collapse without it trades one visible defect for
+   another.
+2. **Re-check any line clamp afterwards.** Preserved breaks make the same post
+   two or three times taller, so content that used to fit now gets truncated.
+   The group post body clamps at five lines and had no affordance at all — the
+   `See more` toggle in `PostCard.tsx` measures `scrollHeight > clientHeight`
+   and appears only when there is something to reveal.
+
+Pin it with a test that reads the stylesheet, since no render test can:
+`src/styles/multilineText.test.ts` asserts both declarations on every selector
+that renders textarea-authored text. Strip the declarations and it fails 6/6 —
+which is the §1 control run, and the only reason to believe it.
+
+**The same defect is still live outside groups.** These render textarea-authored
+plain text with no `white-space` rule and were out of scope for the group fix,
+so each is unverified rather than known-good:
+
+| screen | field |
+|---|---|
+| `blog/BlogDetailScreen.tsx:28` | blog comment body |
+| `education/CourseDetailScreen.tsx:321` | course description |
+| `market/ItemDetailScreen.tsx:130` | listing description |
+| `contracts/ContractDetailScreen.tsx:424,1087` | contract notes, application message |
+| `gaming/EventDetailScreen.tsx:113`, `SeasonDetailScreen.tsx:92,226` | event/season description |
+| `admin/AdminProposalsScreen.tsx:64`, `AdminGamingScreen.tsx:71` | proposal, game description |
+
 ---
 
 ## 7. Token flows
