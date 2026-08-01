@@ -43,7 +43,7 @@ The platform covers the following major functional areas:
 - Admin panel for complete ecosystem governance
 - Groups: Community spaces for members to create, join and interact
 - Blog: Member content publishing with VGC Admin review, VGC Points rewards and optional Revenue Generator monetisation
-- Loan to Members: INR loan facility with VGC Token-based three-phase repayment
+- Loan to Members: INR loan facility repaid in VGC Tokens, interest-free for the first year
 - Expense Tracker: Personal expense ledger for members; official INR outflow ledger for VGC Admin with public Platform Outflow visibility
 - Contract: Member-to-member work agreements. Two types — VGC Administrated (escrow-based) and Non-VGC Administrated (trust-based). Hard cap of 2 simultaneously active contracts as Taker per member. Hard cap of 10 simultaneously listed or active VGC Administrated contracts as Giver per member.
 
@@ -826,7 +826,9 @@ Before confirming abandonment the member is shown a plain disclaimer: ownership 
 
 ## 9. Loan to Members
 
-**Intent —** VGC Admin extends short-term INR assistance to members in need with no collateral. The repayment mechanism reflects three distinct phases: a help phase (Year 1), a consequence phase (Year 2), and a business phase (Year 3+). This structure ensures the facility is used as intended — a short-term welfare bridge — and not as a financial instrument.
+**Intent —** VGC Admin extends short-term INR assistance to members in need with no collateral. The facility is interest-free for the first year, and charges interest only after that. This keeps it what it is meant to be — a short-term welfare bridge — without turning a late repayment into a penalty the member cannot climb out of.
+
+> **Revised 2026-08-01.** §9.5–§9.6 previously specified a three-phase mechanism (help at ₹10/token, a Year-2 rebase at the ₹8.50 surrender rate, then 10% p.a. from Year 3). That structure was replaced by the owner and this section now describes what is built. See §9.5.
 
 ### 9.1 Overview
 
@@ -840,11 +842,14 @@ Any logged-in member may submit a loan request to VGC Admin. Approved loans are 
 | Full Name | Text | Auto-filled from profile |
 | Mobile Number | Number | Auto-filled from profile |
 | INR Amount Requested | Number | Amount needed |
-| UPI ID | Text | For INR transfer on approval |
-| Planned Return Date | Date | Informational only |
+| UPI ID | Text | For INR transfer on approval. The disbursement is sent here, so it is required. |
+| Repayment Period | Select | **Minimum 12 months.** Longer terms are offered (12/18/24/36/48/60); shorter ones are not. The Planned Return Date is derived from this. |
+| Planned Return Date | Date | Derived from the repayment period. Not merely informational — it can end the interest-free window early (§9.5). Enforced server-side at ≥ 12 months from today. |
 | Purpose / Reason | Text | Member states the reason |
-| Supporting Document | File Upload | Optional |
+| Supporting Document | File Upload | Optional. Stored as a Cloudinary URL — Xano file storage is unavailable on the current plan. |
 | Date of Request | DateTime | Auto-filled by system |
+
+**Confirmation before submission.** The member is shown every field back — amount, term, return date, UPI ID, purpose, document, the tokens they will owe, and the interest terms — and nothing reaches VGC Admin until they confirm it.
 
 ### 9.3 Loan States
 
@@ -864,49 +869,76 @@ Any logged-in member may submit a loan request to VGC Admin. Approved loans are 
 | 1. Member submits request | Loan ID generated. Status: Pending. VGC Admin notified. |
 | 2. VGC Admin reviews | Admin views purpose, amount, UPI ID and document. |
 | 3a. Rejected | Status: Rejected. Member notified. No INR transferred. |
-| 3b. Approved | Admin transfers INR to member's UPI ID. Admin records actual INR transferred and marks Approved. Timer starts immediately. |
-| 4. Annual debit begins | On day of approval, system automatically debits the initial VGC Token amount. Status: Active. |
+| 3b. Approved | Admin transfers INR to member's UPI ID. Admin records the actual INR transferred and the transfer reference, and marks Approved. |
+| 4. Loan becomes Active | The token principal owed is established and the interest-free window is fixed. Status: Active. **The member's token wallet is not debited** — see §9.5. |
 
-### 9.5 VGC Token Debit Mechanism — Three-Phase Rationale
+### 9.5 Interest Mechanism
 
-**Phase 1 — Help (Day 1 to Day 365):**
-VGC Admin lends INR as a welfare act with no collateral. The member is expected to return the equivalent amount in VGC Tokens at the standard buy rate (₹10 per token). If repaid within Year 1, VGC Admin makes no profit. This is a pure short-term liquidity bridge.
+**The debt is the loan's outstanding balance, and nothing else.** Approval records what the member owes in VGC Tokens; it does not touch their wallet. Tokens move exactly once, when the member repays (§9.7).
 
-**Phase 2 — Consequence (Day 366, Year 2):**
-If not fully repaid by Day 365, the welfare intent is considered exhausted. The outstanding balance is now treated as a conversion rather than help. The remaining INR equivalent is recalculated at the token surrender rate (₹8.50 per token) — the rate at which members convert tokens to INR. This means the member now owes more tokens than at the help rate, reflecting the consequence of not treating goodwill as short-term.
+> This replaced an earlier design in which approval debited the token wallet *and* set the loan's outstanding balance to the same figure, while repayment debited the wallet again. That charged the same debt twice: a member with a ₹25,250 loan held a wallet at −2,525 tokens against an outstanding of 2,525, and reaching Settled would have cost 2,525 tokens to return the wallet to zero plus 2,525 more to hand over. The approval-day debit also had no matching credit anywhere, so the tokens were destroyed rather than transferred.
 
-**Phase 3 — Business (Day 731, Year 3 onwards):**
-From Year 3, the loan is treated as a standard micro-loan. A flat 10% per annum interest is applied to the remaining VGC Token balance annually.
+**Principal.** On approval, the member owes:
 
-| Period | Recalculation Method | Notes |
+```
+principal_tokens = INR actually disbursed / buy rate   (₹10 per token by default)
+```
+
+**Interest-free window.** No interest accrues until:
+
+```
+interest_free_until = the EARLIER of
+    approval date + 365 days
+    the member's Planned Return Date
+```
+
+This is fixed at approval and stored on the loan, so a later edit to the Planned Return Date cannot move a member's terms retroactively. Because the minimum term is 12 months (§9.2), in practice the window is a full year unless the member chose exactly 12 months and approval was delayed.
+
+**After the window.** 10% per annum, **simple**, accrued per whole day on the **unpaid principal only** — never on unpaid interest:
+
+```
+daily interest = principal outstanding × 0.10 / 365
+```
+
+Whole days rather than fractions, so a member checking twice in one day sees the same figure both times; the remainder carries forward rather than being lost. Settling one month late costs roughly 0.83%, not a full year's interest.
+
+**When it is charged.** Accrual is lazy — computed on read rather than by a nightly job, because scheduled tasks are a paid Xano feature not available on the current plan. It is idempotent: charging depends only on the elapsed time since interest was last settled, so reading twice charges once. Read-only screens (the admin list) project the same figure arithmetically from the stored row without writing.
+
+**A written-off or settled loan stops accruing permanently.**
+
+| Period | Method | Notes |
 | --- | --- | --- |
-| Day 1 (Approval) | Tokens debited = INR Amount / current buy rate | Full amount debited on approval day. Wallet may go negative. |
-| Day 366 (Year 2) | Remaining tokens × ₹10 = INR equivalent. New tokens = INR equivalent / ₹8.50 | Difference (extra tokens owed) debited from wallet. Wallet may go negative. |
-| Day 731 (Year 3) | New outstanding = remaining tokens + 10% of remaining tokens | 10% p.a. interest on token balance. |
-| Day 1096+ (Year 4+) | New outstanding = remaining tokens + 10% of remaining tokens | Continues annually until Settled or Written Off. |
-
-**Negative balance and new token purchases:** When a member with a negative VGC Token balance purchases new tokens via the INR-to-Token flow, the system first applies the purchased tokens to the outstanding negative balance before crediting the remainder to the spendable balance. The debt offset is shown clearly in the transaction record.
+| Approval | `principal = INR disbursed / ₹10` | Recorded as the loan's opening balance. Wallet untouched. |
+| Approval → interest-free date | No interest | The member owes exactly the principal. |
+| After the interest-free date | `+ principal × 10% / 365` per day | Simple, on unpaid principal. Continues until Settled or Written Off — there is no year at which it stops. |
 
 ### 9.6 Worked Example
 
-| Event | Calculation | Tokens Debited | Outstanding |
-| --- | --- | --- | --- |
-| Day 1 — Approval | ₹1,000 / ₹10 | 100.00 | 100.00 |
-| Days 1-365 — Member repays 60 tokens | — | — | 40.00 |
-| Day 366 — Year 2 | 40 × ₹10 = ₹400. ₹400 / ₹8.50 = 47.06 | Net +7.06 | 47.06 |
-| Days 366-730 — Member repays 20 tokens | — | — | 27.06 |
-| Day 731 — Year 3 | 27.06 + 10% = 29.77 | Net +2.71 | 29.77 |
-| Day 1096 — Year 4 | 29.77 + 10% = 32.74 | Net +2.97 | 32.74 |
+A ₹18,000 loan taken over a 24-month term, approved 1 Aug 2026. The interest-free window is one year — the 24-month term does not extend it.
+
+| Event | Calculation | Principal | Interest | Outstanding |
+| --- | --- | --- | --- | --- |
+| 1 Aug 2026 — Approval | ₹18,000 / ₹10 | 1,800.00 | 0.00 | 1,800.00 |
+| 1 Oct 2026 — Member repays 500 tokens | Inside the free window, all of it clears principal | 1,300.00 | 0.00 | 1,300.00 |
+| 1 Aug 2027 — Interest-free window ends | Nothing charged on the day itself | 1,300.00 | 0.00 | 1,300.00 |
+| 5 Sep 2027 — 35 days later | 1,300 × 10% × 35/365 = 12.47 | 1,300.00 | 12.47 | 1,312.47 |
+| 5 Sep 2027 — Member repays 100 tokens | Interest first (12.47), then principal (87.53) | 1,212.47 | 0.00 | 1,212.47 |
+| 4 Sep 2028 — 365 days later | 1,212.47 × 10% × 365/365 = 121.25 | 1,212.47 | 121.25 | 1,333.71 |
+
+Had the member settled the full 1,800 before 1 Aug 2027, the loan would have cost them nothing beyond the principal.
 
 ### 9.7 Member Repayment
 
 | Aspect | Rule |
 | --- | --- |
-| Payment method | Member initiates payment from Loan ID details page. Tokens debited from member's wallet, credited to VGC Admin's VGC Token Wallet. |
+| Payment method | Member initiates payment from the Loan details view. Tokens are debited from the member's wallet and credited to VGC Admin's VGC Token Wallet. The member must hold the tokens — this debit is balance-checked. |
+| Allocation | Accrued interest is cleared first, then principal. Each payment records the split so the member can see it rather than infer it. |
 | Installments | Any number of installments of any amount at any time. |
-| Full settlement | Member may pay full outstanding balance in one payment. |
-| Multiple active loans | Each Loan ID tracked independently. Annual debits for multiple loans are processed sequentially in Loan ID order — not simultaneously. |
-| Consolidated schedule | Members with multiple active loans see a Consolidated Annual Debit Schedule on their Loan dashboard showing all upcoming debit dates and estimated amounts. |
+| Full settlement | A "settle in full" action exists as its own control rather than an amount to type: accrued interest carries more decimal places than a member can enter, so no typed figure lands exactly on zero. |
+| Overpayment | Refused. A payment may not exceed the current outstanding balance. |
+| Settled loans | Accept no further repayments and accrue no further interest. |
+| Multiple active loans | Each Loan ID is tracked independently, and interest accrues per loan. Loans are processed in Loan ID order. |
+| Consolidated position | Members with more than one active loan see the combined outstanding — split into principal and interest — above the list, plus a per-loan schedule showing the interest-free date, days remaining, and what interest will cost once it starts. |
 
 ### 9.8 Loan ID Details View
 
@@ -914,12 +946,21 @@ From Year 3, the loan is treated as a standard micro-loan. A flat 10% per annum 
 | --- | --- |
 | Loan ID | Unique system identifier |
 | Status | Current state |
-| INR Amount Approved | Actual INR transferred by VGC Admin |
-| Date of Approval | When timer started |
+| INR Amount Requested / Approved | What was asked for, and what VGC Admin actually transferred |
+| UPI ID | Where the disbursement was sent |
+| Transfer Reference | Admin's UPI/bank reference for the transfer |
+| Repayment Period | Term in months, as chosen |
 | Planned Return Date | Member's stated date at application |
-| Current Outstanding Balance | VGC Tokens currently owed |
-| Annual Debit History | All system-generated debits with date, calculation and tokens debited |
-| Repayment History | All voluntary repayments with date and tokens paid |
+| Date of Approval | When the loan became Active |
+| Interest-Free Until | The date after which 10% p.a. begins (§9.5) |
+| Principal Owed at Approval | Opening token balance |
+| Current Outstanding Balance | VGC Tokens currently owed, split into principal and accrued interest |
+| Charge History | Opening balance and any interest charged, with date and calculation |
+| Repayment History | All repayments with date, tokens paid, and the interest/principal split |
+| Supporting Document | Link to the member's uploaded document, if any |
+| Reason | Rejection reason or write-off reason, where applicable |
+
+The same information — plus the member's name, member ID, email and mobile — is available to VGC Admin from the Loan Management screen, since approving a loan means transferring real money to the UPI ID shown.
 
 ### 9.9 Written Off
 
@@ -927,19 +968,20 @@ VGC Admin may write off a loan when one or more of the following applies: (a) ou
 
 | Action | Effect |
 | --- | --- |
-| VGC Admin marks Written Off | Outstanding balance set to zero. No further annual debits. Loan ID closed. Member notified. |
+| VGC Admin marks Written Off | Interest is brought up to date first, so the audit trail records the real figure being forgiven. Outstanding balance, principal and accrued interest all set to zero. No further interest. Loan ID closed. Member notified of the amount cleared. |
 
 ### 9.10 Notifications
 
 | Event | Notified Parties |
 | --- | --- |
-| Loan request submitted | VGC Admin |
-| Loan request approved | Member |
-| Loan request rejected | Member |
-| Annual debit applied | Member (debit amount and new outstanding balance noted) |
-| Repayment made | VGC Admin and Member |
+| Loan request submitted | VGC Admin (with amount, term and UPI ID) |
+| Loan request approved | Member (with amount, UPI ID, tokens owed and the interest terms) |
+| Loan request rejected | Member (with the admin's stated reason — a reason is required) |
+| Repayment made | VGC Admin and Member (member's notice carries the interest/principal split) |
 | Loan fully settled | Member and VGC Admin |
-| Loan written off | Member |
+| Loan written off | Member (with the amount cleared) |
+
+Interest accrues continuously rather than as discrete annual events, so there is no "annual debit applied" notification. The member sees the running interest figure and a countdown to the interest-free date on the Loans screen instead.
 
 ---
 
@@ -1700,7 +1742,7 @@ Each contract application has a private, 1-to-1 message thread between the Giver
 | Election Management | Publish candidate lists. Manage election timing. Manage voting rights tickets. Resolve ties by casting deciding vote (logged publicly with rationale). |
 | Groups Management | View all groups. Remove posts or members. Delete groups violating platform rules. |
 | Blog Management | Review and approve or reject blog submissions. Specify Constitutional Provision points on each review. Approve Revenue Generator ticket proposals. Take down published blogs. Manage Abandoned blogs. |
-| Loan Management | View all loan requests. Approve or reject. Record INR transferred. View active Loan IDs, balances and repayment history. Write off loans. Set write-off threshold. |
+| Loan Management | View all loan requests with the member's UPI ID, contact details, term, return date and supporting document. Approve (recording actual INR transferred and a transfer reference) or reject (a stated reason is required and is shown to the member). View active Loan IDs, outstanding balances split into principal and interest, charge history and repayment history. Write off loans. Set write-off threshold. Filter by any status. |
 | Expense Tracker | Log all outgoing INR payments as Platform Outflow entries. Platform Outflow entries are publicly visible. Personal entries are private. |
 | Contract Management | View all contract listings. Monitor Active, Completed, Expired and Cancelled contracts. Verify fulfillment for VGC Administrated contracts. Release or withhold escrowed VGC Points. Manage disputes. Reject listings with non-verifiable conditions. |
 | Admin Audit Log | Read-only chronological record of all Admin actions: wallet credits/debits, declaration verifications, contract resolutions, θ adjustments, write-offs, blog approvals, rate changes, election votes. Filterable by date, action type and affected member. Accessible to VGC Admin only. Summary statistics of platform governance actions are visible publicly. |
@@ -1756,7 +1798,7 @@ By default every member receives notifications via both in-app alerts and email.
 
 | Channel | Default | Member Control |
 | --- | --- | --- |
-| In-app alerts | On | Cannot be disabled for transactional events (wallet activity, contract status changes, dispute outcomes, loan annual debits). Can be disabled for engagement events (new group posts, blog comments). |
+| In-app alerts | On | Cannot be disabled for transactional events (wallet activity, contract status changes, dispute outcomes, loan approval/repayment/settlement). Can be disabled for engagement events (new group posts, blog comments). |
 | Email | On | Can be toggled per category (Marketplace, Gaming, Education, Financial, Groups, Blog, Contract, Loan). Critical security alerts (login from new device, password reset) and financial alerts (wallet debits, declaration verification) cannot be disabled. |
 | Quiet hours | Off | Member may specify hours during which in-app push notifications and email are batched. Critical security and financial alerts bypass quiet hours entirely and are delivered immediately regardless of quiet hours settings. |
 
@@ -1797,7 +1839,7 @@ By default every member receives notifications via both in-app alerts and email.
 | Phase 10A | Search | Platform-wide keyword search across Marketplace, Groups and Blog. Sector and category filters. Visibility rules enforced in results. |
 | Phase 11 | Groups | Group creation, sector tagging, Public and Private join flows, 24-hour deletion hold, all post types, Group Admin and Co-Admin roles, moderation, comment notifications, removed member appeal mechanism. |
 | Phase 12 | Blog | Blog writing, mandatory VGC Admin review flow, VGC Points on review (Constitutional Provision), Revenue Generator blogs via marketplace tickets, grandfathering of prior readers, deletion / abandonment rules, monetisation consent at abandonment. |
-| Phase 13 | Loan to Members | Loan request flow, VGC Admin approval, three-phase annual token debit mechanism (help / consequence / business), member repayment, negative balance offset on new token purchases, sequential multi-loan debits, consolidated debit schedule, write-off criteria and threshold. |
+| Phase 13 | Loan to Members | Loan request flow with confirmation step and 12-month minimum term, VGC Admin approval recording actual INR disbursed, interest-free window, daily simple interest at 10% p.a. thereafter, member repayment with interest-first allocation, multi-loan tracking and consolidated position, write-off criteria and threshold. |
 | Phase 14 | Expense Tracker | Personal expense entry, Entry Type field (Personal / Platform Outflow), 15 categories, payment mode conditional fields, Pending / Settled states with confirmation dialog, spending dashboard, Platform Financial Ledger page (public read-only view of Admin Platform Outflow entries). |
 | Phase 15 | Contract | Contract listing with Application Deadline and Requested Completion Date as separate fields, Giver cap (10 VGC Administrated), VGC Administrated escrow lock at listing (105%), application and assignment flow, 7-day Giver response window, Giver release or dispute flow, Non-VGC penalty cascade (150%, no tax, no Admin spread), hard 2-contract Taker cap, ratings and reviews (no rating if no Taker ever assigned). |
 
@@ -1852,7 +1894,7 @@ By default every member receives notifications via both in-app alerts and email.
 | Revenue Generator Blog | A published blog accessible only to members who have purchased a dedicated view ticket. Prior readers who liked or commented before conversion retain access (grandfathered). |
 | Abandoned Blog | A blog relinquished by its author. Author's claim removed; blog remains under VGC Admin control. Monetisation requires separate consent at abandonment. |
 | Loan ID | Unique system-generated identifier for each loan application. |
-| Three-Phase Loan | The VGC loan repayment structure: Phase 1 (Year 1) — help rate at ₹10/token buy rate; Phase 2 (Year 2) — consequence rate at ₹8.50/token surrender rate; Phase 3 (Year 3+) — business rate at 10% p.a. on token balance. |
+| Interest-Free Window | The period during which a loan accrues no interest: from approval until the earlier of one year later and the member's Planned Return Date. Fixed at approval. (Replaced the earlier "Three-Phase Loan" structure on 2026-08-01 — see §9.5.) |
 | Expense Entry | A single real-world expense record. Can be Personal (private) or Platform Outflow (VGC Admin only, publicly visible). |
 | Platform Outflow | An Expense Tracker entry type used exclusively by VGC Admin to log outgoing INR payments. This is the sole mechanism by which the Admin INR Receipt Ledger is debited. Platform Outflow entries are visible to all logged-in members on the Platform Financial Ledger page. |
 | Contract Giver | A member who creates a contract listing, defines requirements, budget and deadlines, and assigns the work to a Contract Taker. |
