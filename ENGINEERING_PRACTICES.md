@@ -600,19 +600,35 @@ that very workspace and are byte-identical in intent:
 
 This is an import/export comparator artifact, not local drift.
 
-A pull-diff also reports files as differing when the only difference is trailing
-whitespace on otherwise-blank lines — the exporter emits it, the tracked copy has
-it stripped. Same class: ignore, don't push. As of 2026-07-31 that set is nine
-files (`admin/declarations` GET, `admin/system/config` PATCH,
-`declarations/{id}/verify` PATCH, `change-password`, `reset/update_password`,
-`inr_forms/declarations` POST, `profile` PATCH, `function/pts_compute_rate.xs`,
-`table/system_config.xs`) and it grows every time one of them is pushed.
+A pull-diff also reports files as differing when the difference is only
+formatting. Same class: ignore, don't push. Two kinds, and the second is why
+enumerating the set stopped working:
 
-Classify before believing it, rather than eyeballing the file list:
+1. **Trailing whitespace on otherwise-blank lines** — the exporter emits it, the
+   tracked copy has it stripped.
+2. **Code the exporter re-emits in its own canonical form.** `$x == true`
+   becomes `$x`; `0.000001` becomes `1.0E-6`; redundant parentheses are
+   stripped; single-line objects expand to multi-line; nested objects come back
+   wrapped in a fence; comments are re-indented.
+
+None of that is drift, and `diff -b -B` only catches the first kind. **Classify,
+don't enumerate** — the list used to be nine named files and is now most of what
+has ever been pushed:
 
 ```bash
-diff -q -b -B /tmp/xano-check/$f XANO/$f   # silent => whitespace-only
+cd XANO
+for f in $(diff -rq /tmp/xano-check . -x .git -x .env -x archive -x README.md \
+             -x LIVE_SYNC_STATUS.md -x SESSION_LOG.md -x .gitignore -x .DS_Store \
+           | sed 's|^Files /tmp/xano-check/||; s| and .* differ$||'); do
+  a=$(sed 's|//.*||' "/tmp/xano-check/$f" | tr -d '[:space:]()')
+  b=$(sed 's|//.*||' "$f"                 | tr -d '[:space:]()')
+  [ "$a" = "$b" ] || echo "REAL DRIFT: $f"
+done
 ```
+
+Anything that survives that is genuine. **Do not push files to silence the
+preview.** The local tree is kept in its readable form deliberately; adopting the
+exporter's rendering loses the comments and gains no correctness.
 
 ### Scoped pushes emit bogus "does not exist" warnings — for functions too.
 
