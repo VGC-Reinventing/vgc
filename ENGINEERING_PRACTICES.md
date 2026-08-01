@@ -332,7 +332,6 @@ value = ($sess.scheduled_start - now)
 
 // RIGHT
 value = now|add_secs_to_timestamp:($seconds|to_int)
-value = ((now|to_int) - ($sess.scheduled_start|to_int))
 ```
 
 Hit **seven** times: TR-238 (group delete hold), TR-282 (marketplace
@@ -349,6 +348,53 @@ cd XANO && grep -rnE "(now[[:space:]]*[+-]|[+-][[:space:]]*now)" --include="*.xs
 
 (Quote the `--include` glob — unquoted, zsh expands it and grep silently scans
 nothing, which is its own instance of §1's "a check that cannot fail".)
+
+### `now|to_int` is 0 inside an expression. Use `now|to_ms`.
+
+The fix above used to end `value = ((now|to_int) - ($x|to_int))`. That form is
+**wrong**, and wrong in the worst way: it throws nothing, returns a
+plausible-looking number, and the endpoint answers 200.
+
+`now|to_int` only yields milliseconds when it is the *entire* right-hand side
+of its own assignment. Put it inside a larger expression and it evaluates to
+`0`, so the expression collapses to whatever is left. Probed against live
+2026-08-01:
+
+```xanoscript
+value = now|to_int              // 1785556209374   correct
+value = ((now|to_int) - 5)      // -5              <- the `now` term became 0
+value = ((now|to_ms)  - 5)      // 1785556340869   correct
+value = ("x" ~ (now|format_timestamp:"Y-m":"UTC"))   // "x2026-08"  correct
+```
+
+So it is `to_int` on `now` specifically, not filtered-`now` in general and not
+`|to_int` in general — `$row.some_timestamp|to_int` is fine inline. **Use
+`to_ms` and the question does not arise.** Hoisting into a variable
+(`var $now_ms { value = now|to_ms }`) is worth doing anyway, so that every row
+in one response is measured against the same instant.
+
+> **Incident (2026-08-01):** the TR-289 fixes all adopted the `to_int` form and
+> all four were silently inert for the ~3 days they were believed fixed:
+> - `loans/request`'s 12-month minimum computed a bound of 31449600000 — a date
+>   in **1971** — so every term cleared it, including the 90-day one the check
+>   existed to refuse. Caught only because a contract test asserted the
+>   *rejection*, not the acceptance.
+> - `contracts/{id}/escalate` read as `0 - completed_at >= 7 days`: false for
+>   every contract that has ever existed. Escalation was refused
+>   unconditionally, blaming the 7-day rule.
+> - `investments/{id}/overdue_request` compared against December 1969, so no
+>   payout was ever old enough.
+> - `courses/{id}/amendments` measured a lead time of ~56 years, so no session
+>   was ever inside the 48-hour urgent window.
+
+This is the §1 rule in its purest form: **assert the negative case.** Three of
+those four are guards, and a guard that never fires looks exactly like a guard
+that is never needed. Only a test that demands a refusal can tell them apart.
+
+```bash
+cd XANO && grep -rn "now|to_int" --include="*.xs" . | grep -v archive \
+  | grep -v "value = now|to_int$"        # anything left is a live defect
+```
 
 ### Omitted inputs are never `null` — of any type.
 
