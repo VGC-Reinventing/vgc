@@ -675,6 +675,11 @@ return 200.
     write many rows in one request) and reserve app-endpoint calls for the
     behaviour actually under test. Metadata writes bypass business logic, so
     they are for fixtures — never for contract tests.
+
+    **Separate is not unlimited.** A 90-table sweep with no pacing answered 200
+    for ~25 tables and then 429'd every one of the remaining 63 (2026-08-05).
+    Pace metadata reads ~2.2s apart and retry once past the 20s window; the
+    budget is its own, but it is the same size.
   - **Pace browser sweeps at ~24s per route.** Bulk operations and test sweeps
     must be paced or they fail with 429 — and a 429-starved screen renders
     skeletons that pass a naive audit (§1). At 7s per route, 45 of 52 routes
@@ -782,23 +787,51 @@ Two things travel with the rule:
    `See more` toggle in `PostCard.tsx` measures `scrollHeight > clientHeight`
    and appears only when there is something to reveal.
 
-Pin it with a test that reads the stylesheet, since no render test can:
-`src/styles/multilineText.test.ts` asserts both declarations on every selector
-that renders textarea-authored text. Strip the declarations and it fails 6/6 —
-which is the §1 control run, and the only reason to believe it.
+The rule lives in exactly one place — `.text-block` in `global.css`, with the
+three group selectors folded into the same declaration. Add that class at any
+new call site rather than restating the pair.
 
-**The same defect is still live outside groups.** These render textarea-authored
-plain text with no `white-space` rule and were out of scope for the group fix,
-so each is unverified rather than known-good:
+### To find the rest of this class of bug, scan the data, not the code.
 
-| screen | field |
-|---|---|
-| `blog/BlogDetailScreen.tsx:28` | blog comment body |
-| `education/CourseDetailScreen.tsx:321` | course description |
-| `market/ItemDetailScreen.tsx:130` | listing description |
-| `contracts/ContractDetailScreen.tsx:424,1087` | contract notes, application message |
-| `gaming/EventDetailScreen.tsx:113`, `SeasonDetailScreen.tsx:92,226` | event/season description |
-| `admin/AdminProposalsScreen.tsx:64`, `AdminGamingScreen.tsx:71` | proposal, game description |
+The first pass at "where else does this happen?" was a grep over JSX for
+rendered `description`/`content`/`notes` expressions. It produced a nine-row
+table that was wrong three different ways: two sites already carried
+`whiteSpace: 'pre-wrap'`, three more render a field whose only writer is an
+`<input>` — where a newline cannot be typed in the first place — and the one
+site with real affected rows in the database was buried among them with no
+indication it was different.
+
+Ask the database which columns have ever held a newline instead:
+
+```python
+# .local-archive/tools/newline_scan.py — one metadata read per table, ~2.2s apart
+for name, tid in TABLES.items():
+    rows = xmeta.table_rows(tid, per_page=100)[1]['items']
+    for row in rows:
+        for k, v in row.items():
+            if isinstance(v, str) and '\n' in v:
+                print(f'{name}.{k}')
+```
+
+Run 2026-08-05 over all 90 tables: **exactly two columns** have ever stored a
+newline — `group_posts.content` and `blog_comments.content`. The second was a
+live defect with two rows already affected, sitting on the public blog page.
+
+That reframes the fix. Apply the rule where a `<textarea>` is the writer, since
+it is only a matter of time there; **do not apply it to a field written solely
+through an `<input>`** (game description, gaming-group description,
+activity-catalog description). The rule would be decoration implying a guarantee
+nobody is making, and the next reader would have to re-derive that it is inert.
+
+Pin both halves with `src/styles/multilineText.test.ts`, since no render test can
+see either: it asserts the declarations against `global.css` **and** walks the
+JSX of every screen listed in it to confirm the element rendering the field still
+carries an opting-in class. Both halves have a control run — strip the CSS and 8
+fail; drop the class from one call site and that site alone fails.
+
+**Correction to §4 while you are at it:** the metadata API is on a *separate*
+budget from the app API, but it is not unlimited. An unpaced 90-table sweep 429s
+after about 25 requests. Pace it ~2.2s apart and retry past the 20s window.
 
 ---
 
