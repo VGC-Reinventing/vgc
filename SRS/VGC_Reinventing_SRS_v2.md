@@ -679,7 +679,7 @@ All groups are discoverable by all logged-in members. Default view filtered by t
 
 | Content Type | Description |
 | --- | --- |
-| Text | Plain or formatted text |
+| Text | Plain text. Composed in a `<textarea>`, so the author's line breaks and blank lines are the formatting, and the post preserves them exactly as typed. A body longer than five lines is collapsed behind a **See more** control. Posts stored as HTML by earlier revisions still render as formatted text |
 | Images | Photo or image uploads |
 | GIFs | Animated GIFs from upload |
 | Videos | Video file uploads or video links |
@@ -1099,7 +1099,7 @@ Every pioneer candidate must submit three distinct sets of information. All thre
 | Game Name | Text | Official name of the game |
 | Game Logo | File Upload | Official logo |
 | Game Genre | Text | e.g. Strategy, Battle Royale, Sports, Card Game |
-| Game Preface | Rich Text | How this game should exist in the VGC ecosystem |
+| Game Preface | Rich Text | How this game should exist in the VGC ecosystem. Rendered as plain text today, and no screen writes it — see the implementation note in §11.3.3 |
 
 #### 11.3.2 Set 2 — Season Details
 
@@ -1125,6 +1125,18 @@ Every pioneer candidate must submit three distinct sets of information. All thre
 | Item Stock | Number | Number of units available |
 | Item Description | Rich Text | Full description |
 | Buyer Information Fields | Repeating block | Fields required from buyer — each with Label and Input Type |
+
+> **Implementation note (2026-08-05).** Three fields this SRS types as **Rich
+> Text** are built as plain text: Item Description (above), Game Preface
+> (§11.3.1) and Course Description (§12.2). Their compose control is a plain
+> `<textarea>`, not the rich editor used for blogs, contract requirements and
+> detailed proposals — so the author's line breaks are the only formatting they
+> carry, and the read screens now preserve those (`.text-block`). Game Preface
+> has no compose screen at all; it is seeded.
+>
+> Whether these fields should gain the rich editor to match this specification,
+> or the specification should be corrected to plain text, is **undecided** —
+> recorded here rather than silently resolved in either direction.
 
 ### 11.4 Submission Rules — No Modifications Permitted
 
@@ -1358,7 +1370,7 @@ Any logged-in member can become a Teacher by proposing a course ticket to VGC Ad
 | Field | Type | Notes |
 | --- | --- | --- |
 | Course Name | Text | Name of the course |
-| Description | Rich Text | Topics, learning outcomes, prerequisites |
+| Description | Rich Text | Topics, learning outcomes, prerequisites — see the implementation note in §11.3.3 |
 | Course Image(s) | File Upload | One or more images |
 | Price per Student | Number | In VGC Tokens |
 | Total Seats | Number | Maximum students who can purchase |
