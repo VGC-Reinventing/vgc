@@ -431,6 +431,35 @@ explicit `false`, so a partial update cannot honour one. Where a PATCH must
 support "leave this alone", declare the field as a tri-state
 `enum { values = ["true","false"] }` and map it in the stack (TR-302).
 
+**An omitted optional `date` is worse: it cannot be read at all.** It has no
+entry in the table above because it has no value — the key is simply absent from
+`$input`, and touching it is fatal:
+
+```xanoscript
+input { date proposed_completion_date? }
+
+$input.proposed_completion_date              // 500 "Unable to locate input: proposed_completion_date"
+$input|get:"proposed_completion_date"        // 500 "Unable to locate input: "   <- empty name
+```
+
+So there is no null to test and no `|get:` escape hatch. **Declare an optional
+date as `text` instead** — an omitted text is `""`, which *is* readable, and Xano
+coerces the string into the date column on write. `declarations_POST` already
+did this with `text payment_datetime?`; the rule is now general.
+
+> **Incident (2026-08-12):** the rewritten `contracts/applications/{app_id}/update`
+> declared `date proposed_completion_date?` and read it to decide whether to
+> override the stored value. Every partial edit 500'd. It was caught only
+> because the contract-flow test asserted the *wallet deltas* further down the
+> flow — the price never changed, so the escrow was 100 points light, and that
+> mismatch is what surfaced it. A test that had only checked HTTP 200 on the
+> steps it cared about would have missed it, because the 500 was on a step
+> nobody was watching.
+
+That incident is also the cheapest available argument for asserting money rather
+than status codes: one broken PATCH showed up as four wrong numbers three steps
+later, and each of those numbers named the amount it was out by.
+
 ### Unknown input keys are dropped silently, with a 200.
 
 Xano validates the inputs an endpoint *declares* and discards everything else

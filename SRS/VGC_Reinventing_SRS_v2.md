@@ -250,8 +250,8 @@ VGC Admin INR Receipt Ledger:
 
 | Direction | Event | Detail |
 | --- | --- | --- |
-| Credit | INR Declaration verified | Admin verifies a Donation, Grant, Sponsorship or Investment declaration. INR received is credited. |
-| Credit | Token purchase confirmed | Admin confirms receipt of INR from a member purchasing tokens. INR credited. |
+| Credit | INR Declaration verified | Admin verifies a Donation, Grant, Sponsorship, Investment **or Token Purchase** declaration. The INR received is credited **to the Admin ledger — never to the declaring member's**, whatever the payment type. |
+| Credit | Token purchase confirmed | Covered by the row above. A Token Purchase additionally credits the buyer's VGC Token Wallet at the current buy rate; the rupees themselves still land on the Admin ledger. |
 | Debit | Expense Tracker Platform Outflow entry | Admin logs any outgoing INR payment as a Platform Outflow. This is the sole debit mechanism. Covers Token Surrender payouts, Loan disbursements, Investment returns, Sponsorship refunds, marketplace fulfilment costs, utility bills and all other real-world expenses. |
 
 Member INR Receipt Ledger:
@@ -263,6 +263,19 @@ Member INR Receipt Ledger:
 | Credit | Sponsorship refund | Admin refunds sponsorship amount. Sponsor's ledger credited. |
 | Credit | Loan disbursement | Admin approves loan and transfers INR. Member's ledger credited. |
 | Debit | Not available | Member INR Receipt Ledger has no debit facility. |
+
+**These four are the only ways a member's INR Receipt Ledger is ever credited.**
+Money a member *sends* VGC — a donation, a grant, a sponsorship, an investment,
+a token purchase — is VGC's, and is recorded on the Admin ledger. Until
+2026-08-12 the verify endpoint credited the declaring member's own ledger for
+every type except Token Purchase, so a member who donated ₹10,000 showed
+₹10,000 received.
+
+Correspondingly, the **Expense Tracker Platform Outflow entry is the sole debit
+mechanism on the Admin ledger** — the payout endpoints (surrender, investment
+payout, sponsorship refund) credit the member and do *not* debit Admin
+themselves, because `expenses_POST` already performs that debit and doing both
+would take one payment off the books twice.
 
 ### 3.8 Marketplace Escrow Wallet
 
@@ -287,16 +300,25 @@ To prevent marketplace token flows from distorting the Point Token Scheme rate, 
 
 The rate is computed live by the platform from the following real-time inputs:
 
+Revised 2026-08-12. The platform's INR position used to enter the formula as
+`I + R + A − L_invest`, where `I` was the Admin INR wallet balance and `R`/`A`
+were figures typed in by an admin. It is now itemised by source, with a haircut
+per source reflecting how much of each rupee is really the platform's rather
+than someone else's money held temporarily.
+
 | Symbol | Meaning |
 | --- | --- |
-| I | VGC Admin's operational INR Receipt Ledger balance |
-| R | VGC Reserve — funds held outside the ecosystem in FDs, Bonds, money market (still owned by VGC Admin) |
-| A | Hard assets — listed marketplace inventory (at INR equivalent), signed time-bound sponsorship commitments (amortised over commitment period), and cash equivalents |
+| I_net_sponsor | Sponsorships that reached `completed`, at full value, less any refunds issued. An `active` sponsorship counts **zero** — the cash is held against a promise not yet met. |
+| I_token_purchase | Verified declarations of type Token Purchase |
+| I_invest | Verified declarations of type Investment. Weighted **0.1** — investment money is overwhelmingly a liability. |
+| I_grant | Verified declarations of type Grant. Weighted **0.7**. |
+| I_donation | Verified declarations of type Donation. Weighted **0.5**. |
+| I_expense | Expense Tracker entries of type Platform_Outflow |
+| I_loan | Every rupee ever disbursed on a loan. Repayment arrives as VGC Tokens, not INR, so it does not restore the INR position. |
 | T_member | Sum of all member VGC Token Wallet balances |
 | T_admin | VGC Admin's VGC Token Wallet balance **plus** Marketplace Escrow Wallet balance (see §3.8) |
 | P_member | Sum of all member VGC Points Wallet balances **plus** Contract escrow Points held by VGC Admin (belong to Giver until release) |
 | P_admin | VGC Admin's VGC Points Wallet balance **minus** Contract escrow Points held by VGC Admin |
-| L_invest | Pending investment liability — see §4.7 |
 | t_idle | Minutes since the most recent Point Token Scheme conversion event. Capped at 43,200 minutes (30 days). |
 | θ (theta) | Time-decay coefficient. Default 0.00005 per minute (0.005%/min). VGC Admin may adjust θ after any transaction; every change is logged (§4.10). θ is an internal governance parameter and is not displayed on the public rate dashboard. |
 
@@ -312,11 +334,28 @@ The rate is computed live by the platform from the following real-time inputs:
 >
 > Note on T_net: If T_admin > T_member, T_net will be negative. This is intentional — Admin holding more tokens than all members combined reverses the net obligation and increases the equilibrium rate. This behaviour is by design and is not capped or corrected.
 
-**Step 3 — Compute the equilibrium rate (INR per VGC Point):**
+**Step 3 — Compute the platform's net INR position and the equilibrium rate:**
 
-> r_eq = ( I + R + A − L_invest − 10·T_net ) / P_net
+> D = I_net_sponsor + I_token_purchase + 0.1·I_invest + 0.7·I_grant + 0.5·I_donation − I_expense − I_loan + 10·T_admin − 10·T_member
+>
+> r_eq = D / P_net   (INR per VGC Point)
 
-> Note: The coefficient 10 in the formula represents the INR value of one VGC Token at the platform's launch buy rate of ₹10 per token. This coefficient is not automatically updated if VGC Admin revises the INR-to-Token buy rate (§3.2). Any revision to this coefficient requires a formal SRS amendment.
+Note that `10·T_admin − 10·T_member` is exactly `−10·T_net`, so the token half of
+the formula is unchanged.
+
+**If D ≤ 0 → the Point Token Scheme is suspended**, with its own message
+distinguishing it from the `P_net` case: "Conversion temporarily unavailable —
+the platform's net INR position does not currently back a rate." The previous
+formula could not reach this state, because `P_net` was the divisor and was
+already guarded.
+
+Every term is summed live from its source table on each computation rather than
+kept as a running counter, so a corrected or reversed declaration self-corrects
+the rate and there is no counter to drift out of step. `reserve_inr` and
+`hard_assets_inr` remain on `pts_components` and remain editable by Admin as a
+record of the reserve position, but they no longer feed the rate.
+
+> Note: The coefficient 10 represents the INR value of one VGC Token at the platform's launch buy rate of ₹10 per token. It is not automatically updated if VGC Admin revises the INR-to-Token buy rate (§3.2). Any revision requires a formal SRS amendment.
 
 **Step 4 — Apply the time drift:**
 
@@ -334,7 +373,10 @@ When any Point Token Scheme conversion executes, t_idle resets to 0 and r_publis
 
 > R_user = 10 / r_published
 
-This is the figure shown to members on the Point Token Scheme page.
+This is the figure shown to members on the Point Token Scheme page. Equivalently,
+and as the rule is usually stated:
+
+> R = 10 · ( P_member − P_admin ) / D
 
 ### 4.2 Tax
 
@@ -1591,145 +1633,85 @@ If sponsorship conditions are partially met:
 
 ## 14. Contract
 
-**Intent —** Members frequently need to hire each other for one-off work. The Contract feature gives them a choice between a trust-based flow (Non-VGC Administrated) and an escrowed flow (VGC Administrated) for higher-stakes engagements.
+**Intent —** Members frequently need to hire each other for one-off work. A contract is a listing; the things that actually bind are the *proposals* made against it. One listing can carry many proposals, each with its own price, its own deadline, its own escrow and its own settlement, because a Giver often needs several people for one piece of work and has no reason to make them share a fate.
 
-### 14.1 Contract Types
+Revised 2026-08-12. Before that date there were two contract types — VGC Administrated (escrowed) and Non-VGC (trust-based) — and a contract could have exactly one Taker. Both are gone: every contract is escrowed, and a contract may have any number of assigned proposals.
 
-| Attribute | VGC Administrated | Non-VGC Administrated |
-| --- | --- | --- |
-| VGC Role | Middleman — holds payment in escrow, verifies fulfillment | No involvement — operates entirely on trust |
-| Payment Currency | VGC Points (held in escrow by VGC Admin) | VGC Points (transferred directly) |
-| Listing Fee | 5% of contract budget paid by Giver at listing | None |
-| Completion Fee | 5% of contract budget deducted from Taker's payout | None |
-| Total VGC Fee | 10% of contract budget | 0% |
-| Fulfillment Check | VGC Admin independently verifies stated conditions were met | Not applicable — Giver decides voluntarily |
-| Dispute Resolution | VGC Admin mediates at sole discretion | VGC Admin mediates at sole discretion only if sufficient evidence provided |
-| Ratings & Reviews | Both parties rate each other on completion or expiry | Both parties rate each other on completion or expiry |
+### 14.1 The Ten Steps
+
+| # | Step |
+| --- | --- |
+| 1 | **Giver lists a contract.** Title, requirements, guidance budget, proposal deadline, requested completion date. Nothing is locked and no points move. Payment is in VGC Points only. |
+| 2 | **Takers submit detailed proposals.** A proposal carries its own scope, its own price and its own completion date from the moment it is submitted. |
+| 3 | **Many proposals, each independent.** The Giver chooses whether to keep collecting until the deadline or delist the contract now. Delisting stops new proposals; it does not touch existing ones. |
+| 4 | **Chat opens** between Giver and Taker as soon as a proposal exists. |
+| 5 | **Giver assigns a proposal.** Its points move into escrow and **every field on it freezes** — no alteration by anyone, ever again. Until assignment the Taker may edit freely as the two discuss it. The contract stays listed, and other proposals may also be assigned. |
+| 6 | **Taker marks the contract for review** when the terms are fulfilled. |
+| 7 | **Giver settles**, either as *completed* or by *asking VGC to intervene*. VGC charges 5% of escrow for its time and investigation. |
+| 8 | **Completed** → the escrow is credited to the Taker's VGC Points wallet in full and the contract is marked settled. VGC takes nothing. |
+| 9 | **Intervention** → VGC Admin can chat privately to both parties (with image attachments) and read the locked proposal. The outcome is theirs alone. They award the Taker at most **95%** of escrow, VGC retains 5%, and the remainder returns to the Giver. There are no further penalties on either member. |
+| 10 | **Both parties rate and comment** once the contract is settled. |
 
 ### 14.2 Contract Listing
 
-Any logged-in member can create a contract and become the Contract Giver.
-
-| Field | Details |
+| Field | Notes |
 | --- | --- |
-| Contract Title | Short descriptive title |
-| Requirements | Detailed description of what the Taker must deliver |
-| Application Deadline | Date after which no new applicants are accepted. Listing auto-deactivates at this date. The Application Deadline is the sole enforced date — it governs when the listing closes to new applicants only. |
-| Requested Completion Date | Informational only — the date by which the Giver hopes work is done. Not enforced by the platform. Visible to applicants to set expectations. Once a Taker is assigned, the platform does not auto-close on this date. |
-| Budget | Amount in VGC Points |
-| Contract Type | VGC Administrated or Non-VGC Administrated (selected at listing, cannot be changed) |
-| Sector Tag | Gaming, Education, Financial or General |
-| Purpose / Notes | Optional additional context |
-| Conditions (VGC Administrated only) | Objectively verifiable conditions for fulfillment. Subjective conditions not permitted. VGC Admin may reject a listing whose conditions cannot be independently verified. |
-| VGC Administrated — Balance Lock | At listing, system verifies Giver's wallet holds at least 105% of budget (100% escrow + 5% listing fee). Entire amount immediately deducted and held by VGC Admin. If insufficient, listing rejected. |
-| Giver cap | A member may have a maximum of 10 simultaneously listed or Active VGC Administrated contracts as Giver. No limit for Non-VGC Administrated contracts. |
+| Title | Required |
+| Requirements | Required, rich text |
+| Sector / category | Required |
+| Guidance budget (VGC Points) | Required, positive. **Indicative only** — the binding figure is on the proposal. |
+| Proposal deadline | Last day proposals may arrive |
+| Requested completion date | Guidance for proposals |
+| Conditions | Optional. Guidance, never a payment gate. |
+| Private notes | Optional, not shown to Takers |
 
-### 14.3 Application and Assignment
+A listing may be edited by its Giver **only while it is listed and nothing has been assigned against it**. Once any proposal is assigned, Takers have committed against the wording as it stood, so the listing freezes with them. The guidance budget is never editable.
 
-**Application fields (all submitted by the candidate):**
+Contract-level status is only ever "is this listing taking proposals?": `listed`, `delisted`, `expired`, `cancelled`. Everything a member watches — assigned, under review, with VGC, settled — lives on the proposal, because one contract can hold several proposals at different stages at once.
 
-| Field | Required | Details |
-| --- | --- | --- |
-| Pitch / Qualifications | Yes | Free-text statement of why the candidate should be selected, including relevant experience and qualifications |
-| Proposed Price | No | Counter-offer in VGC Points. If omitted, the candidate accepts the Giver's posted budget. Visible to the Giver on the application card alongside the posted budget for comparison. |
-| Proposed Completion Date | No | The date by which the candidate estimates they can deliver. If omitted, the candidate accepts the Giver's requested completion date. Visible to the Giver on the application card. |
+### 14.3 Proposal Lifecycle
 
-**Flow:**
-
-| Step | Actor | Action |
-| --- | --- | --- |
-| 1 | Any Member | Submits application with pitch, and optionally a proposed price and/or proposed completion date |
-| 2 | Contract Giver | Reviews applicants — sees each candidate's pitch, proposed price (vs posted budget), and proposed completion date |
-| 3 | Contract Giver | Assigns contract to one applicant. That member becomes Contract Taker. Status: Active. |
-| 4 | System | Taker notified of assignment. All other applicants notified of rejection. Listing removed from public view. |
-
-### 14.4 Rules After Assignment
-
-| Rule | Detail |
+| Status | Meaning |
 | --- | --- |
-| No modifications to listed terms | Contract details frozen on assignment. Neither party can alter them. |
-| Working past the Requested Completion Date | Contract remains Active. Platform does not auto-close. |
-| Extension or scope changes | Any off-platform agreement on extensions or scope changes must be retained as proof by the party relying on it. |
-| Failure to prove | If a party cites an agreed extension or scope change but cannot provide proof, VGC Admin will not uphold the claim. |
-| Negative balance restriction | A member with a negative VGC Token balance (from any cause) is restricted from: opening new contracts as Giver, accepting new contracts as Taker, creating Marketplace listings, and transferring VGC Points. Restrictions lift automatically when balance returns to zero or above. |
+| `pending` | Taker is still editing; chat is open; nothing is held |
+| `assigned` | Escrow taken, every field frozen |
+| `under_review` | Taker says the work is done |
+| `vgc_review` | Giver asked VGC to decide the payout |
+| `settled` | Escrow disbursed; ratings open |
+| `rejected` / `withdrawn` | Closed without assignment; nothing was ever held |
 
-### 14.5 Pre-Assignment Actions by Giver
+One proposal per Taker per contract.
 
-| Action | Allowed? | Consequence |
-| --- | --- | --- |
-| Edit contract details | Yes — for the following fields only: Contract Title, Requirements, Application Deadline, Requested Completion Date, Sector Tag, Purpose / Notes | Changes immediately visible to viewing members and applicants. Budget and Contract Type are locked after listing and cannot be changed under any circumstances. |
-| Close / Withdraw | Yes | VGC Administrated: escrowed budget returned to Giver; 5% listing fee non-refundable. Non-VGC: no fees, no consequence. |
-| Reject all applicants | Yes | No consequence. Listing remains active until Application Deadline. |
+### 14.4 Money
 
-### 14.6 Completion and Payment Flow
-
-| Step | VGC Administrated | Non-VGC Administrated |
-| --- | --- | --- |
-| 1 | Taker marks contract as Complete. Giver notified. | Taker marks contract as Complete. Giver notified. |
-| 2 | Giver reviews and chooses: (a) Release payment, or (b) Raise dispute. | Giver chooses: (a) Voluntarily transfer VGC Points to Taker, or (b) Raise dispute. |
-| 3a — Release by Giver | VGC Admin releases 95% of escrowed budget to Taker. 5% retained by Admin. Status: Completed. | Giver transfers Points directly to Taker. Status: Completed. |
-| 3b — Dispute by Giver | VGC Admin evaluates work against stated conditions. Conditions met → 95% released to Taker. Conditions not met → budget returned to Giver minus 5% listing fee. | VGC Admin reviews at sole discretion. See §14.8 for Non-VGC penalty cascade. |
-| 3c — Taker escalation | If Giver has not acted within 7 calendar days of Step 1, Taker may escalate to VGC Admin. Admin reviews and decides at sole discretion. | Same 7-day window applies before Taker may escalate. |
-| 4 | Both parties rate and review each other. | Both parties rate and review each other. |
-
-### 14.7 Cancellation Rules
-
-| Scenario | VGC Administrated | Non-VGC Administrated |
-| --- | --- | --- |
-| Giver cancels before Taker assigned | Allowed. Escrowed budget returned. 5% listing fee non-refundable. | Allowed. No fees. |
-| Giver cancels after Taker assigned | Allowed but penalised. Taker receives 95% of escrowed budget. Admin retains 5% listing fee and 5% completion fee. Total cost to Giver: 105% of budget. | Giver may choose not to pay. No automatic penalty unless Taker raises dispute upheld under §14.8. |
-| Application Deadline passes — no Taker assigned | Listing auto-deactivates. 100% escrowed budget returned to Giver. 5% listing fee non-refundable. | Listing auto-deactivates. No payment obligation. |
-| Long-running contract (60 days past Requested Completion Date, no completion) | Either party may request VGC Admin to force-close. Admin reviews work completed to date and, at sole discretion, releases escrowed funds in full to the Taker, returns them in full to the Giver, or splits them proportionally. The 5% listing fee is always non-refundable regardless of the outcome. The decision and rationale are logged in the Admin Audit Log. Both parties may leave ratings after force-close. | Either party may walk away. Both may leave ratings. |
-
-### 14.8 Non-VGC Administrated — Dispute Resolution (Penalty Cascade)
-
-This applies exclusively to Non-VGC Administrated contracts where the Taker claims the Giver acted in bad faith.
-
-| Step | Action |
+| Event | Movement |
 | --- | --- |
-| Trigger | Either party raises a dispute and submits evidence. VGC Admin decides entirely at sole discretion. No defined minimum evidence threshold. |
-| Step 1 — Penalty (if Giver false play proven) | Giver's VGC Points Wallet is debited 150% of the original contract budget. If wallet balance insufficient, debited to zero. |
-| Step 2 | If 150% mark not reached from VGC Points alone, remaining shortfall is converted at the prevailing Point Token Scheme rate. No 2.5% tax applies — this is a forced penalty conversion. Giver's VGC Token Wallet debited accordingly. If insufficient, debited to zero. |
-| Step 3 | If both wallets depleted and 150% not yet reached, Giver's VGC Token balance is marked negative (debt) until 150% is fully recovered. Giver is subject to negative balance restrictions in §14.4. |
-| Taker receives | The lesser of: (a) 150% of original budget, OR (b) total amount recovered across Steps 1–3. VGC Admin does not retain any spread from this penalty. |
-| No proof / Not upheld | No penalty applied, no compensation awarded. VGC Admin's decision is final. |
+| Listing a contract | None |
+| Submitting a proposal | None |
+| **Assignment** | Proposal price debited from the Giver, credited to the escrow (Admin VGC Points wallet) |
+| **Settled as completed** | Full escrow credited to the Taker. VGC takes nothing. |
+| **Settled by VGC after intervention** | Taker gets 0–95% of escrow at Admin's discretion; VGC retains 5%; the Giver receives the remainder |
 
-### 14.9 Ratings and Reviews
+There is **no listing fee**. A contract that settles cleanly costs the Giver exactly the proposal amount. The only fee VGC charges is the 5% for an intervention, and it comes out of escrow rather than out of the Giver on top of it — which is precisely why the Taker's ceiling is 95%.
 
-| Attribute | Detail |
-| --- | --- |
-| Who rates | Both Contract Giver and Contract Taker may rate each other. Rating unlocks when contract is marked Completed OR when the Application Deadline passes and no Taker was ever assigned — in the latter case, no rating is generated as there is no counterparty to rate. |
-| Rating scale | 1–5 stars with a written review |
-| Visibility | Ratings visible on each member's public profile |
-| Non-VGC purpose | In Non-VGC Administrated contracts, ratings are the primary accountability mechanism |
-| Manipulation | False or malicious reviews may be reported to VGC Admin who can remove them at sole discretion |
+Escrowed points count toward `P_member` and away from `P_admin` in the Point Token Scheme formula (§4.1): they sit in the Admin wallet but belong to the Giver until settlement.
 
-### 14.11 Contract Application Chat
+### 14.5 Cancellation
 
-Each contract application has a private, 1-to-1 message thread between the Giver and that specific Applicant. Threads are completely isolated — no applicant can see the Giver's conversation with any other applicant.
+A Giver may cancel a listing while it is `listed` or `delisted` **and nothing is in flight against it**. Pending proposals are closed and their proposers notified; nothing was ever held for them, so nothing is refunded.
 
-| Attribute | Detail |
-| --- | --- |
-| Participants | The Giver and the specific Applicant only. No other member has access to the thread. |
-| Purpose | Allow both parties to discuss requirements, negotiate terms, and remove ambiguity before the Giver makes an assignment decision. |
-| Access trigger | The thread is available as soon as an application is submitted. The Giver sees a "Chat" button on each application card. The Applicant sees a "Chat with Giver" button on the contract detail screen. |
-| Write access | Both parties may send messages while the application status is `pending`. |
-| Read-only state | Once the application moves to `assigned` or `rejected`, the thread becomes read-only. Existing messages remain visible so both parties can reference prior discussions (e.g. agreed scope, price, or timeline). |
-| Notifications | The receiving party is notified via an in-app notification when a new message is sent. |
-| Persistence | Chat history is retained indefinitely for reference and dispute evidence. |
+Once any proposal is assigned, the listing cannot be cancelled — its points are escrowed and its Taker is working. The Giver's route is to delist, which stops new proposals while every assigned one runs to its own settlement.
 
----
+### 14.6 Chat
 
-### 14.10 Active Contract Limit
+Two separate channels:
 
-| Attribute | Detail |
-| --- | --- |
-| Hard limit (Taker) | Maximum 2 simultaneously Active contracts as Contract Taker. Hard cap — cannot be increased. |
-| Applies to | Both VGC Administrated and Non-VGC Administrated combined. Applied, Completed, Cancelled or Expired contracts do not count. |
-| Giver limit | Maximum 10 simultaneously listed or Active VGC Administrated contracts as Giver. No limit for Non-VGC Administrated. |
-| Profile indicator | A Taker's public profile displays their current active contract count. |
+- **Giver ↔ Taker**, per proposal, open from submission. Becomes read-only once the proposal is settled, rejected, withdrawn, or handed to VGC.
+- **Admin ↔ each party**, two private threads, open only while the proposal is in `vgc_review`. Supports image attachments. The Giver cannot see the Taker's thread or vice versa.
 
----
+### 14.7 Ratings and Reviews
+
+Once a proposal is `settled`, both parties may leave one rating (1–5 stars) and a comment for the other. One rating per party per proposal. Ratings aggregate into the public member reputation page.
 
 ## 15. Admin Panel
 
