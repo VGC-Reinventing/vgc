@@ -442,10 +442,33 @@ $input.proposed_completion_date              // 500 "Unable to locate input: pro
 $input|get:"proposed_completion_date"        // 500 "Unable to locate input: "   <- empty name
 ```
 
-So there is no null to test and no `|get:` escape hatch. **Declare an optional
-date as `text` instead** — an omitted text is `""`, which *is* readable, and Xano
-coerces the string into the date column on write. `declarations_POST` already
-did this with `text payment_datetime?`; the rule is now general.
+There is no `|get:` escape hatch. **Declare an optional date as `text`
+instead** — an omitted text is `""`, which *is* readable, and Xano coerces the
+string into the date column on write. `declarations_POST` already did this with
+`text payment_datetime?`; the rule is now general.
+
+**One qualifier, found 2026-08-12 and not yet fully explained.** `?? null`
+*does* survive an omitted optional date, even though a bare read of the same
+input is fatal:
+
+```xanoscript
+input { date dob? }
+
+$input.dob                 // 500 "Unable to locate input: dob"
+($input.dob ?? null)       // null — no error
+```
+
+`api/user_profile/profile_PATCH.xs` has relied on that since TR-234 and was
+re-probed against live: a `PATCH /profile` sending only `name` and `city`
+returns 200, and `$in_dob` is evaluated unconditionally on every request, so the
+guard is genuinely exercised rather than skipped. `signup_POST.xs` uses the same
+form.
+
+So "cannot be read at all" is too strong — it is the *bare* read that is fatal.
+Both fixes work; **prefer `text` anyway.** It needs no guard, it fails visibly
+rather than fatally if someone later reads it bare, and it does not depend on a
+`??` behaviour that we can demonstrate but cannot explain. Treat `?? null` as
+the reason existing code is not broken, not as a pattern to copy into new code.
 
 > **Incident (2026-08-12):** the rewritten `contracts/applications/{app_id}/update`
 > declared `date proposed_completion_date?` and read it to decide whether to
@@ -661,6 +684,36 @@ done
 the kind. Three were the object-collapse above; the fourth combined `== true`
 removal with a fence. Without it the classifier cries wolf on roughly one file
 in ten, which is worse than no classifier — it trains you to skim the output.
+
+**The shell version above is now retired; use
+`.local-archive/tools/xano_drift.py`.** Later the same day a 42-file pull-diff
+flagged `loans/{id}/repay` and `loans/me`, and the token-stream diff showed both
+were pure rendering. The comma fixed the object-collapse case but three more
+canonicalisations were still missing, and two of them cannot be expressed in
+`sed`/`tr` at all:
+
+| the exporter writes | the tracked tree has |
+|---|---|
+| `$x` | `$x == true` |
+| `1.0E-6` | `0.000001` |
+| *(nothing)* | ` ``` ` fences around nested objects |
+
+`== true` removal and fence-stripping are plain substitutions; **numeric
+literals are not** — the two spellings only collapse if both are round-tripped
+through a float. That is what moved the classifier into Python. It canonicalises
+comments, fences, `== true`, numeric literals, then whitespace/commas/parens,
+and reports files that still differ.
+
+```bash
+xano workspace pull -d /tmp/xano-check
+python3 .local-archive/tools/xano_drift.py /tmp/xano-check XANO
+```
+
+It carries its own control run — `--self-test` inverts a real guard (`!= ""` to
+`== ""`) in a tracked file and asserts the classifier catches it, restoring the
+file either way. **Run that before trusting a "no real drift".** A classifier
+whose whole job is to stay silent is the exact shape of a check that has quietly
+stopped checking (§1), and this one has now been wrong in both directions.
 
 That is the same lesson as §1's "a check that cannot fail": a check that fails
 *spuriously* also stops being read. When this script reports drift, either the
