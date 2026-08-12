@@ -637,8 +637,9 @@ enumerating the set stopped working:
    tracked copy has it stripped.
 2. **Code the exporter re-emits in its own canonical form.** `$x == true`
    becomes `$x`; `0.000001` becomes `1.0E-6`; redundant parentheses are
-   stripped; single-line objects expand to multi-line; nested objects come back
-   wrapped in a fence; comments are re-indented.
+   stripped; **multi-line objects collapse to a single line, which adds commas
+   the multi-line form does not have**; nested objects come back wrapped in a
+   fence; comments are re-indented (an extra leading space after `//`).
 
 None of that is drift, and `diff -b -B` only catches the first kind. **Classify,
 don't enumerate** — the list used to be nine named files and is now most of what
@@ -649,10 +650,26 @@ cd XANO
 for f in $(diff -rq /tmp/xano-check . -x .git -x .env -x archive -x README.md \
              -x LIVE_SYNC_STATUS.md -x SESSION_LOG.md -x .gitignore -x .DS_Store \
            | sed 's|^Files /tmp/xano-check/||; s| and .* differ$||'); do
-  a=$(sed 's|//.*||' "/tmp/xano-check/$f" | tr -d '[:space:]()')
-  b=$(sed 's|//.*||' "$f"                 | tr -d '[:space:]()')
+  a=$(sed 's|//.*||' "/tmp/xano-check/$f" | tr -d '[:space:](),')
+  b=$(sed 's|//.*||' "$f"                 | tr -d '[:space:](),')
   [ "$a" = "$b" ] || echo "REAL DRIFT: $f"
 done
+```
+
+**The comma in that `tr` set is load-bearing** and was added 2026-08-12, when a
+41-file pull-diff came back with four "REAL DRIFT" files that were nothing of
+the kind. Three were the object-collapse above; the fourth combined `== true`
+removal with a fence. Without it the classifier cries wolf on roughly one file
+in ten, which is worse than no classifier — it trains you to skim the output.
+
+That is the same lesson as §1's "a check that cannot fail": a check that fails
+*spuriously* also stops being read. When this script reports drift, either the
+drift is real or the script needs another canonicalisation added to it — decide
+which by diffing the two token streams, not by eyeballing the file:
+
+```bash
+diff <(sed 's|//.*||' "/tmp/xano-check/$f" | tr -s '[:space:]' '\n' | grep -v '^$') \
+     <(sed 's|//.*||' "$f"                 | tr -s '[:space:]' '\n' | grep -v '^$')
 ```
 
 Anything that survives that is genuine. **Do not push files to silence the
