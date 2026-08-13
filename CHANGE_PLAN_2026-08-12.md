@@ -6,9 +6,38 @@ new rule is, and what has to move.
 
 Decisions taken by the owner are marked **[owner]**.
 
+**Status: all four shipped and verified.** Items 2 (INR wallet), 3 (contracts)
+and 4 (PTS rate) on 2026-08-12; item 1 (sector home screen) on 2026-08-12,
+deployed as `cf1a56c`. The plan below is kept as written for the record —
+where the built thing differs from the plan, a **Built as** note says so rather
+than the prose being edited to match.
+
 ---
 
-## 1. Sector home screen
+## 1. Sector home screen — DONE
+
+> **Built as.** Three departures from the plan below, all decided while
+> building:
+>
+> 1. **Community gave up its tab slot to Home; the tab count stayed at four.**
+>    The plan said only that Home becomes the landing tab. `tabs.test.ts`
+>    asserts exactly four tabs, and Community is a *Gaming* feature — an
+>    Education member had a permanent tab for a section their Home
+>    deliberately does not surface. Wallet, Market and Profile are core, so
+>    they are the right three to be sector-independent. `/community` keeps its
+>    route and moved into the stack layout, giving up the greeting, the
+>    member-name heading and the install banner along with the landing slot.
+> 2. **Events, Elections and Sessions have no row.** None of the three has an
+>    index route — they live inside a Season, a Game and a Course
+>    respectively. Their parent row names what it contains instead. SRS §2.6.2.
+> 3. **`lib/sectors.ts` holds one list carrying both vocabularies**, flagged
+>    per entry, rather than a bare sector array: the content tag also has
+>    Financial and General, which no member can hold as an interest. SRS
+>    §2.6.5.
+>
+> Specified in SRS §2.6. The non-enforcement rule is §2.6.3 and is written as
+> a functional requirement, because a reader who assumes a sector filter is a
+> permission check would build a server-side gate the platform does not have.
 
 ### What exists
 
@@ -305,11 +334,15 @@ UI as a recorded figure that no longer feeds the rate.
 
 ## Order of work
 
-1. PTS rate — self-contained, one function plus its callers.
-2. INR wallet rules + backfill.
-3. Contracts — the large one; depends on (1) for the escrow term.
-4. Sector home screen.
-5. Test, sync, docs.
+1. PTS rate — self-contained, one function plus its callers. **Done.**
+2. INR wallet rules + backfill. **Done.**
+3. Contracts — the large one; depends on (1) for the escrow term. **Done**, and
+   now superseded in part: the owner supplied `VGC_Contract_Feature_SRS_v1.0`
+   on 2026-08-14, which reinstates the Request-Detailed-Proposal gate that
+   step 2 of §3 had dropped, and splits today's single `contracts` record into
+   an Opportunity and a per-proposal Contract. Tracked separately.
+4. Sector home screen. **Done** — `cf1a56c`, SRS §2.6.
+5. Test, sync, docs. **Done.**
 
 Verification for each follows `ENGINEERING_PRACTICES.md`: `npm run build` with
 the exit code checked, `npm test`, endpoint exercised through the real payload

@@ -1,6 +1,6 @@
 # VGC Reinventing — Software Requirements Specification
 
-> **Version 2.5 · 2026 · Confidential**
+> **Version 2.6 · 2026 · Confidential**
 
 ---
 
@@ -15,6 +15,7 @@
 | 2.3 | 2026-06-11 | §8.7 simplified: removed monetisation consent step at abandonment. Abandoned blog records are retained in the backend for audit purposes; VGC Admin has full discretion over abandoned content without requiring prior member consent. Member is shown a plain disclaimer before confirming abandonment. |
 | 2.4 | 2026-06-27 | §14.3 extended: contract applicants may optionally submit a proposed price (counter-offer in VGC Points) and a proposed completion date alongside their pitch. These are visible to the Giver when reviewing applications. Both fields are optional — omitting either means the applicant accepts the Giver's posted budget or requested date. |
 | 2.5 | 2026-06-28 | §14.11 added: Contract Application Chat. Private 1-to-1 messaging between a Giver and each individual Applicant, accessible before assignment to clarify requirements and negotiate terms. Chat thread becomes read-only once the application is assigned or rejected. |
+| 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 
 ---
 
@@ -179,6 +180,88 @@ A member may request to close their account at any time.
 | Revenue Generator blogs | All associated marketplace tickets remain active. Revenue from ticket sales from this point onwards goes entirely to VGC Admin's VGC Token Wallet. |
 | All other assets | All remaining assets (marketplace proposals, active listings, etc.) become VGC Admin's property. |
 | Final state | After 30 days the account is permanently archived. Profile inaccessible. Anonymised transaction ledger entries retained for audit and regulatory compliance. |
+
+### 2.6 Interest Sector and the Home Screen
+
+**Intent —** The platform spans gaming, education, farming and a common core of
+wallet, marketplace, contracts and social features. A member who joined to teach
+a course should not have to navigate past game seasons and elections to reach
+their classes. The Interest Sector is how the home screen knows which half of
+the platform to put in front of them.
+
+#### 2.6.1 Choosing a Sector
+
+Every member holds exactly one Interest Sector, stored on their profile:
+
+| Sector | Status |
+| --- | --- |
+| Gaming | Live |
+| Education | Live |
+| Farming | Selectable now; features in development (§2.6.4) |
+
+The field is nullable and has **no default**. "Not yet chosen" is a real state,
+and it is what triggers the interest picker on first sign-in. Defaulting the
+field would answer the question on the member's behalf, and they would never be
+asked.
+
+The choice is changeable at any time from Profile → Your interest. It is not a
+one-time onboarding decision and carries no cooling-off period, cost or approval.
+
+#### 2.6.2 Home Screen Composition
+
+The home screen is the landing surface for a signed-in member and is composed of
+two tiers:
+
+| Tier | Contents |
+| --- | --- |
+| Core — shown to every member | Wallet, Market, Contracts, Groups, Blog, Points Transfer, Loans, Expenses, Search, Profile |
+| Sector — shown only for the member's chosen sector | **Gaming:** Community (games, pioneers, elections), Seasons and their Events, Pioneer Candidacy. **Education:** Courses, Learning and Sessions, Course Proposal, Teacher Dashboard. **Farming:** none yet — see §2.6.4. |
+
+Events, Elections and Sessions have no index screen of their own: an Event is
+reached through its Season, an Election through its Game, and a Session through
+its Course. The home screen therefore surfaces the parent and names what it
+contains, rather than linking to a screen that does not exist.
+
+#### 2.6.3 Filter, Not Access Control
+
+**The Interest Sector governs presentation only.** This is a functional
+requirement, not an implementation note:
+
+- No endpoint reads the field to decide whether a member may act.
+- Every route outside the chosen sector resolves normally when reached by deep
+  link, search, notification or a shared URL.
+- A member whose sector is Gaming may enrol in a course, teach one, and be paid
+  for it. A member whose sector is Education may stand as a Pioneer.
+- Changing sector never revokes anything. Existing enrolments, candidacies,
+  contracts and group memberships are untouched; only what the home screen lists
+  changes.
+
+Any future requirement to *restrict* a feature by sector must be specified
+separately and enforced server-side. It cannot be inherited from this field,
+which the frontend treats as advisory throughout.
+
+#### 2.6.4 Farming
+
+Farming is selectable before its features exist. A member who chooses it gets
+the full core platform plus a card naming what is planned — crop and livestock
+groups, produce listings on the marketplace, and seasonal contracts for labour
+and equipment.
+
+This is deliberate: the alternative is to hide the option until the features
+ship, which leaves the platform unable to tell how many members are waiting for
+them. The card states plainly that the section is not built yet, so the empty
+sector reads as a roadmap rather than as a defect.
+
+#### 2.6.5 Relationship to the Content Sector Tag
+
+The Interest Sector describes a **person**. The `sector` tag on blog posts,
+marketplace listings, contracts and sponsorships describes a **piece of
+content**, and carries two additional values — Financial and General — that no
+member can hold as an interest.
+
+The two vocabularies overlap but are not interchangeable, and neither is derived
+from the other: a blog post's sector is chosen by its author per post, and is
+not defaulted from the author's interest.
 
 ---
 
