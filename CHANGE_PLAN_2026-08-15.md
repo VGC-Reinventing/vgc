@@ -16,24 +16,31 @@ relationships should be designed separately from this functional SRS", so this
 is a licensed reading of the document, not a departure from it. §46's twenty-two
 success criteria are all in scope.
 
-**Status: steps 1–2 of §11 shipped.**
+**Status: complete. All nine steps of §11 shipped 2026-08-15 / 2026-08-16.**
 
-- **Step 1, 2026-08-15** — XANO `b1dfc4f`, FrontEnd `299163c`, bundle
-  `index-CHsAMiRt.js`. Defects 1, 2, 5 and 8 of §5 and the rating-reward
-  removal of §6.3.
-- **Step 2, 2026-08-16** — XANO `023ac73`, FrontEnd `65e6839`, bundle
-  `index-D-zhtqJD.js`. `contract_completion_submissions` created;
-  `submit-completion` carries statement, deliverables, evidence and notes;
-  `contracts/{id}` and `admin/contracts/disputes` both return it. Verified by
-  walking a whole contract twice on one listing, one settled cleanly and one
-  taken to VGC.
-  - **Also fixed, same family as defect 1:** the Taker's completion screen
-    refused to submit once the proposed delivery date had passed — "no payment
-    is owed" — enforcing a rule the backend dropped in August. The escrow is
-    already held by then, so refusing the submission saved the Giver nothing
-    and stranded it. It is now a warning, and the Giver decides.
+| step | what | where |
+|---|---|---|
+| 1 | Four live defects + the rating-reward removal | XANO `b1dfc4f`, FE `299163c` |
+| 2 | Completion submissions carry the work | XANO `023ac73`, FE `65e6839` |
+| 3 | `contract_audit_log` + `log_contract_event` | XANO `17f336e` |
+| 4 | The status model, and the discard-and-reseed of §7 | XANO `17f336e` |
+| 5 | Six new endpoints, fifteen rewritten | XANO `8b041ce` |
+| 6 | The two-stage frontend, and `contractStatus.ts` | FE `29709f1` |
+| 7 | Admin revision history and the §6.2 presets | FE `f380530` |
+| 8 | Lazy expiry and drafts | shipped inside step 5 |
+| 9 | SRS §14 rewritten as v2.7; docs and final verification | this commit |
 
-Steps 3–9 not started.
+Verified end to end by `.local-archive/tools/test_contract_flow_v2.py`, which
+walks draft → publish → apply → request-detail → propose → request-changes →
+resubmit → accept → escrow → completion → settle, asserts the audit trail, and
+asserts every gate as a negative. Fresh pull → *no real drift*, with
+`--self-test` first. FE: build exit 0, 123 tests (was 90 before this work).
+
+Two things learned the hard way are now in `ENGINEERING_PRACTICES.md` §2: a
+comment inside a `data = { }` literal rejects the whole document, and a new
+notification `event_type` must be in the enum before anything emits it —
+because `emit_notification` runs after the transaction commits, so the endpoint
+does all its work and *then* returns 400.
 
 ---
 

@@ -1,6 +1,6 @@
 # VGC Reinventing — Software Requirements Specification
 
-> **Version 2.6 · 2026 · Confidential**
+> **Version 2.7 · 2026 · Confidential**
 
 ---
 
@@ -15,6 +15,7 @@
 | 2.3 | 2026-06-11 | §8.7 simplified: removed monetisation consent step at abandonment. Abandoned blog records are retained in the backend for audit purposes; VGC Admin has full discretion over abandoned content without requiring prior member consent. Member is shown a plain disclaimer before confirming abandonment. |
 | 2.4 | 2026-06-27 | §14.3 extended: contract applicants may optionally submit a proposed price (counter-offer in VGC Points) and a proposed completion date alongside their pitch. These are visible to the Giver when reviewing applications. Both fields are optional — omitting either means the applicant accepts the Giver's posted budget or requested date. |
 | 2.5 | 2026-06-28 | §14.11 added: Contract Application Chat. Private 1-to-1 messaging between a Giver and each individual Applicant, accessible before assignment to clarify requirements and negotiate terms. Chat thread becomes read-only once the application is assigned or rejected. |
+| 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 
 ---
@@ -46,7 +47,7 @@ The platform covers the following major functional areas:
 - Blog: Member content publishing with VGC Admin review, VGC Points rewards and optional Revenue Generator monetisation
 - Loan to Members: INR loan facility repaid in VGC Tokens, interest-free for the first year
 - Expense Tracker: Personal expense ledger for members; official INR outflow ledger for VGC Admin with public Platform Outflow visibility
-- Contract: Member-to-member work agreements. Two types — VGC Administrated (escrow-based) and Non-VGC Administrated (trust-based). Hard cap of 2 simultaneously active contracts as Taker per member. Hard cap of 10 simultaneously listed or active VGC Administrated contracts as Giver per member.
+- Contract: Member-to-member work agreements in VGC Points. A Giver advertises a Contract Opportunity, Candidates apply, and the Giver invites the ones they want to submit a Detailed Proposal. Every accepted proposal creates an independent escrowed contract between that Giver and that Taker.
 
 ### 1.4 Technology Stack
 
@@ -1716,62 +1717,100 @@ If sponsorship conditions are partially met:
 
 ## 14. Contract
 
-**Intent —** Members frequently need to hire each other for one-off work. A contract is a listing; the things that actually bind are the *proposals* made against it. One listing can carry many proposals, each with its own price, its own deadline, its own escrow and its own settlement, because a Giver often needs several people for one piece of work and has no reason to make them share a fate.
+**Intent —** Members frequently need to hire each other for one-off work. A **Contract Opportunity** is an advertisement; the things that actually bind are the **Detailed Proposals** made against it. One Opportunity can carry many proposals, each with its own price, its own deadline, its own escrow and its own settlement, because a Giver often needs several people for one piece of work and has no reason to make them share a fate.
 
-Revised 2026-08-12. Before that date there were two contract types — VGC Administrated (escrowed) and Non-VGC (trust-based) — and a contract could have exactly one Taker. Both are gone: every contract is escrowed, and a contract may have any number of assigned proposals.
+Revised 2026-08-16 against `VGC_Contract_Feature_SRS_v1.0`. The change is the **two-stage flow**: applying is now an expression of interest that carries no terms, and a Candidate may not write a Detailed Proposal until the Giver asks for one. Before 2026-08-12 there were two contract types — VGC Administrated (escrowed) and Non-VGC (trust-based) — and a contract could have exactly one Taker. Both are gone: every contract is escrowed, and an Opportunity may have any number of accepted proposals running at once.
 
-### 14.1 The Ten Steps
+### 14.1 The Two Stages
+
+| Stage | What it is |
+| --- | --- |
+| **Opportunity** | A Giver advertises a requirement and attracts Candidates. It is not a contract, it holds no money, and its budget is guidance only. |
+| **Contract** | Created when the Giver accepts a Detailed Proposal. One Giver, one Taker, one set of locked terms, one escrow. |
+
+A single Opportunity may therefore produce several independent Contracts. Completing, disputing, settling or rating one of them has no effect on any other.
+
+### 14.2 The Flow
 
 | # | Step |
 | --- | --- |
-| 1 | **Giver lists a contract.** Title, requirements, guidance budget, proposal deadline, requested completion date. Nothing is locked and no points move. Payment is in VGC Points only. |
-| 2 | **Takers submit detailed proposals.** A proposal carries its own scope, its own price and its own completion date from the moment it is submitted. |
-| 3 | **Many proposals, each independent.** The Giver chooses whether to keep collecting until the deadline or delist the contract now. Delisting stops new proposals; it does not touch existing ones. |
-| 4 | **Chat opens** between Giver and Taker as soon as a proposal exists. |
-| 5 | **Giver assigns a proposal.** Its points move into escrow and **every field on it freezes** — no alteration by anyone, ever again. Until assignment the Taker may edit freely as the two discuss it. The contract stays listed, and other proposals may also be assigned. |
-| 6 | **Taker marks the contract for review** when the terms are fulfilled. |
-| 7 | **Giver settles**, either as *completed* or by *asking VGC to intervene*. VGC charges 5% of escrow for its time and investigation. |
-| 8 | **Completed** → the escrow is credited to the Taker's VGC Points wallet in full and the contract is marked settled. VGC takes nothing. |
-| 9 | **Intervention** → VGC Admin can chat privately to both parties (with image attachments) and read the locked proposal. The outcome is theirs alone. They award the Taker at most **95%** of escrow, VGC retains 5%, and the remainder returns to the Giver. There are no further penalties on either member. |
-| 10 | **Both parties rate and comment** once the contract is settled. |
+| 1 | **Giver creates an Opportunity.** Title, requirements, guidance budget, application closing date, requested completion date. It may be saved as a **draft** first — invisible to Candidates, and refusing applications, until published. |
+| 2 | **Candidates apply** — "I'm Interested". Experience, qualifications, why they suit the work. **No price, no dates, no terms, and no points move.** |
+| 3 | **Chat opens** between Giver and Candidate as soon as the application exists. |
+| 4 | **Giver requests a Detailed Proposal** from the Candidates they want one from, either from the application or from the chat. This commits nothing, and may be sent to as many Candidates as the Giver likes. |
+| 5 | **Candidate submits a Detailed Proposal:** scope, price in VGC Points, start and completion dates. They may keep revising it. |
+| 6 | **Giver accepts, requests changes, or declines.** Requesting changes must say what to change, and returns the proposal to the Candidate to revise and resubmit; there is no limit on the rounds. |
+| 7 | **Acceptance activates a Contract.** The proposal's points move from the Giver into escrow and **every field on the proposal freezes** — no alteration by anyone, ever again. The Opportunity stays open unless the Giver closes it, and other proposals may also be accepted. |
+| 8 | **Taker submits the completed work** with a statement of what was done, deliverables, and any supporting evidence. |
+| 9 | **Giver settles**, either as *completed* or by *asking VGC to intervene*. VGC charges 5% of escrow for its time and investigation. |
+| 10 | **Completed** → the escrow is credited to the Taker's VGC Points wallet in full. VGC takes nothing. |
+| 11 | **Intervention** → VGC Admin reads the locked proposal, its revision history, the completion submission and the chat, and can message both parties privately. The outcome is theirs alone: the Taker is awarded between 0 and **95%** of escrow, VGC retains 5%, and the remainder returns to the Giver. There are no further penalties on either member. |
+| 12 | **Both parties rate and comment** once the contract is settled. |
 
-### 14.2 Contract Listing
+### 14.3 Why the Giver Must Ask First
+
+A Candidate cannot produce a Detailed Proposal by applying. This is a functional requirement, not a UI convention:
+
+- A Giver advertising work should not receive priced, dated offers from strangers before a word has been exchanged.
+- The request is per Candidate. Asking one does not exclude the others, and asking is not a commitment to accept.
+- A proposal written after a conversation is a proposal about the work that is actually wanted.
+
+The gate was briefly removed on 2026-08-12, when applying required the full proposal up front, and reinstated on 2026-08-16.
+
+### 14.4 The Opportunity
 
 | Field | Notes |
 | --- | --- |
 | Title | Required |
 | Requirements | Required, rich text |
 | Sector / category | Required |
-| Guidance budget (VGC Points) | Required, positive. **Indicative only** — the binding figure is on the proposal. |
-| Proposal deadline | Last day proposals may arrive |
+| Guidance budget (VGC Points) | Required, positive. **Indicative only** — it never moves money, never becomes the Contract Value, and never creates escrow. |
+| Application closing date | Last day applications may arrive |
 | Requested completion date | Guidance for proposals |
 | Conditions | Optional. Guidance, never a payment gate. |
-| Private notes | Optional, not shown to Takers |
+| Private notes | Optional, not shown to Candidates |
 
-A listing may be edited by its Giver **only while it is listed and nothing has been assigned against it**. Once any proposal is assigned, Takers have committed against the wording as it stood, so the listing freezes with them. The guidance budget is never editable.
+An Opportunity may be edited by its Giver **only while it is listed and nothing has been accepted against it**. Once any proposal is accepted, Candidates have committed against the wording as it stood, so the listing freezes with them. The guidance budget is never editable.
 
-Contract-level status is only ever "is this listing taking proposals?": `listed`, `delisted`, `expired`, `cancelled`. Everything a member watches — assigned, under review, with VGC, settled — lives on the proposal, because one contract can hold several proposals at different stages at once.
-
-### 14.3 Proposal Lifecycle
+Opportunity status answers exactly one question — is this taking applications?
 
 | Status | Meaning |
 | --- | --- |
-| `pending` | Taker is still editing; chat is open; nothing is held |
-| `assigned` | Escrow taken, every field frozen |
-| `under_review` | Taker says the work is done |
-| `vgc_review` | Giver asked VGC to decide the payout |
+| `draft` | Written but not published. Visible to its Giver and to VGC Admin only, and clearly marked as unpublished. |
+| `listed` | Accepting applications |
+| `delisted` | The Giver stopped new applications by hand |
+| `expired` | The application closing date passed. Applied on read, since the platform has no scheduled tasks (§1.4.1). |
+| `cancelled` | The Giver withdrew the listing |
+
+**None of these terminate a Contract.** Closing or expiring an Opportunity stops new applications and does nothing else: accepted proposals run to their own settlement, and undecided ones stay decidable.
+
+### 14.5 The Proposal Lifecycle
+
+| Status | Meaning |
+| --- | --- |
+| `interest` | Applied. Nothing held, no terms, chat open |
+| `proposal_requested` | The Giver has asked this Candidate for a Detailed Proposal |
+| `proposed` | Submitted or resubmitted; awaiting the Giver's decision |
+| `changes_requested` | Sent back with a note saying what to change |
+| `assigned` | Accepted. Escrow taken, every field frozen |
+| `under_review` | The Taker says the work is done |
+| `vgc_review` | The Giver asked VGC to decide the payout |
 | `settled` | Escrow disbursed; ratings open |
-| `rejected` / `withdrawn` | Closed without assignment; nothing was ever held |
+| `rejected` | The Giver declined it |
+| `withdrawn` | The Candidate pulled out |
 
-One proposal per Taker per contract.
+One application per Candidate per Opportunity. A Candidate may withdraw at any point before acceptance; after acceptance the points are escrowed and the routes are completion or intervention.
 
-### 14.4 Money
+Every version of a Detailed Proposal is retained, along with the change request each one answers. The version current at acceptance is the contractual one.
+
+### 14.6 Money
 
 | Event | Movement |
 | --- | --- |
-| Listing a contract | None |
-| Submitting a proposal | None |
-| **Assignment** | Proposal price debited from the Giver, credited to the escrow (Admin VGC Points wallet) |
+| Creating an Opportunity | None |
+| Applying | None |
+| Requesting or submitting a proposal | None |
+| **Acceptance** | Proposal price debited from the Giver, credited to escrow (Admin VGC Points wallet) |
 | **Settled as completed** | Full escrow credited to the Taker. VGC takes nothing. |
 | **Settled by VGC after intervention** | Taker gets 0–95% of escrow at Admin's discretion; VGC retains 5%; the Giver receives the remainder |
 
@@ -1779,22 +1818,40 @@ There is **no listing fee**. A contract that settles cleanly costs the Giver exa
 
 Escrowed points count toward `P_member` and away from `P_admin` in the Point Token Scheme formula (§4.1): they sit in the Admin wallet but belong to the Giver until settlement.
 
-### 14.5 Cancellation
+### 14.7 Completion
 
-A Giver may cancel a listing while it is `listed` or `delisted` **and nothing is in flight against it**. Pending proposals are closed and their proposers notified; nothing was ever held for them, so nothing is refunded.
+The Taker's submission carries a statement of what was completed, and may carry deliverables, links and image evidence. It is what the Giver decides on, and what VGC reads if asked to intervene — a submission is required, not a bare status change.
 
-Once any proposal is assigned, the listing cannot be cancelled — its points are escrowed and its Taker is working. The Giver's route is to delist, which stops new proposals while every assigned one runs to its own settlement.
+A passed completion date does not block submission. The points are already escrowed by then, so refusing late work saves the Giver nothing and strands the escrow; the Giver decides what late work is worth at step 9.
 
-### 14.6 Chat
+### 14.8 Cancellation
+
+A Giver may cancel an Opportunity while it is `draft`, `listed`, `delisted` or `expired` **and nothing has been accepted against it**. Undecided applications are closed and their Candidates notified; nothing was ever held for them, so nothing is refunded.
+
+Once any proposal is accepted, the Opportunity cannot be cancelled — its points are escrowed and its Taker is working. The Giver's route is to delist, which stops new applications while every accepted proposal runs to its own settlement.
+
+### 14.9 Chat
 
 Two separate channels:
 
-- **Giver ↔ Taker**, per proposal, open from submission. Becomes read-only once the proposal is settled, rejected, withdrawn, or handed to VGC.
+- **Giver ↔ Candidate**, per application, open from the moment they apply and through the work itself. It becomes read-only once the application is settled, rejected, withdrawn, or handed to VGC. **VGC Admin can read it** when deciding a dispute, and can never write into it.
 - **Admin ↔ each party**, two private threads, open only while the proposal is in `vgc_review`. Supports image attachments. The Giver cannot see the Taker's thread or vice versa.
 
-### 14.7 Ratings and Reviews
+### 14.10 Ratings and Reviews
 
-Once a proposal is `settled`, both parties may leave one rating (1–5 stars) and a comment for the other. One rating per party per proposal. Ratings aggregate into the public member reputation page.
+Once a proposal is `settled`, both parties may leave one rating (1–5 stars) and a comment for the other. One rating per party per proposal. Ratings aggregate into the public member reputation page, and are never available before settlement. No VGC Points are paid for submitting a rating.
+
+### 14.11 Audit Trail
+
+Every significant action is recorded with its actor and time: Opportunity created, published, edited, closed, expired and cancelled; application submitted, withdrawn and rejected; proposal requested, submitted, resubmitted and changes requested; proposal accepted; escrow funded and released; completion submitted; intervention requested; the Admin decision; and ratings. The trail exists for dispute resolution, and is separate from the Admin's own audit log.
+
+### 14.12 What This Deliberately Does Not Do
+
+Recorded so that a later reader does not "fix" a decision:
+
+- **There is no separate Contract record.** `VGC_Contract_Feature_SRS_v1.0` §42 recommends fourteen entities; §42 also states that the schema belongs to the implementation phase. An accepted proposal *is* the contract: it holds the locked terms, the escrow, the completion submission and the settlement. Proposal versions, completion submissions and the audit trail — the parts of that split that carry behaviour — are their own records. A future requirement for a Contract that outlives the proposal which created it, such as reassignment to a different Taker, is the trigger to revisit this.
+- **Dispute outcomes are not binary.** v1.0 §28 frames the decision as *Taker Wins* / *Giver Wins*. The implementation awards any figure between 0 and 95% of escrow, which is a superset; the admin panel offers the two named outcomes as presets.
+- **Application and proposal fields are not individually structured.** v1.0 §7 and §14 enumerate roughly twenty fields between them. Only the proposed start date carries behaviour and it is stored; the rest are prompts above a rich-text field, because a locked contractual document is better served by one preserved version than by twenty columns that can each drift.
 
 ## 15. Admin Panel
 
@@ -1918,7 +1975,7 @@ By default every member receives notifications via both in-app alerts and email.
 | Phase 12 | Blog | Blog writing, mandatory VGC Admin review flow, VGC Points on review (Constitutional Provision), Revenue Generator blogs via marketplace tickets, grandfathering of prior readers, deletion / abandonment rules, monetisation consent at abandonment. |
 | Phase 13 | Loan to Members | Loan request flow with confirmation step and 12-month minimum term, VGC Admin approval recording actual INR disbursed, interest-free window, daily simple interest at 10% p.a. thereafter, member repayment with interest-first allocation, multi-loan tracking and consolidated position, write-off criteria and threshold. |
 | Phase 14 | Expense Tracker | Personal expense entry, Entry Type field (Personal / Platform Outflow), 15 categories, payment mode conditional fields, Pending / Settled states with confirmation dialog, spending dashboard, Platform Financial Ledger page (public read-only view of Admin Platform Outflow entries). |
-| Phase 15 | Contract | Contract listing with Application Deadline and Requested Completion Date as separate fields, Giver cap (10 VGC Administrated), VGC Administrated escrow lock at listing (105%), application and assignment flow, 7-day Giver response window, Giver release or dispute flow, Non-VGC penalty cascade (150%, no tax, no Admin spread), hard 2-contract Taker cap, ratings and reviews (no rating if no Taker ever assigned). |
+| Phase 15 | Contract | Contract Opportunity with draft/publish and separate Application Closing and Requested Completion dates; expression-of-interest applications; Giver-initiated Request Detailed Proposal; proposal submission, revision and acceptance with full version history; escrow at acceptance only; completion submission with evidence; Giver settlement or VGC intervention at 5% of escrow; per-proposal independence; ratings after settlement; contract audit trail. |
 
 ---
 
@@ -1979,7 +2036,8 @@ By default every member receives notifications via both in-app alerts and email.
 | Application Deadline | The date on which a contract listing auto-deactivates and no new applicants are accepted. The only enforced date in a contract listing. |
 | Requested Completion Date | An informational field in a contract listing indicating when the Giver hopes the work is done. Not enforced by the platform. |
 | VGC Administrated Contract | Contract type where VGC Admin holds the full budget + 5% listing fee in escrow at listing. 95% released to Taker upon verified fulfillment. |
-| Non-VGC Administrated Contract | Contract type operating entirely on trust. No fees. Rating and review system is the primary accountability mechanism. |
+| Contract Opportunity | A Giver's advertisement of work needed. Not itself a contract: it holds no money, its budget is guidance, and it may carry many proposals. |
+| Detailed Proposal | A Candidate's binding offer — scope, price and dates — written only after the Giver requests one. Every version is retained; the one accepted becomes the contract. |
 | Listing Fee | 5% of contract budget paid by the Giver to VGC Admin at listing of a VGC Administrated contract. Non-refundable. |
 | Completion Fee | 5% of contract budget retained by VGC Admin upon releasing payment to Taker in a VGC Administrated contract. |
 | Sector Tag | A single sector label (Gaming, Education, Financial or General) applied for filtering and discovery. |
