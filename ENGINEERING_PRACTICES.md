@@ -612,6 +612,51 @@ The frontend mirrors this: `setToken(token, { adminSession: true })` on the two
 `/admin/login`. The marker is only sound while the token and the window are the
 same span — one more reason they move together.
 
+### A comment cannot live inside a `data = { }` literal.
+
+Comments are fine everywhere else — above a statement, inside an `input {}`
+block, between preconditions. Inside an object literal the parser rejects the
+**whole document**, and the error names the key that follows the comment rather
+than the comment:
+
+```
+Error: Push failed (400): Multidoc import failed:
+  [query "contracts/applications/{app_id}/update" verb=PATCH {]
+  Syntax error: unexpected 'status'
+```
+
+`status` was the first key after the comment, and was itself blameless. Nothing
+in this workspace has ever done it, which is the quickest way to check a
+construct is legal: grep for a precedent before assuming.
+
+### A new `event_type` must be added to the `notifications` enum first.
+
+`emit_notification` takes `text event_type`, so nothing complains at the call
+site — but it writes to `notifications.event_type`, which is an **enum**, and
+an unlisted value fails there:
+
+```
+Input "contract_proposal_submitted" is not one of the allowable values.
+```
+
+The trap is *where* that lands. The notification is emitted at the end of the
+stack, after the `db.transaction` has already committed, so the endpoint
+**does all of its work and then returns 400**. The proposal was saved, the
+version row was written, the status moved — and the caller was told the request
+failed. A member retries; a script records a failure against a step that
+actually succeeded.
+
+> **Incident (2026-08-16):** four new contract events (`proposal_submitted`,
+> `changes_requested`, `application_rejected`, `application_withdrawn`) were
+> emitted before being added to the enum. The flow test caught it only because
+> it asserted the *state* after each step as well as the status code — the
+> version history came back correct from an endpoint that had just returned
+> 400.
+
+Add the value to `table/notifications.xs` in the same commit as the endpoint
+that emits it. Adding enum values is additive and safe; existing rows are
+untouched.
+
 ### Date-only bounds parse to that day's midnight.
 
 `created_at <= to` with `to = "2026-07-25"` excludes all of 25 July. Widen the
