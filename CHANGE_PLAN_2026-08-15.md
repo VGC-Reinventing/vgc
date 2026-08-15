@@ -16,10 +16,24 @@ relationships should be designed separately from this functional SRS", so this
 is a licensed reading of the document, not a departure from it. §46's twenty-two
 success criteria are all in scope.
 
-**Status: step 1 of §11 shipped 2026-08-15** — XANO `b1dfc4f`, FrontEnd
-`299163c`, live on `baroda.app` as bundle `index-CHsAMiRt.js`. Defects 1, 2, 5
-and 8 of §5 and the rating-reward removal of §6.3 are done and verified against
-live. Steps 2–9 not started.
+**Status: steps 1–2 of §11 shipped.**
+
+- **Step 1, 2026-08-15** — XANO `b1dfc4f`, FrontEnd `299163c`, bundle
+  `index-CHsAMiRt.js`. Defects 1, 2, 5 and 8 of §5 and the rating-reward
+  removal of §6.3.
+- **Step 2, 2026-08-16** — XANO `023ac73`, FrontEnd `65e6839`, bundle
+  `index-D-zhtqJD.js`. `contract_completion_submissions` created;
+  `submit-completion` carries statement, deliverables, evidence and notes;
+  `contracts/{id}` and `admin/contracts/disputes` both return it. Verified by
+  walking a whole contract twice on one listing, one settled cleanly and one
+  taken to VGC.
+  - **Also fixed, same family as defect 1:** the Taker's completion screen
+    refused to submit once the proposed delivery date had passed — "no payment
+    is owed" — enforcing a rule the backend dropped in August. The escrow is
+    already held by then, so refusing the submission saved the Giver nothing
+    and stranded it. It is now a warning, and the Giver decides.
+
+Steps 3–9 not started.
 
 ---
 
