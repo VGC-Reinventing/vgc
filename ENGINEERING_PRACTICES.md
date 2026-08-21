@@ -849,6 +849,20 @@ return 200.
 Test members are `vgcreinventinggaming+vgctest.<name>@gmail.com`, all sharing one
 password, all real deliverable inboxes (aliases of the admin Gmail).
 
+**As of the 2026-08-16 production reset there are none.** All 16 were deleted and
+82 tables truncated, so the workspace now holds real members only — anything a
+test needs must be created first, and creating it touches production. The alias
+pattern still works for new signups; the deleted rows are in the CSV backup under
+`.local-archive/`. The rest of this section is about how to re-populate, and it
+matters more now than when the roster already existed.
+
+**A corollary the reset made concrete: the live workspace is the only workspace.**
+There is no staging instance, the app is publicly reachable, and a real signup
+landed *in the middle of* the wipe — which is why the surviving `user` count came
+out one higher than the plan predicted. Any bulk operation must re-read state
+rather than trust a snapshot taken minutes earlier, and must be verified against
+what is actually there afterwards.
+
 **Populate through the real UI, not by poking the API.** API-shaped test data
 hides contract mismatches.
 
