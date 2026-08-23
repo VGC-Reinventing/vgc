@@ -313,6 +313,23 @@ areas. It cannot tell a loaded list from an errored one: a screen whose data cal
 
 Exercise endpoints directly as well as rendering screens.
 
+### Before building a new endpoint, check whether it already exists and is just unwired.
+
+A missing button is not proof of a missing endpoint. Grep the API tree for the
+verb before writing a new mutation — a prior pass sometimes built the backend
+half of a feature and the frontend half never landed.
+
+> **Incident (2026-08-22):** the reported bug was "a draft contract has no way
+> to delete or post it." Both `contracts/{id}/publish` and the draft branch of
+> `contracts/{id}/cancel` already existed, fully correct, with a doc comment on
+> `cancel` explicitly noting it handles drafts. The fix was two buttons on
+> `ContractDetailScreen`, zero backend changes.
+
+The inverse matters just as much: **a CSP header change or a route addition
+can make a feature "work" without touching the code that implements it** (see
+§8) — so when a report describes something that "used to work" or "should
+already work", read the implementation before assuming it needs to be built.
+
 ---
 
 ## 2. XanoScript quirks
@@ -662,6 +679,40 @@ untouched.
 `created_at <= to` with `to = "2026-07-25"` excludes all of 25 July. Widen the
 bound to `T23:59:59.999Z`. Hit as TR-286 — every admin report silently omitted
 the current day and read as zeros.
+
+### `db.query` with `paging` returns a wrapper object, not a bare list.
+
+`return = {type: "list", paging: {...}}` comes back as
+`{items, itemsTotal, nextPage, ...}`. `foreach` over that directly throws
+`Please use a numerically indexed array` — it is iterating the wrapper's keys,
+not rows. `return = {type: "list"}` with no `paging` block returns a bare
+array and is the right shape when you mean to `foreach` immediately (cap
+results with a counter inside the loop, as `search_GET.xs` does, rather than
+asking `db.query` to page for you).
+
+> **Incident (2026-08-22):** `members/search` queried `user` with `paging`
+> then tried to `foreach ($rows)` to build a trimmed response — 500 on every
+> call. Dropping `paging` and capping the result count in the loop fixed it;
+> the query itself was already right.
+
+### A variable declared inside one `conditional` branch may not exist in the next statement.
+
+Two sibling `db.add ... as $x` calls inside different `if`/`else` branches of
+the *same* `conditional` are fine to reference afterward (this codebase relies
+on it constantly — `close_POST.xs`'s `$new_season` is written this way and
+works). What is **not** verified safe here is reading a variable *outside* the
+`conditional` that only *one* branch ever assigns via `as`. Prefer: declare the
+variable **before** the `conditional` with the default/fallback value, then
+`var.update` it inside the branch that needs to change it. That pattern is
+used throughout the tree (`close_POST.xs`'s `$created_season_id`) and is known
+to work; a ternary reading a some-branches-only `as` variable has not been
+proven either way and is not worth risking on an endpoint that moves money.
+
+> Applied without incident in `pioneer-candidates_POST.xs` (2026-08-22): a new
+> game's id needed to reach the `db.add pioneer_candidates` call whether or not
+> a new game was actually created this request. `$resolved_game_id` is declared
+> before the `conditional` at `$input.game_id`, then `var.update`d to the new
+> row's id only inside the `if ($is_new_game)` branch.
 
 ---
 
@@ -1066,6 +1117,123 @@ available — `minor_name`, `minor_dob` and `minor_email` are non-nullable — s
 row is deleted and an `event_log` entry records the outcome without the details.
 **Check the column types before promising to blank a field**; "set it to empty"
 is not always a thing the schema allows.
+
+---
+
+## 8. Content Security Policy
+
+### The dev server has no CSP. A feature can work in every local test and still be dead on `baroda.app`.
+
+`vercel.json`'s `Content-Security-Policy` header only applies to what Vercel
+serves — `npm run dev` never sends it, so an iframe or `<img>` pointed at a
+host the policy doesn't allow loads perfectly in local testing and silently
+fails (blank box, no network request, a CSP violation in the browser console
+that nothing in this repo was watching for) the moment it's live.
+
+> **Incident (2026-08-22):** three independent-looking bug reports — "YouTube
+> embed doesn't work" (blog/contract editor), "GIF under a group post doesn't
+> work", "video under a group post doesn't work" — were all this one cause.
+> `frame-src` allowed only `'self' blob:`, so the editor's own YouTube iframe
+> (which the sanitiser, the extension config and the editor DOM all handled
+> correctly) never had a chance to load in production. `img-src` was scoped to
+> `'self' data: blob:` plus the Cloudinary hosts only, so a GIF pasted from any
+> other host — the entire point of a "paste a GIF URL" field — was blocked
+> the same way.
+
+Fixed by widening `frame-src` to name the specific embed hosts the app
+actually generates iframes for (`www.youtube.com`, `www.youtube-nocookie.com`,
+`player.vimeo.com` — add a host here in the same commit as any new embed
+provider), and widening `img-src` to `https:` generally, since member-pasted
+image URLs are open-ended by design and an allowlist of hosts would just
+relocate the same bug to the next provider a member tries. `img-src` cannot
+execute anything, so the broadening carries the risk a `<script src>`
+broadening would not.
+
+**The tell:** a feature whose editor-side code, sanitiser and stored data all
+look correct, but "doesn't work" only for the reader — check the CSP header
+before re-reading the feature code a third time. `curl -sI https://baroda.app/
+| grep -i content-security-policy` shows the live policy without needing a
+browser.
+
+---
+
+## 9. Frontend UI pitfalls
+
+### A controlled input's `value` must be the raw typed string, not a derived/filtered copy of it.
+
+`value={someTransform(text).join(', ')}` with `onChange` feeding the same
+transform back in creates a loop that can erase what the member is mid-typing.
+A trailing comma parses to an array with an empty last element,
+`.filter(Boolean)` drops it, and the next render redisplays the string
+*without* the comma the member just pressed — it reads as "the comma isn't
+accepted," because visually it never appears.
+
+> **Incident (2026-08-22):** the marketplace proposal's dropdown-options field
+> (`BuyerFieldSchemaBuilder`) parsed `"Small, Medium,"` into `['Small',
+> 'Medium']` on every keystroke and redisplayed the joined result — so typing
+> a comma to start the next option always vanished immediately.
+
+Fix: give the field its own local `text` state that mirrors exactly what was
+typed, and derive the clean array from it only for the `onChange` callback
+sent to the parent — never feed the derived value back into the input's own
+`value`. Any input whose displayed value is computed from a `.filter`/`.map`/
+`.trim` of itself is a candidate for this bug; check it by typing a trailing
+separator character and confirming it stays on screen.
+
+### `.vgc-scroll` hides the scrollbar on purpose — never put it on a horizontal chip row.
+
+It exists for full-page vertical scroll regions ("matches prototype" per its
+own comment in `global.css`) where a hidden scrollbar is the intended mobile
+feel. Applied to a horizontal row of filter chips, it hides the *only* signal
+that there's more to scroll to — which reads as "there's no scrollbar here"
+even though `overflow-x: auto` is doing its job.
+
+> **Incident (2026-08-22):** found once in the reported location (marketplace
+> category row) and, once the shape was known, grepped straight to two more
+> copy-pasted instances (`CommunityScreen`, `SearchScreen`) with the identical
+> bug. A single-file fix would have left the other two.
+
+Horizontal chip/tab rows that need a scroll affordance use a dedicated class
+with `scrollbar-width: thin` and a styled `::-webkit-scrollbar` instead —
+`.chip-scroll-row` is the current shared one; `.cp-type-row` and
+`.contracts-main-tabs` are earlier per-screen instances of the identical
+three-rule block. Grep for `vgc-scroll` before adding a new horizontal
+scroll row — copying the nearest example is how this spread the first time.
+
+---
+
+## 10. Auditing wallets against their ledger trail
+
+### A wallet's balance and its `ledger` history are not guaranteed to agree.
+
+`mutate_wallet` (the only sanctioned way to move a balance) always writes a
+matching `ledger` row, so anything moved *through it* is fully explained by
+the ledger. But a wallet's *starting* balance — set directly during initial
+data seeding, before `mutate_wallet` existed or was adopted for that
+currency — has no such row, and nothing distinguishes "legitimately
+untracked seed value" from "someone edited a balance out-of-band" by looking
+at the wallet alone.
+
+**The check:** compare the wallet row's `created_at` against the earliest row
+in `ledger` for that member. If the wallet predates the first ledger entry
+*in the whole system* (not just for that member), its balance is definitionally
+unexplained by anything the ledger records.
+
+> **Found while compiling a 2026-08-23 ecosystem report:** VGC Admin's INR
+> wallet held ₹1,17,670 while every tracked inflow source (verified
+> declarations, sponsorships, loans — the channels item #28's fix, above,
+> made correct) summed to ₹0. The wallet row was created 2026-07-25;
+> `ledger`'s very first row of any currency, for any member, dates to
+> 2026-08-21. The balance is a pre-ledger seed value, not evidence of
+> anything the current INR-crediting rules produced — reconciling it against
+> "sources" is not possible from the data, and reporting it as such would be
+> presenting fabricated provenance as fact. Say "no ledger trail; predates
+> tracking" rather than backfilling a plausible-sounding source.
+
+This generalises past INR: any wallet type, on any member, can carry a
+pre-tracking balance. When a reported total doesn't reconcile with the sum of
+its supposed sources, check `created_at` before assuming the sources list is
+incomplete.
 
 ---
 

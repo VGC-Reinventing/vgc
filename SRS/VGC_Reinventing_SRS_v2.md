@@ -1214,6 +1214,33 @@ To become a Pioneer, a member must purchase a designated Pioneer Candidacy marke
 | Simultaneous pioneerships | Maximum one active pioneership per member at any time |
 | Role overlap | Pioneer can also be Manager and Treasurer of the same season |
 
+> **Implementation note (2026-08-22).** The built flow
+> (`PioneerCandidacyScreen`, `pioneer-candidates` POST/PATCH) is a single
+> registration form, not a marketplace-item purchase. There is no **New Game
+> Proposal Candidacy** or **Election Candidacy** marketplace listing — the form
+> debits VGC Tokens directly via `mutate_wallet` and never touches the
+> marketplace/cart system. The two fee *amounts* now match this table exactly:
+> the game picker's last option is "Add New Game" (mandatory name, creates the
+> `games` row in the same request, 50-token fee); picking an existing active
+> game from the dropdown is 10 tokens. What the amount is gated on differs from
+> the spec, though: it is "was a new `games` row created this request", not
+> "which of two distinct marketplace items did the member purchase" — there is
+> currently no per-election-cycle Election Candidacy concept, so a member
+> re-standing for a game that already has a Pioneer pays the same 10 tokens as
+> anyone else.
+>
+> Only §11.3.2 (Season Details) is collected, and not completely — no
+> Committee Members block, no §11.3.1 or §11.3.3 as separate steps, no §11.4
+> no-edit-after-submission lock (the form is explicitly editable while
+> `status = pending`), no formal invitation-letter flow beyond a notification.
+> Season Image and each event's Image are collected (Cloudinary URL, not the
+> `File Upload` type this SRS specifies — consistent with every other
+> member-uploaded image in this workspace, see `ENGINEERING_PRACTICES.md`
+> TR-226) and copied onto the `seasons`/`events` rows when the election closes.
+> The per-event "Rules and Details" field is the real rich-text editor (not
+> plain text) as of the same date — see §11.3.3's implementation note below for
+> the three fields that are *not*.
+
 ### 11.3 Three-Set Information Structure
 
 Every pioneer candidate must submit three distinct sets of information. All three are reviewed together by VGC Admin before any decision.
