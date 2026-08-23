@@ -1,6 +1,6 @@
 # VGC Reinventing — Software Requirements Specification
 
-> **Version 2.7 · 2026 · Confidential**
+> **Version 2.8 · 2026 · Confidential**
 
 ---
 
@@ -17,6 +17,7 @@
 | 2.5 | 2026-06-28 | §14.11 added: Contract Application Chat. Private 1-to-1 messaging between a Giver and each individual Applicant, accessible before assignment to clarify requirements and negotiate terms. Chat thread becomes read-only once the application is assigned or rejected. |
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
+| 2.8 | 2026-08-23 | §6.3.1–6.3.2 added: the member proposal carries stock (stated by the proposer, who can keep updating it after listing while every other field is fixed), a rich-text Details field, and no sector; all fields are editable until Admin decides the proposal; each proposal has a private proposer ↔ VGC Admin chat thread (Contract Application Chat pattern) where the revenue share — standard 95/5 — is negotiated before listing. |
 
 ---
 
@@ -662,6 +663,36 @@ The VGC Marketplace is a unified platform where members can purchase items using
 - VGC Admin discusses and agrees on all item details and revenue sharing before listing
 - VGC Admin can also list items directly for VGC-owned items (no proposing member)
 - Revenue sharing percentage is fixed at time of listing and cannot be changed
+
+#### 6.3.1 Member Proposal
+
+A proposal carries: item name, description, a rich-text Details field (same
+editor as blogs, §8), an optional photo, category path, item type, **stock the
+member has on hand**, suggested price, proposed revenue share, and buyer
+information fields (§6.5). Sector is not asked for — the listing derives it
+from nothing and never stored it.
+
+- **Stock is stated by the proposing member**, not by VGC Admin. On acceptance
+  it becomes the listing's Quantity Available; Admin may override it at the
+  moment of acceptance.
+- The **standard revenue split is 95% proposing member / 5% VGC Admin**. It is
+  not rigid: it is open for discussion per proposal (§6.3.2), and the member
+  updates the figure on the proposal after that discussion. Once the item is
+  listed the agreed split is fixed (per §6.3 above).
+- The proposer can **edit every field of the proposal until VGC Admin decides
+  it** — through draft, submitted and changes-requested states — and can
+  withdraw it in those same states.
+- After listing, all item details are fixed **except stock**, which the
+  proposing member can update at any time (they hold the physical stock).
+
+#### 6.3.2 Proposal Chat
+
+Each proposal has a private 1-to-1 chat thread between the proposing member
+and VGC Admin, in the same pattern as the Contract Application Chat (§14.11).
+This is where item details and the revenue share are discussed before
+listing. The thread is open while the proposal is undecided and becomes
+read-only once it is accepted, rejected or withdrawn. A new message notifies
+the other party.
 
 ### 6.4 Standard Item Listing Table Fields
 
