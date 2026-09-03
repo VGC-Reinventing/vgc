@@ -1,6 +1,6 @@
 # VGC Reinventing — Software Requirements Specification
 
-> **Version 2.8 · 2026 · Confidential**
+> **Version 2.9 · 2026 · Confidential**
 
 ---
 
@@ -17,6 +17,7 @@
 | 2.5 | 2026-06-28 | §14.11 added: Contract Application Chat. Private 1-to-1 messaging between a Giver and each individual Applicant, accessible before assignment to clarify requirements and negotiate terms. Chat thread becomes read-only once the application is assigned or rejected. |
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
+| 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
 | 2.8 | 2026-08-23 | §6.3.1–6.3.2 added: the member proposal carries stock (stated by the proposer, who can keep updating it after listing while every other field is fixed), a rich-text Details field, and no sector; all fields are editable until Admin decides the proposal; each proposal has a private proposer ↔ VGC Admin chat thread (Contract Application Chat pattern) where the revenue share — standard 95/5 — is negotiated before listing. |
 
 ---
@@ -398,8 +399,8 @@ than someone else's money held temporarily.
 | I_invest | Verified declarations of type Investment. Weighted **0.1** — investment money is overwhelmingly a liability. |
 | I_grant | Verified declarations of type Grant. Weighted **0.7**. |
 | I_donation | Verified declarations of type Donation. Weighted **0.5**. |
-| I_expense | Expense Tracker entries of type Platform_Outflow |
-| I_loan | Every rupee ever disbursed on a loan. Repayment arrives as VGC Tokens, not INR, so it does not restore the INR position. |
+| I_expense | Expense Tracker entries of type Platform_Outflow. **Includes loan disbursements**, which write their own Platform Outflow entry on approval (§9.4.2). |
+| I_loan | Every rupee ever disbursed on a loan. **Reported only — no longer subtracted.** Since loan approval writes its own Platform Outflow entry, every disbursed rupee is already inside I_expense; subtracting both would deduct each disbursement twice and understate the rate. Retained in the rate breakdown so lending exposure stays visible. |
 | T_member | Sum of all member VGC Token Wallet balances |
 | T_admin | VGC Admin's VGC Token Wallet balance **plus** Marketplace Escrow Wallet balance (see §3.8) |
 | P_member | Sum of all member VGC Points Wallet balances **plus** Contract escrow Points held by VGC Admin (belong to Giver until release) |
@@ -421,7 +422,7 @@ than someone else's money held temporarily.
 
 **Step 3 — Compute the platform's net INR position and the equilibrium rate:**
 
-> D = I_net_sponsor + I_token_purchase + 0.1·I_invest + 0.7·I_grant + 0.5·I_donation − I_expense − I_loan + 10·T_admin − 10·T_member
+> D = I_net_sponsor + I_token_purchase + 0.1·I_invest + 0.7·I_grant + 0.5·I_donation − I_expense + 10·T_admin − 10·T_member
 >
 > r_eq = D / P_net   (INR per VGC Point)
 
@@ -797,6 +798,23 @@ All groups are discoverable by all logged-in members. Default view filtered by t
 | Group Type | Dropdown | Public or Private |
 | Group Icon / Cover Image | File Upload | Optional |
 
+#### 7.4.1 What Stays Editable After Creation
+
+| Field | Editable? | By whom |
+| --- | --- | --- |
+| Group Description | **Yes** | Group Admin or Co-Admin |
+| Group Icon / Photo | Yes | Group Admin or Co-Admin |
+| Group Name | No — write-once | — |
+| Sector | No — write-once | — |
+| Group Type (Public/Private) | No — write-once | — |
+
+The description is the field members actually keep current, so it is editable
+in place from the group header. Name, sector and privacy are fixed at creation:
+changing them would alter the group's identity or visibility rules after
+members have already joined on that basis.
+
+The group photo can be tapped to view it full-screen.
+
 ### 7.5 Group Roles and Permissions
 
 | Role | How Assigned | Key Permissions |
@@ -950,6 +968,27 @@ A Published blog — regardless of points awarded — cannot be permanently dele
 
 Before confirming abandonment the member is shown a plain disclaimer: ownership will be permanently transferred to VGC Admin, the blog will be removed from the public feed, and the record is retained in the backend for audit purposes. VGC Admin has full discretion over the abandoned content.
 
+**On abandonment, three things happen beyond the status change:**
+
+1. **Sale stops.** If the blog is a Revenue Generator, its marketplace ticket is
+   deactivated so no further tickets can be sold. Previously the listing stayed
+   active while the blog itself was already unreadable, so members could buy a
+   ticket to a blog they could never open.
+2. **It leaves every member's saved list.** The saved/favourite rows for the
+   blog are deleted outright, not merely hidden by a filter, and a blog that is
+   not Published can no longer be saved.
+3. **VGC Admin is notified** that the blog is awaiting a decision in the
+   Abandoned queue.
+
+Read access ends for everyone except VGC Admin at the moment of abandonment,
+including members who had purchased a Revenue Generator ticket.
+
+> **Open item.** Ticket holders lose access with no refund, and no refund path
+> exists. §8.9 requires a full token refund when a Revenue Generator blog is
+> *taken down*; abandonment has no equivalent rule and the takedown refund is
+> itself not implemented. This needs an owner decision rather than an
+> assumption either way.
+
 ### 8.8 Engagement
 
 | Feature | Detail |
@@ -1028,6 +1067,37 @@ Any logged-in member may submit a loan request to VGC Admin. Approved loans are 
 | 3a. Rejected | Status: Rejected. Member notified. No INR transferred. |
 | 3b. Approved | Admin transfers INR to member's UPI ID. Admin records the actual INR transferred and the transfer reference, and marks Approved. |
 | 4. Loan becomes Active | The token principal owed is established and the interest-free window is fixed. Status: Active. **The member's token wallet is not debited** — see §9.5. |
+
+#### 9.4.1 Admin Funding Requirement
+
+A loan is funded out of VGC Admin's own INR position, so **the Admin INR
+Receipt Ledger balance must exceed the amount being disbursed** before a loan
+can be approved. An approval that the balance cannot cover is refused, naming
+both figures; the Admin's only options are to lower the disbursed amount or
+reject the request. The approval screen shows the Admin's current balance and
+what would remain, so the constraint is visible before submitting.
+
+#### 9.4.2 Disbursement Is Recorded as a Platform Outflow
+
+Approving a loan **automatically writes a Platform Outflow entry in the Expense
+Tracker** and debits the Admin INR Receipt Ledger through it. This is not a
+separate manual step for the Admin to remember — it is part of the approval, so
+the expense log and the wallet cannot drift apart.
+
+This follows the §3.7 rule that the Platform Outflow entry is the *sole* debit
+mechanism on the Admin ledger. Token Surrender payouts, investment returns and
+sponsorship refunds already deferred to it; loan disbursement was the one
+payout that did not, and previously credited the member while leaving the Admin
+side entirely unaccounted.
+
+The generated entry is categorised `Financial & Insurance / Loan Disbursement`,
+references the loan, and is written Settled and locked.
+
+**Consequence for the Point Token Scheme rate:** because every disbursed rupee
+now arrives inside the Platform Outflow total, loan disbursements are **no
+longer subtracted a second time** as their own term in the rate formula (§17).
+Subtracting both would deduct each disbursement twice and understate the rate.
+Total lending is still reported in the rate breakdown for visibility.
 
 ### 9.5 Interest Mechanism
 

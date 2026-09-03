@@ -695,6 +695,42 @@ asking `db.query` to page for you).
 > call. Dropping `paging` and capping the result count in the loop fixed it;
 > the query itself was already right.
 
+### A bare field read on a nullable `db.get` result kills the whole endpoint.
+
+`db.get` returns `null` when the row is gone. Reading a field off that null
+throws **`Unable to locate var: <name>.<field>`** — and if the read is inside a
+`foreach`, it fails the *entire response*, not the one bad iteration. A single
+unreachable row takes down a whole screen.
+
+```xanoscript
+db.get ledger { field_name = "id" field_value = $tx.ledger_id } as $entry
+
+if ($entry.ref_type == "blog_approval") { ... }        // WRONG — 500 when $entry is null
+var $ref_type { value = ($entry != null ? ($entry.ref_type ?? "") : "") }   // RIGHT
+```
+
+Hoist every field of a joined row into a plain variable once, guarded, and let
+the rest of the stack work off those.
+
+> **Incident (2026-08-27):** two `wallet_transactions` rows pointed at `ledger`
+> rows that had been deleted. `wallets/me/activity` read `$entry.ref_type` bare,
+> so **every member's entire Passbook** rendered "Couldn't load this — Unable to
+> locate var: entry.ref_type" instead of dropping two entries. Verified with a
+> control run: with a deliberate orphan (`ledger_id 999999`) present the fixed
+> endpoint returns 200 and renders it as a zero-amount "Wallet transaction".
+
+### The delete verb is `db.del`, not `db.delete`.
+
+`db.delete` is not a thing; the tree uses `db.del` 19 times. This is the general
+"grep for a precedent before assuming a construct is legal" rule (see the
+comment-in-a-`data`-literal entry above) paying for itself again — one grep for
+`db\.` verb usage showed the real vocabulary in seconds.
+
+```bash
+cd XANO && grep -rnE '^\s*db\.[a-z_]+ ' --include='*.xs' api function \
+  | sed 's/.*\(db\.[a-z_]*\).*/\1/' | sort | uniq -c | sort -rn
+```
+
 ### A variable declared inside one `conditional` branch may not exist in the next statement.
 
 Two sibling `db.add ... as $x` calls inside different `if`/`else` branches of
@@ -889,6 +925,19 @@ return 200.
 - **Email** goes through **Resend** (`no-reply@baroda.app`), not Xano's native
   sender, which only delivers to the workspace owner. Key is the workspace env
   var `RESEND_API_KEY`.
+
+  > ⚠️ **As of 2026-08-26 the key recorded in `.local-archive/SESSION_START.md`
+  > is rejected** — Resend answers `401 "API key is invalid"`. It has been
+  > rotated or revoked since that file was written on 2026-07-26. Whether the
+  > *workspace env var* still holds a working key is unverified, and its value
+  > cannot be read back. **Resend is the only working mail path on this plan**,
+  > so if the env var is stale too, every password reset, magic link and
+  > guardian approval is failing silently right now. Confirm before assuming
+  > any member-facing email flow works.
+
+  Also note Cloudflare fronts the Resend API and blocks urllib's default
+  User-Agent with `403 error code: 1010`. Post with `curl`, which is not
+  blocked — a 403 there is not an auth failure.
 - **File uploads** go to **Cloudinary** via an unsigned preset; Xano file
   storage is not available on this plan. Only the returned `secure_url` is
   stored.
@@ -1037,6 +1086,14 @@ see either: it asserts the declarations against `global.css` **and** walks the
 JSX of every screen listed in it to confirm the element rendering the field still
 carries an opting-in class. Both halves have a control run — strip the CSS and 8
 fail; drop the class from one call site and that site alone fails.
+
+**It matches on source text, so the listed expression must appear exactly once
+in the file — including inside comments.** Wrapping `{g.description}` in a
+fallback (`{g.description || <span>…</span>}`) fails with "not found"; mentioning
+the literal in a nearby comment fails with "is not unique". Both happened while
+making the group description editable (2026-08-27). Render the bare expression
+inside the opting-in element and put any empty-state in a sibling branch, and
+describe the expression in prose rather than quoting it.
 
 **Correction to §4 while you are at it:** the metadata API is on a *separate*
 budget from the app API, but it is not unlimited. An unpaced 90-table sweep 429s
@@ -1234,6 +1291,64 @@ This generalises past INR: any wallet type, on any member, can carry a
 pre-tracking balance. When a reported total doesn't reconcile with the sum of
 its supposed sources, check `created_at` before assuming the sources list is
 incomplete.
+
+### The metadata API can create and delete table rows, but cannot PATCH them.
+
+`POST /table/{id}/content` and `DELETE /table/{id}/content/{row}` both work.
+`PATCH /table/{id}/content/{row}` answers **404 `Unable to locate request`** —
+which reads like "no such row" and is actually "no such route". Use the MCP
+tools for updates: `mcp__xano__patchTableContentBulk` (many rows, one call) or
+`mcp__xano__updateTableContentItem`.
+
+> **Incident (2026-08-26):** the wallet reset wrote 11 corrective `ledger` rows
+> and then 404'd on every wallet update, leaving the ledger claiming a zero
+> balance for 11 wallets that were still fully funded. Nothing was lost — the
+> balances were simply untouched — but the intermediate state was incoherent,
+> and only re-reading the wallets revealed which half had landed.
+
+**So never let a two-step money change straddle an unverified write path.**
+Read the state back before concluding, rather than trusting that step 2
+succeeded because step 1 did.
+
+### Reconciling balances cannot see a dangling foreign key.
+
+A wallet whose balance equals the sum of its ledger rows is *not* proof the
+data is intact. Rows in other tables may reference ledger rows that no longer
+exist, and balance arithmetic is blind to it.
+
+> **Incident (2026-08-27):** cleaning up a loan-approval test deleted the
+> `ledger` rows, the expense and the loan, and verification confirmed all 45
+> wallets reconciled exactly. It did not check `wallet_transactions` — the very
+> table the change under test had just started writing to — which still held two
+> rows pointing at the deleted ledger ids. That took down the Passbook for
+> everyone (see §2). The reconciliation was correct and still missed it.
+
+After deleting rows from a table anything references, check the referrers:
+
+```bash
+# every table with a *_id column pointing at what you deleted
+cd XANO && grep -rn "table = \"ledger\"" --include='*.xs' table/
+```
+
+**When cleaning up a test, delete what the code wrote, not what you think it
+wrote.** The disbursement began writing `wallet_transactions` rows in the same
+change being tested, which is exactly why they were absent from the mental model
+of what needed removing.
+
+### Adding a new money path? Check the rate formula for double counting.
+
+`function/pts_compute_rate.xs` builds the platform's INR position `D` by summing
+several independent terms. Routing an existing flow through a *different* one of
+those terms without removing it from the old one subtracts it twice.
+
+> **Caught before shipping (2026-08-27):** making loan approval write a
+> `Platform_Outflow` expense put every disbursed rupee inside `I_expense`, while
+> `I_loan` still summed `amount_disbursed_inr` separately and both were
+> subtracted. Every loan would have been deducted twice, understating the Point
+> Token Scheme rate. `I_loan` is now reported but not subtracted.
+
+Before adding any endpoint that credits or debits INR, read the `$i_*` terms in
+that function and confirm the flow lands in exactly one.
 
 ---
 
