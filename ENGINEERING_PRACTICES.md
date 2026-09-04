@@ -719,6 +719,28 @@ the rest of the stack work off those.
 > control run: with a deliberate orphan (`ledger_id 999999`) present the fixed
 > endpoint returns 200 and renders it as a zero-amount "Wallet transaction".
 
+### A `== null` where-clause does not match a field the insert never wrote.
+
+`where = $db.t.deleted_at == null` looks like "rows not yet deleted" and
+matched **zero** rows — including rows created *after* the column was added,
+because every `db.add` in the tree omits the field, and an omitted field is a
+*missing key*, not a stored null. The same comparison at stack level
+(`$row.deleted_at == null` in a precondition or conditional) behaves as
+expected; it is only the SQL-side where clause that goes quiet.
+
+> **Incident (2026-09-05):** `marketplace/sales` filtered soft-deleted
+> listings with `&& ($db.marketplace_items.deleted_at == null)` and returned
+> `[]` for every member — the positive check ("live listing present") failed
+> while the negative ("deleted listing absent") passed vacuously, which is
+> §1's check-that-cannot-fail wearing a new hat. Verified live in both
+> directions before and after the fix.
+
+`notifications_GET` gets away with `read_at == null` because its insert path
+writes the key. Two safe patterns: filter in the stack
+(`conditional { if ($row.deleted_at == null) { … } }` inside the `foreach`),
+or write the null explicitly on every insert. Prefer the stack filter — it
+cannot be broken by the next `db.add` that forgets the field.
+
 ### The delete verb is `db.del`, not `db.delete`.
 
 `db.delete` is not a thing; the tree uses `db.del` 19 times. This is the general

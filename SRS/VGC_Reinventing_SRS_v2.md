@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.10 | 2026-09-05 | §6.3.1 revised and §6.3.3 added: after listing, the proposing member edits stock, the photo and buyer-field *required* flags directly; title, description, details, price and buyer-field structure change only through an Edit Request that VGC Admin approves or rejects (one pending per listing). Listing deletion defined: seller or proposing member, only with no open orders, never for blog RG tickets; a listing with settled history is deactivated rather than erased so order records stay intact. §6.7/§6.8 made real in implementation: the fulfilling member is notified of each new order and receives the buyer's checkout details (previously both notification and details reached nobody, and sales appeared under VGC Admin). §8.7 amended: members who purchased a Revenue Generator ticket keep read-only access to the blog after abandonment and it stays in their favourites; the ticket-holder refund open item is closed accordingly. |
 | 2.8 | 2026-08-23 | §6.3.1–6.3.2 added: the member proposal carries stock (stated by the proposer, who can keep updating it after listing while every other field is fixed), a rich-text Details field, and no sector; all fields are editable until Admin decides the proposal; each proposal has a private proposer ↔ VGC Admin chat thread (Contract Application Chat pattern) where the revenue share — standard 95/5 — is negotiated before listing. |
 
 ---
@@ -683,8 +684,18 @@ from nothing and never stored it.
 - The proposer can **edit every field of the proposal until VGC Admin decides
   it** — through draft, submitted and changes-requested states — and can
   withdraw it in those same states.
-- After listing, all item details are fixed **except stock**, which the
-  proposing member can update at any time (they hold the physical stock).
+- After listing, the proposing member can change some things **directly** and
+  the rest **only with VGC Admin's approval** (§6.3.3):
+
+  | Change | Approval needed? |
+  | --- | --- |
+  | Stock | No — the proposing member holds the physical stock |
+  | Listing photo | No |
+  | Making an existing buyer-information field required / optional | No |
+  | Title, description, rich-text details | Yes |
+  | Price | Yes |
+  | Adding or removing a buyer-information field, or changing its label, type or options | Yes |
+  | Revenue share | Never changes after listing (§6.3 above) |
 
 #### 6.3.2 Proposal Chat
 
@@ -694,6 +705,29 @@ This is where item details and the revenue share are discussed before
 listing. The thread is open while the proposal is undecided and becomes
 read-only once it is accepted, rejected or withdrawn. A new message notifies
 the other party.
+
+#### 6.3.3 Listing Edit Requests and Deletion
+
+**Edit Requests.** Approval-gated changes (§6.3.1 table) are submitted as an
+Edit Request carrying the complete proposed values. The listing keeps its
+current details until VGC Admin approves; rejection leaves it untouched and
+the requester is notified either way, with Admin's note. One Edit Request may
+be pending per listing at a time.
+
+**Deletion.** A listed item can be deleted by its proposing member (or VGC
+Admin as seller), under these rules:
+
+- **No open orders.** Deletion is refused while any order is pending
+  fulfilment, awaiting its dispute window, or disputed — those buyers hold
+  escrow against the listing.
+- **Order history survives.** A listing that has ever been ordered is
+  deactivated and hidden rather than erased, so past orders keep their item
+  reference; a listing never ordered is removed outright.
+- **Blog Revenue Generator tickets are excluded.** Their lifecycle follows
+  the blog (§8.7, §8.9) — they cannot be edited or deleted through the
+  marketplace.
+- Deletion also removes the item from every member's cart and discards any
+  pending Edit Request.
 
 ### 6.4 Standard Item Listing Table Fields
 
@@ -974,20 +1008,22 @@ Before confirming abandonment the member is shown a plain disclaimer: ownership 
    deactivated so no further tickets can be sold. Previously the listing stayed
    active while the blog itself was already unreadable, so members could buy a
    ticket to a blog they could never open.
-2. **It leaves every member's saved list.** The saved/favourite rows for the
-   blog are deleted outright, not merely hidden by a filter, and a blog that is
-   not Published can no longer be saved.
+2. **It leaves the saved list of everyone who did not buy a ticket.** Those
+   saved/favourite rows are deleted outright, not merely hidden by a filter,
+   and a blog that is not Published can no longer be newly saved. Members who
+   **purchased** the Revenue Generator ticket are the exception: their
+   favourite entry is kept — and created if they never saved the blog — so
+   the content they paid for stays reachable (the public feed only lists
+   Published blogs, so favourites is a purchaser's path back to it).
 3. **VGC Admin is notified** that the blog is awaiting a decision in the
    Abandoned queue.
 
-Read access ends for everyone except VGC Admin at the moment of abandonment,
-including members who had purchased a Revenue Generator ticket.
-
-> **Open item.** Ticket holders lose access with no refund, and no refund path
-> exists. §8.9 requires a full token refund when a Revenue Generator blog is
-> *taken down*; abandonment has no equivalent rule and the takedown refund is
-> itself not implemented. This needs an owner decision rather than an
-> assumption either way.
+Read access after abandonment: VGC Admin, plus members who purchased the
+Revenue Generator ticket, who retain **read-only** access (no new likes or
+comments). Grandfathered readers (free access via prior likes/comments) and
+the author lose access. This resolves the former open item on ticket-holder
+refunds: purchasers keep what they paid for, so no refund arises on
+abandonment. (§8.9 takedown refunds remain a separate, unimplemented rule.)
 
 ### 8.8 Engagement
 
