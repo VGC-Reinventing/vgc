@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.11 | 2026-09-05 | §6.8 revised and §6.8.1–6.8.2 added: a placed order now waits for the Proposing Member's **confirmation** before fulfilment begins (course/blog tickets exempt — they grant access at purchase). The buyer's free self-cancel exists only before confirmation; after it, cancellation is a **request** the Proposing Member accepts (escrow refunded, passbook credited) or declines (buyer notified and may ask VGC Admin to intervene). A declined request opens the dispute path even before dispatch, and marketplace disputes now carry the same admin-mediated two-thread chat as contract disputes (§14.11 pattern). Every marketplace escrow movement (hold, refund, settle, admin share) now writes a passbook entry — cancel refunds previously moved tokens invisibly. VGC Admin's order view now shows the buyer-information fields the Proposing Member defined and the answers the buyer gave. |
 | 2.10 | 2026-09-05 | §6.3.1 revised and §6.3.3 added: after listing, the proposing member edits stock, the photo and buyer-field *required* flags directly; title, description, details, price and buyer-field structure change only through an Edit Request that VGC Admin approves or rejects (one pending per listing). Listing deletion defined: seller or proposing member, only with no open orders, never for blog RG tickets; a listing with settled history is deactivated rather than erased so order records stay intact. §6.7/§6.8 made real in implementation: the fulfilling member is notified of each new order and receives the buyer's checkout details (previously both notification and details reached nobody, and sales appeared under VGC Admin). §8.7 amended: members who purchased a Revenue Generator ticket keep read-only access to the blog after abandonment and it stays in their favourites; the ticket-holder refund open item is closed accordingly. |
 | 2.8 | 2026-08-23 | §6.3.1–6.3.2 added: the member proposal carries stock (stated by the proposer, who can keep updating it after listing while every other field is fixed), a rich-text Details field, and no sector; all fields are editable until Admin decides the proposal; each proposal has a private proposer ↔ VGC Admin chat thread (Contract Application Chat pattern) where the revenue share — standard 95/5 — is negotiated before listing. |
 
@@ -788,6 +789,7 @@ Members may add multiple items to a cart before checking out.
 
 | Stage | Action | Responsible |
 | --- | --- | --- |
+| Confirmation | Confirm the freshly placed order before fulfilment begins (§6.8.1) | Proposing Member |
 | Fulfillment | Ensure successful delivery | 100% Proposing Member / Vendor |
 | Proof of Delivery | Submit proof to VGC Admin and buyer within 14 days of order placement | Proposing Member |
 | Dispute Window | 7 days from proof of delivery receipt | Buyer |
@@ -796,6 +798,37 @@ Members may add multiple items to a cart before checking out.
 | Payout | Release tokens from Marketplace Escrow per agreed % | VGC Admin |
 | Auto-settlement | System marks settled if no dispute after 7 days from proof of delivery | System |
 | No proof submitted | If no proof submitted within 14 days, VGC Admin is notified. Admin may follow up, mark as Disputed, or issue a full refund. After 30 days of no action by the Proposing Member, system auto-refunds the buyer and marks the order Cancelled. VGC Admin may extend this deadline for items with agreed lead times. |
+
+#### 6.8.1 Order Confirmation and Cancellation
+
+A placed order holds the buyer's tokens in escrow but starts in **Awaiting
+Confirmation**: the Proposing Member must confirm it before fulfilment begins.
+Course tickets and blog Revenue Generator tickets are exempt — they grant
+access at the moment of purchase and follow their own lifecycles.
+
+Cancellation rules follow from that gate (they exist because a free
+cancel-any-time let buyers reserve stock and walk away after the vendor had
+started fulfilling):
+
+| When | Who cancels | How |
+| --- | --- | --- |
+| Before confirmation | Buyer, freely | Immediate: escrow returned, stock restored, passbook credited. |
+| After confirmation, before dispatch | Buyer **requests**; Proposing Member decides | Accept → order cancelled, escrow returned to the buyer with a passbook entry. Decline → order proceeds; the buyer is notified, the order shows the declined request (with the vendor's note), and the buyer may ask VGC Admin to intervene — which raises a dispute (§6.8.2). One request may be pending at a time; a pending request blocks proof-of-delivery submission until decided. |
+| After dispatch | Nobody | The dispute window (§6.8 table) is the only recourse. |
+
+Every escrow movement — hold, refund, settlement, admin share — writes a
+passbook entry for the member whose wallet moved.
+
+#### 6.8.2 Dispute Resolution
+
+Marketplace order disputes follow the contract-dispute model (§14.11 pattern):
+once a dispute is raised (after dispatch within the window, or after a
+declined cancellation request), VGC Admin mediates through **two private chat
+threads** — Admin ↔ Buyer and Admin ↔ Proposing Member — with text and photo
+attachments. The parties never see each other's thread. Admin resolves at
+sole discretion (full refund / partial refund / vendor favour, §6.8 table);
+the chat trail stays readable after resolution but no further messages can be
+sent.
 
 ### 6.9 Real World Items
 
