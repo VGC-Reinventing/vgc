@@ -484,7 +484,7 @@ and as the rule is usually stated:
 | --- | --- | --- |
 | P_net guard | P_net must be > 0 | Conversions suspended platform-wide |
 | Member wallet balance | Must be ≥ gross amount specified | Cannot proceed |
-| Backing projection (member gives Points) | The conversion's D after-effect is simulated up front: paying out (receive + recirculated) Tokens costs ₹10 each in D, and a conversion that would push D ≤ 0 is refused at quote and at convert — one large conversion must not suspend the scheme for everyone. Tokens→Points needs no check (it raises D). | Message: convert a smaller amount; backing grows with verified INR inflows, and converting Tokens back to Points also restores it |
+| Backing projection (member gives Points) | The conversion's D after-effect is simulated up front: paying out (receive + recirculated) Tokens costs ₹10 each in D, and a conversion that would push D ≤ 0 is refused at quote and at convert — one large conversion must not suspend the scheme for everyone. Tokens→Points needs no check (it raises D). | Message states the live capacity: "Conversion limit reached — up to X VGC Points can be converted to Tokens right now." (internals are not exposed to members) |
 | Admin reserve | None, in either direction — see §4.4.1: the Admin wallet of the destination currency is recirculated first and any shortfall is minted, so conversions never block on reserve. The Admin INR Wallet is never touched by a conversion. | — |
 | Rate threshold | r_published must be ≥ 0.00011 | Conversions disabled platform-wide; rate displayed only |
 | Minimum amount | Gross must be ≥ 0.01 | Cannot proceed (wallet mutations have a 0.01 minimum) |
