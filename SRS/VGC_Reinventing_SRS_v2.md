@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.13 | 2026-09-09 | §4.3–4.4.1 revised same day, superseding 2.12(a): after the first live conversion moved the Admin INR Wallet, the owner ruled that **conversions never touch INR**. Both directions now follow one symmetric rule — recirculate the Admin wallet of the destination currency first, **mint the shortfall** (Points mints carry the 30% constitutional Admin share and a minting-log entry; Token mints carry neither), and credit the member's **full gross to the Admin wallet of the source currency** (previously the 97.5% net of a Points→Tokens conversion was destroyed and only the tax credited). The ₹10-peg INR top-up from 2.12 is removed. |
 | 2.12 | 2026-09-09 | §4.3–4.4 revised and §4.4.1 added, from live formula testing: (a) for Points→Tokens the Admin reserve is Tokens **plus INR at the ₹10 peg**, topped up inside the conversion transaction; (b) for Tokens→Points the Admin Points Wallet is **recirculated first and any shortfall is minted as a constitutional provision** with a 30% Admin share on the minted portion only — this direction never blocks on reserve; (c) the member's full token gross now lands in the Admin Token Wallet (the 97.5% net was previously destroyed); (d) conversion minimum 0.01. Implementation fixes recorded for history: quote/convert had used r_published (₹/Point) where Points-per-Token was required (~57,000× mispayment, caught before any conversion had ever run); the drift clock divided milliseconds by 60, reaching the 30-day cap in 43 minutes; the dashboard labelled the rate "tokens per point". |
 | 2.11 | 2026-09-05 | §6.8 revised and §6.8.1–6.8.2 added: a placed order now waits for the Proposing Member's **confirmation** before fulfilment begins (course/blog tickets exempt — they grant access at purchase). The buyer's free self-cancel exists only before confirmation; after it, cancellation is a **request** the Proposing Member accepts (escrow refunded, passbook credited) or declines (buyer notified and may ask VGC Admin to intervene). A declined request opens the dispute path even before dispatch, and marketplace disputes now carry the same admin-mediated two-thread chat as contract disputes (§14.11 pattern). Every marketplace escrow movement (hold, refund, settle, admin share) now writes a passbook entry — cancel refunds previously moved tokens invisibly. VGC Admin's order view now shows the buyer-information fields the Proposing Member defined and the answers the buyer gave. |
 | 2.10 | 2026-09-05 | §6.3.1 revised and §6.3.3 added: after listing, the proposing member edits stock, the photo and buyer-field *required* flags directly; title, description, details, price and buyer-field structure change only through an Edit Request that VGC Admin approves or rejects (one pending per listing). Listing deletion defined: seller or proposing member, only with no open orders, never for blog RG tickets; a listing with settled history is deactivated rather than erased so order records stay intact. §6.7/§6.8 made real in implementation: the fulfilling member is notified of each new order and receives the buyer's checkout details (previously both notification and details reached nobody, and sales appeared under VGC Admin). §8.7 amended: members who purchased a Revenue Generator ticket keep read-only access to the blog after abandonment and it stays in their favourites; the ticket-holder refund open item is closed accordingly. |
@@ -482,8 +483,7 @@ and as the rule is usually stated:
 | --- | --- | --- |
 | P_net guard | P_net must be > 0 | Conversions suspended platform-wide |
 | Member wallet balance | Must be ≥ gross amount specified | Cannot proceed |
-| Admin reserve (member gives Points) | Admin's combined token reserve — VGC Token Wallet plus INR Wallet valued at 1 Token = ₹10 — must cover the payout. A token-wallet shortfall is topped up from INR at the peg inside the same transaction. | Message shown to reduce amount |
-| Admin reserve (member gives Tokens) | None — see §4.4.1: the Admin Points Wallet is recirculated first and any shortfall is minted as a constitutional provision, so this direction never blocks on reserve. | — |
+| Admin reserve | None, in either direction — see §4.4.1: the Admin wallet of the destination currency is recirculated first and any shortfall is minted, so conversions never block on reserve. The Admin INR Wallet is never touched by a conversion. | — |
 | Rate threshold | r_published must be ≥ 0.00011 | Conversions disabled platform-wide; rate displayed only |
 | Minimum amount | Gross must be ≥ 0.01 | Cannot proceed (wallet mutations have a 0.01 minimum) |
 
@@ -491,30 +491,38 @@ and as the rule is usually stated:
 
 | Wallet | Points to Tokens | Tokens to Points |
 | --- | --- | --- |
-| Member VGC Points Wallet | Debited (gross amount specified — includes 2.5% tax routed to Admin plus 97.5% used for conversion) | Credited (97.5% of tokens given × R_user) |
+| Member VGC Points Wallet | Debited (gross amount specified) | Credited (97.5% of tokens given × R_user) |
 | Member VGC Token Wallet | Credited (97.5% of points given ÷ R_user) | Debited (gross amount specified) |
-| Admin VGC Points Wallet | Credited (2.5% tax of points given) | Debited by whatever it currently holds, up to the delivered amount (recirculation); credited 30% of any minted shortfall (§4.4.1) |
-| Admin VGC Token Wallet | Debited (converted amount delivered to member; topped up from Admin INR at ₹10/Token when short) | Credited the FULL gross (tax and net alike — the member's tokens are a purchase, and Tokens flow only member → Admin per §3.2) |
-| Admin INR Wallet | Debited ₹10 per token of any reserve top-up | — |
+| Admin VGC Points Wallet | Credited the FULL gross (tax and net alike — what the member gives up recirculates via Admin rather than being destroyed) | Debited by whatever it holds, up to the delivered amount (recirculation); credited 30% of any minted shortfall (§4.4.1) |
+| Admin VGC Token Wallet | Debited by whatever it holds, up to the delivered amount (recirculation); shortfall is minted (§4.4.1) | Credited the FULL gross (tax and net alike) |
+| Admin INR Wallet | **Never touched by a conversion** | **Never touched by a conversion** |
 
-#### 4.4.1 Constitutional Minting on Tokens → Points
+#### 4.4.1 Recirculation First, Mint the Shortfall
 
-The Points a member receives for Tokens come from two sources, in order:
+Both conversion directions follow the same two-step rule for what the member
+receives:
 
-1. **Recirculation first.** Whatever the Admin VGC Points Wallet holds (tax
-   collections, constitutional shares) is provided from it — the wallet is
-   debited exactly as originally designed, so existing Points flow back into
-   circulation before any new supply is created.
-2. **Mint the shortfall.** The remainder is **minted as a constitutional
-   provision**: created at conversion time with no matching debit, plus a
-   **30% Admin share minted on the minted portion only**. Both mint amounts
-   are recorded in the points minting log for audit; the conversion therefore
-   never blocks on the Admin Points reserve.
+1. **Recirculation first.** Whatever the Admin wallet of the destination
+   currency holds is provided from it (debited), so existing supply flows
+   back into circulation before anything new is created.
+2. **Mint the shortfall.** The remainder is created at conversion time with
+   no matching debit. Conversions therefore never block on Admin reserve,
+   and the Admin INR Wallet — which mirrors real rupees held — never moves,
+   because no real money moves in a conversion: the liability created on one
+   side is offset by the liability extinguished on the other, and the rate
+   formula absorbs both automatically (minted Points raise P_net; minted
+   Tokens reduce D through −10·T_net, with the D ≤ 0 guard suspending
+   conversions when token backing runs out).
 
-The minting is self-pricing through the rate formula: minted Points raise
-P_net, which raises R_user, making Points cheaper for the next conversion.
-Admin-held Points are subtracted in P_net, so the 30% share does not move the
-member-facing rate until Admin spends it.
+Minted **Points** are a constitutional provision: a **30% Admin share is
+minted on the minted portion only**, and both amounts are recorded in the
+points minting log. Minted **Tokens** carry no share and no minting-log
+entry — they are ₹-pegged claims whose backing effect is fully visible in
+the rate's D term and in the ledger.
+
+What the member gives up — the full gross, tax included — is credited to the
+Admin wallet of the source currency in both directions, becoming the
+recirculation stock for future conversions the other way.
 
 ### 4.5 Example Calculations
 
