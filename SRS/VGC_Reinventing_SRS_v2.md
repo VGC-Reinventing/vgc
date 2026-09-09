@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.15 | 2026-09-10 | §4.3–4.4.1 revised (owner rule): **PTS conversions are never suspended**. Points→Tokens debits the full payout from the Admin Token Wallet, which alone may go negative and only via conversions (the overdraft records Tokens issued beyond reserve; negative balances are clamped out of T_admin). When D ≤ 0 or P_net ≤ 0 the floor rate (§4.9) governs instead of a suspension — the drain direction self-throttles at the floor while Tokens→Points restores backing. The 2.14 backing-projection refusal is removed; a minimum-payout check (≥ 0.01) replaces mid-transaction failures for dust conversions. |
 | 2.14 | 2026-09-09 | §4.3 gains the backing projection: a Points→Tokens conversion is refused (at quote and convert) when its simulated after-effect would push D ≤ 0, so a single conversion can no longer drive the platform's token backing negative and suspend conversions for everyone — which had just happened live with D at −0.42. |
 | 2.13 | 2026-09-09 | §4.3–4.4.1 revised same day, superseding 2.12(a): after the first live conversion moved the Admin INR Wallet, the owner ruled that **conversions never touch INR**. Both directions now follow one symmetric rule — recirculate the Admin wallet of the destination currency first, **mint the shortfall** (Points mints carry the 30% constitutional Admin share and a minting-log entry; Token mints carry neither), and credit the member's **full gross to the Admin wallet of the source currency** (previously the 97.5% net of a Points→Tokens conversion was destroyed and only the tax credited). The ₹10-peg INR top-up from 2.12 is removed. |
 | 2.12 | 2026-09-09 | §4.3–4.4 revised and §4.4.1 added, from live formula testing: (a) for Points→Tokens the Admin reserve is Tokens **plus INR at the ₹10 peg**, topped up inside the conversion transaction; (b) for Tokens→Points the Admin Points Wallet is **recirculated first and any shortfall is minted as a constitutional provision** with a 30% Admin share on the minted portion only — this direction never blocks on reserve; (c) the member's full token gross now lands in the Admin Token Wallet (the 97.5% net was previously destroyed); (d) conversion minimum 0.01. Implementation fixes recorded for history: quote/convert had used r_published (₹/Point) where Points-per-Token was required (~57,000× mispayment, caught before any conversion had ever run); the drift clock divided milliseconds by 60, reaching the 30-day cap in 43 minutes; the dashboard labelled the rate "tokens per point". |
@@ -482,11 +483,11 @@ and as the rule is usually stated:
 
 | Check | Rule | If Failed |
 | --- | --- | --- |
-| P_net guard | P_net must be > 0 | Conversions suspended platform-wide |
+| P_net guard | If P_net ≤ 0 the equilibrium rate cannot be computed | Floor rate applies (§4.9); conversions continue |
 | Member wallet balance | Must be ≥ gross amount specified | Cannot proceed |
-| Backing projection (member gives Points) | The conversion's D after-effect is simulated up front: paying out (receive + recirculated) Tokens costs ₹10 each in D, and a conversion that would push D ≤ 0 is refused at quote and at convert — one large conversion must not suspend the scheme for everyone. Tokens→Points needs no check (it raises D). | Message states the live capacity: "Conversion limit reached — up to X VGC Points can be converted to Tokens right now." (internals are not exposed to members) |
+| Minimum payout | The converted (received) amount must be ≥ 0.01 | Message: amount too small to convert at the current rate |
 | Admin reserve | None, in either direction — see §4.4.1: the Admin wallet of the destination currency is recirculated first and any shortfall is minted, so conversions never block on reserve. The Admin INR Wallet is never touched by a conversion. | — |
-| Rate threshold | r_published must be ≥ 0.00011 | Conversions disabled platform-wide; rate displayed only |
+| Rate threshold | None — **conversions are never suspended** (owner rule, 2026-09-10). When D ≤ 0 or P_net ≤ 0 the floor rate governs: points become maximally cheap, so the drain direction self-throttles while Tokens→Points restores ₹20 of backing per token. A halted market damages trust more than a stretched one. | — |
 | Minimum amount | Gross must be ≥ 0.01 | Cannot proceed (wallet mutations have a 0.01 minimum) |
 
 ### 4.4 Wallet Effects on Conversion
@@ -496,31 +497,29 @@ and as the rule is usually stated:
 | Member VGC Points Wallet | Debited (gross amount specified) | Credited (97.5% of tokens given × R_user) |
 | Member VGC Token Wallet | Credited (97.5% of points given ÷ R_user) | Debited (gross amount specified) |
 | Admin VGC Points Wallet | Credited the FULL gross (tax and net alike — what the member gives up recirculates via Admin rather than being destroyed) | Debited by whatever it holds, up to the delivered amount (recirculation); credited 30% of any minted shortfall (§4.4.1) |
-| Admin VGC Token Wallet | Debited by whatever it holds, up to the delivered amount (recirculation); shortfall is minted (§4.4.1) | Credited the FULL gross (tax and net alike) |
+| Admin VGC Token Wallet | Debited the FULL delivered amount — this wallet alone **may go negative**, and only via PTS conversion: the overdraft is the visible record of Tokens issued beyond reserve (§4.4.1) | Credited the FULL gross (tax and net alike) |
 | Admin INR Wallet | **Never touched by a conversion** | **Never touched by a conversion** |
 
-#### 4.4.1 Recirculation First, Mint the Shortfall
+#### 4.4.1 Reserve Rules — the Scheme Never Stops
 
-Both conversion directions follow the same two-step rule for what the member
-receives:
+**Tokens → Points:** whatever the Admin Points Wallet holds is provided
+first (recirculation), and the remainder is **minted as a constitutional
+provision** — with a 30% Admin share minted on the minted portion only, both
+recorded in the points minting log.
 
-1. **Recirculation first.** Whatever the Admin wallet of the destination
-   currency holds is provided from it (debited), so existing supply flows
-   back into circulation before anything new is created.
-2. **Mint the shortfall.** The remainder is created at conversion time with
-   no matching debit. Conversions therefore never block on Admin reserve,
-   and the Admin INR Wallet — which mirrors real rupees held — never moves,
-   because no real money moves in a conversion: the liability created on one
-   side is offset by the liability extinguished on the other, and the rate
-   formula absorbs both automatically (minted Points raise P_net; minted
-   Tokens reduce D through −10·T_net, with the D ≤ 0 guard suspending
-   conversions when token backing runs out).
+**Points → Tokens:** the full payout is debited from the Admin Token
+Wallet, which alone **may go negative** — an overdraft created only by PTS
+conversions, serving as the visible record of Tokens issued beyond reserve
+(comparable to a loan the Admin owes the system). A negative balance is
+**excluded from T_admin** in the rate formula: issued supply is not a
+negative asset, and counting it raw would cost D ₹20 per overdrafted token
+instead of ₹10.
 
-Minted **Points** are a constitutional provision: a **30% Admin share is
-minted on the minted portion only**, and both amounts are recorded in the
-points minting log. Minted **Tokens** carry no share and no minting-log
-entry — they are ₹-pegged claims whose backing effect is fully visible in
-the rate's D term and in the ledger.
+The Admin INR Wallet — which mirrors real rupees held — never moves in
+either direction: no real money moves in a conversion, and the rate formula
+absorbs both sides automatically (minted Points raise P_net; Tokens reaching
+members reduce D through −10·T_net, and at D ≤ 0 the floor rate takes over
+rather than suspending, §4.3).
 
 What the member gives up — the full gross, tax included — is credited to the
 Admin wallet of the source currency in both directions, becoming the
