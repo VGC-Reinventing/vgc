@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.18 | 2026-09-10 | §13.4 rewritten from the proportional-refund model to the implemented lifecycle: verifying a Sponsorship declaration auto-creates an **active** sponsorship whose INR is escrowed — credited to the Admin INR Wallet but excluded from the PTS formula until settlement (§17 I_net_sponsor already counted only `completed`). A private sponsor ↔ VGC Admin chat replaces the conditions-met percentage as the medium of the deal; the sponsor holds **no cancel, refund or dispute lever** (the 7-day dispute window is removed — VGC Admin is sole decision-maker). At settlement the Admin records any amount returned to the sponsor's UPI (sent from the Admin's own UPI outside the platform; the Admin INR Wallet is debited to keep mirroring real cash) and the remainder starts counting in the exchange rate. The chat then locks read-only, and each side may rate the other **once, finally** (1–5 stars + optional response), publicly on member profiles. |
 | 2.17 | 2026-09-10 | 2.16's price-impact cap **removed** same day by owner decision — live use felt over-restricted (on a shallow D almost every conversion exceeded 2% impact). The round-trip exploit it addressed (spot execution harvesting self-created rate movement, net of the 4.94% round-trip tax) is therefore **open again and consciously accepted for now**; a different mitigation is to be designed. |
 | 2.16 | 2026-09-10 | §4.3 gains the **2% price-impact cap**, closing the round-trip exploit the owner demonstrated by simulation: conversions executed at spot while moving the rate ±50%, so a tokens→points→tokens cycle could harvest far more than the 4.94% round-trip tax and compound member balances indefinitely. Capping each conversion's simulated rate impact at 2% guarantees every cycle nets a loss of at least ~1%, defeating individual and collusive round-tripping alike. |
 | 2.15 | 2026-09-10 | §4.3–4.4.1 revised (owner rule): **PTS conversions are never suspended**. Points→Tokens debits the full payout from the Admin Token Wallet, which alone may go negative and only via conversions (the overdraft records Tokens issued beyond reserve; negative balances are clamped out of T_admin). When D ≤ 0 or P_net ≤ 0 the floor rate (§4.9) governs instead of a suspension — the drain direction self-throttles at the floor while Tokens→Points restores backing. The 2.14 backing-projection refusal is removed; a minimum-payout check (≥ 0.01) replaces mid-transaction failures for dust conversions. |
@@ -1923,16 +1924,17 @@ Upon successful completion of a sponsorship deal VGC provides the following reco
 - Name or logo displayed in the funded sector permanently
 - Partial deal sponsors listed with partial completion noted
 
-### 13.4 Sponsorship Partial Fulfilment
+### 13.4 Sponsorship Lifecycle and Settlement
 
-If sponsorship conditions are partially met:
+The sponsor is the Giver and VGC Admin the Taker — the contract analogy, without the contract machinery.
 
-| Aspect | Rule |
+| Stage | Rule |
 | --- | --- |
-| Refund calculation | Refund = Sponsorship Amount × (1 − proportion of conditions met). VGC Admin documents which conditions were met and which were not. |
-| Documentation shared | Documentation shared with Sponsor before refund is processed. |
-| Sponsor dispute window | Sponsor may dispute Admin's assessment within 7 days of documentation being shared. |
-| Final decision | VGC Admin's decision after reviewing the dispute is binding. |
+| Creation | Verifying a Sponsorship declaration auto-creates the sponsorship record in `active` status. The declared INR is credited to the Admin INR Wallet but is **escrowed**: it does not count in the PTS exchange-rate formula (§17 I_net_sponsor) until the sponsorship is settled. |
+| Communication | A private 1-to-1 chat between the sponsor and VGC Admin carries the deal — clarifications, evidence of conditions being met, negotiation. Text and image attachments. There is no conditions-met percentage; the chat is the record. |
+| Sponsor levers | None. The sponsor cannot cancel, request a refund, or open a dispute. VGC Admin is the sole decision-maker on the sponsorship's outcome. |
+| Settlement | VGC Admin alone marks the sponsorship settled, recording an optional **returned amount** with its UPI transaction reference and a settlement note. Any return is sent from the Admin's own UPI **outside the platform**; the Admin INR Wallet is debited by the same amount so it keeps mirroring real cash. The remainder (declared amount − returned amount) becomes platform funds and starts counting in the exchange rate. |
+| After settlement | The chat locks read-only as the permanent record of what was agreed. Each side may rate the other **once — one shot, final** — with 1–5 stars and an optional written response. Ratings are public and appear on member profiles alongside contract ratings. |
 
 ### 13.5 Post-Verification Actions
 
@@ -1941,7 +1943,7 @@ If sponsorship conditions are partially met:
 | Member buys VGC Tokens | Member's VGC Token Wallet credited immediately |
 | Donation | Donor name and amount published on Donor Page |
 | Grant | Giver name and amount published on Donor Page (reason stays private) |
-| Sponsorship | Conditions reviewed, deal process initiated, UPI ID noted for refunds |
+| Sponsorship | Sponsorship record auto-created in escrow (§13.4); sponsor ↔ Admin chat opens; UPI ID noted for any settlement return |
 | Investment | Calculations completed, investment recorded, payout schedule created |
 
 ---
