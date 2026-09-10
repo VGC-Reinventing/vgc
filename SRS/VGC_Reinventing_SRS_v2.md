@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.19 | 2026-09-11 | §6.8.1 rewritten around the **four vendor phases**: acknowledge (with a one-time dispatch promise — note + expected delivery date/time, frozen at confirmation), prepare, dispatch, deliver (proof of delivery now carries up to 4 photos, and the submitted proof is finally visible to buyer, vendor and Admin on the order). Cancellation is graduated: free buyer self-cancel until preparation starts (it previously closed at confirmation), a vendor-decided request **with a vendor-chosen refund amount** during preparation (the remainder settles through the revenue split), and no cancellation after dispatch. Also this cycle: buyer-info schema cap 8 → 16 with multi-checkbox and display-only section/image field types; the own-item purchase guard matches the real vendor (Admin could not buy member listings); investment payouts and sponsorship refunds auto-write their Platform Outflow expense (mirroring 2.9's loan rule; refunds became reporting-only in §17); PTS conversion refused for the Admin account; contract chat gained the in-thread negotiation timeline; settled work stays in As Taker; the Giver can delist a listed contract. |
 | 2.18 | 2026-09-10 | §13.4 rewritten from the proportional-refund model to the implemented lifecycle: verifying a Sponsorship declaration auto-creates an **active** sponsorship whose INR is escrowed — credited to the Admin INR Wallet but excluded from the PTS formula until settlement (§17 I_net_sponsor already counted only `completed`). A private sponsor ↔ VGC Admin chat replaces the conditions-met percentage as the medium of the deal; the sponsor holds **no cancel, refund or dispute lever** (the 7-day dispute window is removed — VGC Admin is sole decision-maker). At settlement the Admin records any amount returned to the sponsor's UPI (sent from the Admin's own UPI outside the platform; the Admin INR Wallet is debited to keep mirroring real cash) and the remainder starts counting in the exchange rate. The chat then locks read-only, and each side may rate the other **once, finally** (1–5 stars + optional response), publicly on member profiles. |
 | 2.17 | 2026-09-10 | 2.16's price-impact cap **removed** same day by owner decision — live use felt over-restricted (on a shallow D almost every conversion exceeded 2% impact). The round-trip exploit it addressed (spot execution harvesting self-created rate movement, net of the 4.94% round-trip tax) is therefore **open again and consciously accepted for now**; a different mitigation is to be designed. |
 | 2.16 | 2026-09-10 | §4.3 gains the **2% price-impact cap**, closing the round-trip exploit the owner demonstrated by simulation: conversions executed at spot while moving the rate ±50%, so a tokens→points→tokens cycle could harvest far more than the 4.94% round-trip tax and compound member balances indefinitely. Capping each conversion's simulated rate impact at 2% guarantees every cycle nets a loss of at least ~1%, defeating individual and collusive round-tripping alike. |
@@ -834,25 +835,30 @@ Members may add multiple items to a cart before checking out.
 | Auto-settlement | System marks settled if no dispute after 7 days from proof of delivery | System |
 | No proof submitted | If no proof submitted within 14 days, VGC Admin is notified. Admin may follow up, mark as Disputed, or issue a full refund. After 30 days of no action by the Proposing Member, system auto-refunds the buyer and marks the order Cancelled. VGC Admin may extend this deadline for items with agreed lead times. |
 
-#### 6.8.1 Order Confirmation and Cancellation
+#### 6.8.1 The Four Vendor Phases, Confirmation and Cancellation
 
-A placed order holds the buyer's tokens in escrow but starts in **Awaiting
-Confirmation**: the Proposing Member must confirm it before fulfilment begins.
-Course tickets and blog Revenue Generator tickets are exempt — they grant
-access at the moment of purchase and follow their own lifecycles.
+A placed order holds the buyer's tokens in escrow and then walks four vendor
+phases (owner policy 2026-09-10). Course tickets and blog Revenue Generator
+tickets are exempt — they grant access at the moment of purchase and follow
+their own lifecycles.
 
-Cancellation rules follow from that gate (they exist because a free
-cancel-any-time let buyers reserve stock and walk away after the vendor had
-started fulfilling):
+| Phase | Vendor action | Meaning |
+| --- | --- | --- |
+| 1. Acknowledged | Confirm order | The vendor commits a one-time, non-editable dispatch note and expected delivery date/time the buyer sees while waiting. |
+| 2. Preparing | Start preparing | Fulfilment work has begun. This is the moment the buyer's free cancellation closes. |
+| 3. Dispatched | Mark dispatched | The order has left the vendor. No cancellation of any kind from here. |
+| 4. Delivered | Confirm delivery | Proof of delivery: note, optional link, and up to 4 photos. Starts the dispute window. |
+
+Cancellation rules follow the phases:
 
 | When | Who cancels | How |
 | --- | --- | --- |
-| Before confirmation | Buyer, freely | Immediate: escrow returned, stock restored, passbook credited. |
-| After confirmation, before dispatch | Buyer **requests**; Proposing Member decides | Accept → order cancelled, escrow returned to the buyer with a passbook entry. Decline → order proceeds; the buyer is notified, the order shows the declined request (with the vendor's note), and the buyer may ask VGC Admin to intervene — which raises a dispute (§6.8.2). One request may be pending at a time; a pending request blocks proof-of-delivery submission until decided. |
-| After dispatch | Nobody | The dispute window (§6.8 table) is the only recourse. |
+| Before preparation starts (placed or acknowledged) | Buyer, freely | Immediate: full escrow returned, stock restored, passbook credited. |
+| During preparation | Buyer **requests**; Proposing Member decides | Accept → the vendor chooses **how much of the escrow to refund (0 to full)** — preparation may already have cost them; the refund goes to the buyer with a passbook entry and the remainder settles through the normal revenue split as payment for work already done. Decline → order proceeds; the buyer is notified, the order shows the declined request (with the vendor's note), and the buyer may ask VGC Admin to intervene — which raises a dispute (§6.8.2). One request may be pending at a time; a pending request blocks every phase advance until decided. |
+| After dispatch or delivery | Nobody | The dispute window (§6.8 table) is the only recourse. |
 
-Every escrow movement — hold, refund, settlement, admin share — writes a
-passbook entry for the member whose wallet moved.
+Every escrow movement — hold, refund (full or partial), settlement, admin
+share — writes a passbook entry for the member whose wallet moved.
 
 #### 6.8.2 Dispute Resolution
 
