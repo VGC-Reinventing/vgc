@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.28 | 2026-09-21 | §3.7 replaced with **§3.7.1 PTS Pool / Spendable Pool split rules** (owner design): the Admin INR Receipt Ledger is retired in favour of two segregated Admin wallets — **PTS Pool** (backs the exchange rate) and **Spendable Pool** (discretionary operating cash) — credited by a fixed split at verification: Donation 50/50, Grant 70/30, Investment 10/90, Token Purchase 100/0 to PTS Pool. Sponsorship is escrowed per-sponsorship (unchanged trigger, §13.4) and resolved at settlement: fulfilment expenses and any sponsor refund are deducted from that sponsorship's own escrow while active; a positive remainder goes 100% to the PTS Pool, a negative remainder is drawn from the Spendable Pool and auto-logged as a Platform Outflow. Ordinary Platform Outflow entries (personal, and every Admin category outside the three below) debit the Spendable Pool only and are refused outright if it can't cover them — **these can no longer move the exchange rate**. Three obligation categories keep a one-way, last-resort valve to the other pool, **final and unreconciled by design** (owner ruling, 2026-09-21 — a valve draw is paid and settled there and then, never repaid): Investment Payout installments debit the Spendable Pool first, PTS Pool on shortfall; Token Surrender payouts debit the PTS Pool first, Spendable Pool on shortfall. **Loan Disbursement gets no valve at all** (owner ruling, 2026-09-21): it is funded from the Spendable Pool only, and a request the Spendable Pool cannot cover is simply refused — the member is not granted the amount. This retires the 2025-09-18 PTS-floor/D-projection guard on loan approval (§9.4.1): a loan that never touches the PTS Pool cannot floor the rate, so the guard has nothing left to guard against. §4.1's `D` is no longer a five-table live aggregate; it is now `PTS_Pool_Balance − 10·T_net`, with `PTS_Pool_Balance` a transactionally-mutated wallet balance (new `wallets.type` values `inr_pts_pool` / `inr_spendable_pool`) whose integrity is checked by summing its own ledger rows rather than trusted blind — the same discipline that retired `reserve_inr` on 2026-08-12. Root incident: an admin expense typo (₹10,000 for an intended ₹1,000) floored the live rate same-day with no warning, exposing that ordinary discretionary spending had never been separated from exchange-rate backing. See §3.7.1, §4.1, §4.11, §10.7, §13.4. |
 | 2.27 | 2026-09-19 | §9 loan request reworked (owner), retiring 2.9's 12-month minimum term: the member either picks a **calendar date within one year** (the interest-free window ends on that date) or selects **"more than a year"**, which requires ticking an explicit agreement that 10% p.a. accrues on anything outstanding after the interest-free year (`interest_agreed_at` recorded). Interest-free window unchanged: min(approval + 1 year, chosen date), frozen at approval. Also 2026-09-19: contract points fields show a live token-equivalent hint; My Blogs paginates past 20; passbook blog-title join gated to blog-typed entries. |
 | 2.26 | 2026-09-18 | §8 review queue: the **Extra Review Ticket** is real — 1 VGC Token buys one extra in-review slot beyond the base limit (token credited to VGC Admin at purchase, passbook entries both sides); the ticket is **consumed the moment a submission uses the extra slot** (no refunds — withdrawing later frees the slot, not the ticket). The limit error offers one-tap buy-and-resubmit. **Withdraw Submission** corrected: it returned the blog to nothing less than abandonment; it now returns an in-review blog to **draft**, freeing the slot with nothing lost. |
 | 2.25 | 2026-09-18 | §9.4.1 extended (owner): loan approval checks the **PTS rate**, not just the Admin INR balance — refused while the rate is floored, and refused when the disbursement (a full-weight Platform Outflow) would push D ≤ 0 and floor it. Enforced server-side; the approve button disables with the reason shown. The wallet can afford what the exchange rate cannot. |
@@ -292,13 +293,17 @@ not defaulted from the author's interest.
 
 Every member has three wallets automatically created upon registration. All balances stored in XANO and updated in real time.
 
-VGC Admin holds a parallel set of three wallets (Admin INR Receipt Ledger, Admin VGC Token Wallet, Admin VGC Points Wallet). Admin wallets receive all platform-level inflows and are debited only via the rules defined in §3.7 and the Expense Tracker (§10).
+VGC Admin holds a parallel set of four wallets: **PTS Pool** and **Spendable Pool** (together replacing the single Admin INR Receipt Ledger, split per §3.7.1), Admin VGC Token Wallet, and Admin VGC Points Wallet. Admin wallets receive all platform-level inflows and are debited only via the rules defined in §3.7.1 and the Expense Tracker (§10).
+
+> **Revised 2026-09-21.** Before this, VGC Admin held a single undifferentiated INR Receipt Ledger crediting 100% of every verified inflow, while the exchange-rate formula (§4.1) separately counted only a *weighted fraction* of the same inflow as backing — a mismatch invisible to the admin, who saw the full rupee amount sitting in one wallet with no indication how much of it was safe to spend. §3.7.1 makes the weight literal: money is split into the two wallets for real, at the moment it is verified, so the wallet balance an admin sees *is* what is safe to spend.
 
 ### 3.1 Wallet Overview
 
 | Wallet | Currency | Transferable | Primary Use |
 | --- | --- | --- | --- |
-| INR Receipt Ledger | Indian Rupees (INR) | No (Admin managed) | Admin: inflow ledger (declarations and token purchases); all outflows logged in Expense Tracker. Member: credits-only record of INR received from VGC Admin. The name "Receipt Ledger" reflects that this is a record of INR received, not a spendable balance. |
+| INR Receipt Ledger | Indian Rupees (INR) | No (Admin managed) | **Member only.** Credits-only record of INR received from VGC Admin. The name "Receipt Ledger" reflects that this is a record of INR received, not a spendable balance. |
+| PTS Pool (Admin only) | Indian Rupees (INR) | No | The INR half of the Point Token Scheme's backing (§4.1's `D`). Credited by the weighted share of every verified Donation, Grant, Investment and Token Purchase, and by the net of a settled Sponsorship (§3.7.1). Debited by Token Surrender payouts, and by Investment Payout shortfalls the Spendable Pool cannot cover. **Never touched by Loan Disbursement.** |
+| Spendable Pool (Admin only) | Indian Rupees (INR) | No | VGC Admin's discretionary operating cash — the pool ordinary Platform Outflow entries, and Loan Disbursements, draw from. Credited by the complementary share of Donation/Grant/Investment, and by Sponsorship settlement shortfalls the escrow doesn't cover. Debited by ordinary expenses, Loan Disbursements, Investment Payout installments, and by Token Surrender shortfalls the PTS Pool cannot cover. |
 | VGC Token Wallet | VGC Tokens | No (Non-transferable between members; flows to VGC Admin only via designated platform mechanisms) | VGC Marketplace purchases, loan repayments, Point Token Scheme conversions |
 | VGC Points Wallet | VGC Points | Yes (Member to Member) | Rewards, payments, ecosystem activities |
 
@@ -350,13 +355,9 @@ Member submits a VGC Token Surrender Request Form specifying the number of token
 
 ### 3.7 INR Receipt Ledger — Credit and Debit Rules
 
-VGC Admin INR Receipt Ledger:
-
-| Direction | Event | Detail |
-| --- | --- | --- |
-| Credit | INR Declaration verified | Admin verifies a Donation, Grant, Sponsorship, Investment **or Token Purchase** declaration. The INR received is credited **to the Admin ledger — never to the declaring member's**, whatever the payment type. |
-| Credit | Token purchase confirmed | Covered by the row above. A Token Purchase additionally credits the buyer's VGC Token Wallet at the current buy rate; the rupees themselves still land on the Admin ledger. |
-| Debit | Expense Tracker Platform Outflow entry | Admin logs any outgoing INR payment as a Platform Outflow. This is the sole debit mechanism. Covers Token Surrender payouts, Loan disbursements, Investment returns, Sponsorship refunds, marketplace fulfilment costs, utility bills and all other real-world expenses. |
+**The rules in this section govern the Member INR Receipt Ledger only.** The
+equivalent Admin-side rules — now split between the PTS Pool and the
+Spendable Pool — are in §3.7.1.
 
 Member INR Receipt Ledger:
 
@@ -370,16 +371,102 @@ Member INR Receipt Ledger:
 
 **These four are the only ways a member's INR Receipt Ledger is ever credited.**
 Money a member *sends* VGC — a donation, a grant, a sponsorship, an investment,
-a token purchase — is VGC's, and is recorded on the Admin ledger. Until
-2026-08-12 the verify endpoint credited the declaring member's own ledger for
-every type except Token Purchase, so a member who donated ₹10,000 showed
-₹10,000 received.
+a token purchase — is VGC's, and is recorded on the Admin side (now split
+across the PTS Pool and Spendable Pool, §3.7.1). Until 2026-08-12 the verify
+endpoint credited the declaring member's own ledger for every type except
+Token Purchase, so a member who donated ₹10,000 showed ₹10,000 received.
 
-Correspondingly, the **Expense Tracker Platform Outflow entry is the sole debit
-mechanism on the Admin ledger** — the payout endpoints (surrender, investment
-payout, sponsorship refund) credit the member and do *not* debit Admin
-themselves, because `expenses_POST` already performs that debit and doing both
-would take one payment off the books twice.
+Correspondingly, the **Expense Tracker Platform Outflow entry remains the sole
+debit mechanism on the Admin side** — the payout endpoints (surrender,
+investment payout, sponsorship refund) credit the member and do *not* debit
+Admin themselves, because `expenses_POST` already performs that debit and
+doing both would take one payment off the books twice. Which pool a given
+Platform Outflow entry debits is no longer a free choice — it is determined by
+category, per §3.7.1.
+
+### 3.7.1 PTS Pool and Spendable Pool — Split Rules
+
+**Intent —** §4.1's exchange rate already treats a rupee differently depending
+on where it came from (a haircut per income head). Before this section, that
+haircut existed only inside the rate formula — the Admin's actual wallet still
+received the full, undivided rupee, so nothing stopped that rupee being spent
+whole even though only a fraction of it was ever meant to back the rate. This
+section makes the haircut literal: the split happens once, for real, at the
+moment the money is recognised, into two wallets (§3.1) that behave
+differently from that point on.
+
+**Inflow split — applied once, at verification (declarations) or at
+settlement (sponsorship):**
+
+| Income Head | → PTS Pool | → Spendable Pool | Trigger |
+| --- | --- | --- | --- |
+| Donation | 50% | 50% | Declaration verified |
+| Grant | 70% | 30% | Declaration verified |
+| Investment | 10% | 90% | Declaration verified |
+| Token Purchase | 100% | 0% | Declaration verified |
+| Sponsorship | Net remainder — see below | Only on a settlement shortfall | Sponsorship settled (§13.4), **not** at verification |
+
+These percentages are the same weights §4.1 already uses for `I_donation`,
+`I_grant`, `I_invest` and `I_token_purchase` — this section does not change
+what counts as backing, only makes the split a real wallet movement instead of
+a number recomputed inside the rate formula.
+
+**Sponsorship — escrow, not a split.** Verifying a Sponsorship declaration
+credits neither pool. The declared amount sits in a per-sponsorship escrow
+figure (unchanged from §13.4's `active` status) until the sponsorship is
+settled. While `active`, every fulfilment expense VGC Admin logs against the
+sponsorship, and any amount refunded to the sponsor, is deducted from **that
+sponsorship's own escrow figure** — not from either pool. At settlement:
+
+> remainder = escrow − fulfilment expenses − refund
+
+If `remainder ≥ 0`, the full remainder is credited **100% to the PTS Pool,
+0% to the Spendable Pool** — matching Sponsorship's existing full weight in
+§4.1. If `remainder < 0` (fulfilment plus refund exceeded what the sponsorship
+brought in), the shortfall is debited from the **Spendable Pool** and the
+system automatically writes the corresponding Platform Outflow expense entry
+(no manual step, same pattern as §9.4.2's auto-written loan-disbursement
+entry). Either way, nothing about this sponsorship touches the exchange rate
+until settlement — closing the window the pre-2.28 model left open, where a
+sponsorship counted at full value the moment it completed, before its
+fulfilment cost was known.
+
+**Outflow routing — which pool a Platform Outflow entry debits:**
+
+| Category | Primary source | Fallback (last resort) |
+| --- | --- | --- |
+| Personal entries (all members) | N/A — never touches either Admin pool | — |
+| Ordinary Admin Platform Outflow (every category not listed below) | Spendable Pool | **None.** Refused if the Spendable Pool balance is insufficient — see §10.7. This is the entire point: an ordinary expense can no longer move the exchange rate, because the money it would need to overdraw was never counted as backing in the first place. |
+| Loan Disbursement (§9.4.2) | Spendable Pool | **None.** Refused if the Spendable Pool balance is insufficient — the member is not granted the amount (§9.4.1). Same posture as an ordinary expense: loans never touch the PTS Pool in either direction. |
+| Token Surrender payout (§3.4) | PTS Pool | Spendable Pool |
+| Investment Payout installment (§13.2.1) | Spendable Pool | PTS Pool |
+| Sponsorship fulfilment expense / refund, while `active` | That sponsorship's own escrow (not a pool) | Not applicable — see settlement rule above |
+| Sponsorship settlement shortfall | Spendable Pool (auto-written) | — |
+
+**Every fallback listed above is final and unreconciled by design** (owner
+ruling, 2026-09-21): a rupee that crosses from one pool to the other to cover
+a shortfall is paid and settled at that moment. There is no IOU, no later
+repayment, no reversing entry when the lending pool recovers. This keeps the
+mechanism simple — every movement is an ordinary debit/credit pair, nothing
+more — at the cost of a real, accepted risk: a pattern of Investment Payout
+shortfalls draws down the PTS Pool over time, which is the same reserve that
+backs the exchange rate. That risk is not a flaw in the mechanism; it is the
+honest cost of guaranteeing an obligation is always payable, and it is a
+reason to watch Spendable Pool discipline around investments actively rather
+than something the ledger will catch on its own.
+
+**Loan Disbursement is deliberately the one obligation category with no
+valve at all** (owner ruling, 2026-09-21, resolving what was an open item
+above). Every other obligation — Investment Payout, Token Surrender,
+Sponsorship — traces back to a promise VGC already made to someone else, and
+the valve exists so that promise is always kept. A loan is different: VGC
+Admin is choosing, in the moment, to extend welfare assistance out of
+discretionary funds. If the Spendable Pool can't cover it, the loan is not
+made — it does not get a second, more privileged pool to draw from. This also
+**retires the 2025-09-18 PTS-floor/D-projection guard** on loan approval: that
+guard existed because disbursement used to be a full-weight draw on the PTS
+Pool capable of flooring the rate; a loan that structurally cannot touch the
+PTS Pool has nothing left for that guard to prevent.
 
 ### 3.8 Marketplace Escrow Wallet
 
@@ -404,21 +491,38 @@ To prevent marketplace token flows from distorting the Point Token Scheme rate, 
 
 The rate is computed live by the platform from the following real-time inputs:
 
-Revised 2026-08-12. The platform's INR position used to enter the formula as
-`I + R + A − L_invest`, where `I` was the Admin INR wallet balance and `R`/`A`
-were figures typed in by an admin. It is now itemised by source, with a haircut
-per source reflecting how much of each rupee is really the platform's rather
-than someone else's money held temporarily.
+**Revised 2026-09-21.** Until this revision, the platform's INR position (`D`)
+was recomputed on every call by re-summing five source tables
+(`declarations`, `sponsorships`, `sponsorship_refunds`, `expenses`, `loans`)
+and applying a haircut per income head. That live aggregation is retired.
+`D` is now read directly off the **PTS Pool** balance (§3.7.1) — the haircuts
+still exist, but they are applied once, as a real wallet split, at the moment
+each rupee is recognised, rather than recomputed from scratch on every rate
+request. See §4.11 for why this is safe against the drift risk a stored
+balance normally carries.
+
+> This retires the itemised-by-source model introduced 2026-08-12, which
+> itself replaced an earlier `I + R + A − L_invest` formula where `I` was the
+> raw Admin INR wallet balance and `R`/`A` were figures typed in by an admin
+> with no link to a real transaction. §3.7.1 keeps that revision's core
+> principle — every rupee's weight traces to a real, auditable event — while
+> fixing what it left unsolved: the *wallet* the admin actually saw and spent
+> from still held 100% of every inflow, undivided, so nothing stopped a
+> spend from drawing on money the formula had only partially counted as
+> backing. That gap is what let a single mistyped Expense Tracker entry
+> (₹10,000 for an intended ₹1,000) floor the live rate same-day.
 
 | Symbol | Meaning |
 | --- | --- |
-| I_net_sponsor | Sponsorships that reached `completed`, at full value, less any refunds issued. An `active` sponsorship counts **zero** — the cash is held against a promise not yet met. |
-| I_token_purchase | Verified declarations of type Token Purchase |
-| I_invest | Verified declarations of type Investment. Weighted **0.1** — investment money is overwhelmingly a liability. |
-| I_grant | Verified declarations of type Grant. Weighted **0.7**. |
-| I_donation | Verified declarations of type Donation. Weighted **0.5**. |
-| I_expense | Expense Tracker entries of type Platform_Outflow. **Includes loan disbursements**, which write their own Platform Outflow entry on approval (§9.4.2). |
-| I_loan | Every rupee ever disbursed on a loan. **Reported only — no longer subtracted.** Since loan approval writes its own Platform Outflow entry, every disbursed rupee is already inside I_expense; subtracting both would deduct each disbursement twice and understate the rate. Retained in the rate breakdown so lending exposure stays visible. |
+| PTS_Pool | Live balance of the Admin's PTS Pool wallet (§3.7.1) — the platform's net INR backing. Replaces the five-term itemised sum below. |
+| *(reporting only, per income head — no longer live inputs to D, but still shown on the rate dashboard, §4.10, as the audit trail of how the PTS Pool reached its current balance)* | |
+| I_net_sponsor | Sponsorships settled with a positive remainder (§3.7.1) — the amount credited to the PTS Pool at settlement. An `active` sponsorship contributes **zero** until then; the cash sits in that sponsorship's escrow, not in either pool. |
+| I_token_purchase | Verified declarations of type Token Purchase — 100% credited to the PTS Pool at verification. |
+| I_invest | Verified declarations of type Investment — 10% credited to the PTS Pool at verification; the remaining 90% goes to the Spendable Pool. |
+| I_grant | Verified declarations of type Grant — 70% credited to the PTS Pool at verification; the remaining 30% goes to the Spendable Pool. |
+| I_donation | Verified declarations of type Donation — 50% credited to the PTS Pool at verification; the remaining 50% goes to the Spendable Pool. |
+| I_expense | Platform Outflow entries that debit the PTS Pool: Token Surrender payout (primary source), and any Investment Payout or Token Surrender amount that overflowed into the PTS Pool via its fallback valve (§3.7.1). Ordinary Platform Outflow entries and Loan Disbursements debit the Spendable Pool instead and are **not** part of this figure — they cannot be, since neither can reach the PTS Pool (§3.7.1). |
+| I_loan | Every rupee ever disbursed on a loan. **Reported only — and, since 2.28, entirely outside the PTS Pool.** Loan Disbursement debits the Spendable Pool exclusively (§3.7.1); it does not appear inside I_expense and there is no double-count risk to guard against. Retained in the rate breakdown purely so lending exposure stays visible — it has no bearing on `D`. |
 | T_member | Sum of all member VGC Token Wallet balances |
 | T_admin | VGC Admin's VGC Token Wallet balance **plus** Marketplace Escrow Wallet balance (see §3.8) |
 | P_member | Sum of all member VGC Points Wallet balances **plus** Contract escrow Points held by VGC Admin (belong to Giver until release) |
@@ -440,24 +544,26 @@ than someone else's money held temporarily.
 
 **Step 3 — Compute the platform's net INR position and the equilibrium rate:**
 
-> D = I_net_sponsor + I_token_purchase + 0.1·I_invest + 0.7·I_grant + 0.5·I_donation − I_expense + 10·T_admin − 10·T_member
+> D = PTS_Pool + 10·T_admin − 10·T_member
 >
 > r_eq = D / P_net   (INR per VGC Point)
 
 Note that `10·T_admin − 10·T_member` is exactly `−10·T_net`, so the token half of
-the formula is unchanged.
+the formula is unchanged, and reads directly off live wallet balances exactly as
+before — only the INR half moved from a live aggregate to a pool balance.
 
-**If D ≤ 0 → the Point Token Scheme is suspended**, with its own message
-distinguishing it from the `P_net` case: "Conversion temporarily unavailable —
-the platform's net INR position does not currently back a rate." The previous
-formula could not reach this state, because `P_net` was the divisor and was
-already guarded.
+**If D ≤ 0 or P_net ≤ 0, the floor rate governs (§4.9) rather than suspending
+conversions** — see §4.3's Rate threshold row: conversions are never
+suspended (owner rule, 2026-09-10), and the floor is what defends the system
+in either case. (An earlier version of this section described a suspended
+state here; that was superseded by 2.15 and is corrected in place.)
 
-Every term is summed live from its source table on each computation rather than
-kept as a running counter, so a corrected or reversed declaration self-corrects
-the rate and there is no counter to drift out of step. `reserve_inr` and
-`hard_assets_inr` remain on `pts_components` and remain editable by Admin as a
-record of the reserve position, but they no longer feed the rate.
+`PTS_Pool` is a real, transactionally-mutated wallet balance, not a live sum —
+see §4.11 for how it stays trustworthy without the live-recomputation
+guarantee the old formula relied on. `reserve_inr` and `hard_assets_inr` remain
+on `pts_components`, now fully retired: they were already excluded from the
+rate by the 2026-08-12 revision, and the PTS Pool supersedes the role they were
+originally meant to play.
 
 > Note: The coefficient 10 represents the INR value of one VGC Token at the platform's launch buy rate of ₹10 per token. It is not automatically updated if VGC Admin revises the INR-to-Token buy rate (§3.2). Any revision requires a formal SRS amendment.
 
@@ -549,15 +655,19 @@ Member specifies 1,000 VGC Points. Wallet debited 1,000 (gross). Tax: 25 Points 
 
 Member specifies 10 VGC Tokens. Wallet debited 10 (gross). Tax: 0.25 Tokens → Admin's Token Wallet. Remaining: 9.75 Tokens. Points received: 9.75 × 4,500 = 43,875 VGC Points.
 
-### 4.6 Income Split Rules
+### 4.6 Income Split Rules — Retired
 
-| Income Head | → I (Operational) | → R (Reserve) | Rationale |
-| --- | --- | --- | --- |
-| Donation | 80% | 20% | Reserve grows as a strategic emergency fund |
-| Grant | 80% | 20% | Same as Donation |
-| Sponsorship | 100% | 0% | Direct benefit to members; no buffer needed |
-| Investment | 50% | 50% | Reserve half generates returns funding the investor's payout obligation |
-| Token Purchase | 100% | 0% | 1:1 backed by Tokens issued; reserve not required |
+**Retired 2026-09-21.** This section described an I (Operational) / R
+(Reserve) split tied to the pre-2026-08-12 `I + R + A − L_invest` formula and
+was never carried into the itemised-by-source formula that replaced it — `R`
+and `A` had already become typed-in, unaudited figures by the time that
+revision landed, and were excluded from the rate entirely rather than
+computed from a split like this one. The functional need this section was
+reaching for — routing a share of every inflow somewhere other than raw
+backing — is now met by §3.7.1's PTS Pool / Spendable Pool split, with
+different, currently-live percentages (Donation 50/50, Grant 70/30,
+Investment 10/90, Sponsorship escrowed then 100/0 at settlement, Token
+Purchase 100/0). Do not use the percentages that were in this table.
 
 ### 4.7 Investment Liability Mechanics
 
@@ -599,6 +709,45 @@ Member specifies 10 VGC Tokens. Wallet debited 10 (gross). Tax: 0.25 Tokens → 
 | Public rate dashboard | A page accessible to every logged-in member displays: current r_published and R_user, all input components (I, R, A, T_net, P_net, L_invest, t_idle), a 24-hour rate chart with major events marked, and the formula itself. |
 | θ-adjustment audit log | Every change to θ by VGC Admin is logged with timestamp, old value, new value and reason. The log is accessible in the Admin Panel audit trail. θ values and adjustments are not displayed on the public rate dashboard. |
 | Component drill-down | Members may click any component on the dashboard to see its sub-composition (e.g. A breaks down into listed inventory + sponsorship + cash equivalents; L_invest breaks down per active investment). |
+
+### 4.11 PTS Pool / Spendable Pool — Implementation Notes
+
+**Intent —** record exactly what changes, and where, so §3.7.1 and the
+revised §4.1 formula are buildable without re-deriving the design from
+first principles.
+
+**Schema.**
+
+| Change | Detail |
+| --- | --- |
+| `wallets.type` — new values | `inr_pts_pool`, `inr_spendable_pool`, both scoped to the Admin member row only. The existing undifferentiated Admin `inr` wallet type is retired; if `wallets.type` is a strict enum in Xano, the two new values must be added to it **before** any endpoint writes them (same trap as the `notifications.event_type` enum bite, §2 of the engineering practices doc). |
+| `expenses` — new field | `pool_source` (enum: `spendable`, `pts`). Set automatically by `specific_category` at write time — never a free admin choice — per the routing table in §3.7.1. Drives which wallet `expenses_POST`/`{id}/settle` debits. |
+| `sponsorships` — new field | An escrow running figure (e.g. `escrow_remaining_inr`), initialised to the declared amount at verification and decremented by each fulfilment expense and by any refund while `active`. This is the one place in the whole design where a stored, decrementing counter is correct rather than a live-recomputed aggregate — it is scoped to a single sponsorship's lifetime between verify and settle, not a lifetime platform aggregate, so the drift risk a running counter normally carries does not apply here. |
+| `expenses` — sponsorship-shortfall entries | Auto-written at settlement when `remainder < 0` (§3.7.1), same pattern as the existing auto-written loan-disbursement entry (§9.4.2) and investment-payout/token-surrender entries (§17 history, 2.19/2.24). |
+
+**Function changes.**
+
+| Function / Endpoint | Change |
+| --- | --- |
+| `pts_compute_rate` | The five-table live-aggregation block (`declarations`, `sponsorships`, `sponsorship_refunds`, `expenses`, `loans` queries building `i_token_purchase`/`i_invest`/`i_grant`/`i_donation`/`i_net_sponsor`/`i_expense`/`i_invest_payout`) is replaced by a single read of the PTS Pool wallet balance. `T_net`/`T_admin`/`T_member` (token side), `P_net`/`P_member`/`P_admin` (points side, including contract escrow), θ, `t_idle`, the drift multiplier and the floor/threshold logic are all **unchanged** — this rewrite touches only the INR-position half of the function. The per-head reporting figures (`i_net_sponsor` etc., §4.1's reporting table) become a separate, cheaper query for dashboard display only — no longer load-bearing for `D` itself. |
+| Declaration verify endpoint(s) | On verifying Donation/Grant/Investment/Token Purchase, split the credit across the PTS Pool and Spendable Pool per §3.7.1's percentages instead of crediting one undivided Admin INR wallet. |
+| `admin/sponsorships/{id}/settle` | Add the escrow deduction (fulfilment expenses + refund) and the `remainder` computation; route a positive remainder to the PTS Pool, a negative remainder to an auto-written Spendable Pool expense. |
+| `admin/investments/{id}/payouts/{payout_id}/mark-paid` | Fund the payout from the Spendable Pool first; on insufficient balance, draw the shortfall from the PTS Pool. Both legs are final (§3.7.1) — no reconciliation entry. |
+| Token Surrender completion (`token-surrenders/{id}/complete`) | Fund the payout from the PTS Pool first; on insufficient balance, draw the shortfall from the Spendable Pool. Final, no reconciliation. |
+| `expenses_POST` / `expenses/{id}/settle` | Resolve `pool_source` from category, then balance-check and debit the resolved pool. An ordinary entry with an insufficient Spendable Pool balance is refused outright — no PTS Pool fallback exists for this class, by design. |
+| `admin/loans/{id}/approve` | Funding check moves to the Spendable Pool balance (§9.4.1), refusing the request outright — no fallback — if it can't cover the disbursement. **The 2025-09-18 PTS-floor/D-projection precondition (`$rate_now.floor_active`, `$rate_now.d - amount > 0`) is removed entirely**: it existed to stop a loan flooring the PTS Pool, and a loan that no longer touches the PTS Pool cannot do that. Approval still auto-writes the Platform Outflow entry (§9.4.2), now routed to `pool_source = spendable`. |
+
+**Auditability.** A stored, transactionally-mutated pool balance reintroduces
+the class of risk that retired `reserve_inr` on 2026-08-12 — a number that
+drifts from what its inputs actually sum to. The mitigation is that every
+credit and debit to either pool is still a `ledger` row (as all wallet
+mutations already are, via the existing `mutate_wallet`/`wallet_mutate`
+functions), so the pool balance can always be independently reconstructed as
+`SUM(ledger rows tagged to that wallet)` and compared against the stored
+figure. A periodic reconciliation check doing exactly that — in the spirit of
+`.local-archive/tools/xano_drift.py`'s classify-and-verify approach to the
+Xano sync problem — is the recommended safety net before this is trusted the
+way `pts_compute_rate`'s live aggregation was.
 
 ---
 
@@ -1231,12 +1380,27 @@ Any logged-in member may submit a loan request to VGC Admin. Approved loans are 
 
 #### 9.4.1 Admin Funding Requirement
 
-A loan is funded out of VGC Admin's own INR position, so **the Admin INR
-Receipt Ledger balance must exceed the amount being disbursed** before a loan
-can be approved. An approval that the balance cannot cover is refused, naming
-both figures; the Admin's only options are to lower the disbursed amount or
-reject the request. The approval screen shows the Admin's current balance and
-what would remain, so the constraint is visible before submitting.
+**Revised 2026-09-21.** A loan is funded out of the **Spendable Pool**
+(§3.7.1), not the retired undifferentiated Admin INR wallet this section
+originally named, and not the PTS Pool. A loan is VGC Admin choosing, in the
+moment, to extend welfare assistance out of discretionary funds — unlike a
+Token Surrender payout or an Investment Payout, it does not trace back to a
+prior promise the platform already made, so it draws from the same pool an
+ordinary expense would. Approval is refused when the Spendable Pool balance
+cannot cover the disbursement, naming both figures; **the member is simply
+not granted the amount** — the Admin's only options are to lower the
+disbursed amount or reject the request. The approval screen shows the
+Spendable Pool's current balance and what would remain, so the constraint is
+visible before submitting. There is no fallback to the PTS Pool: a loan
+request the Spendable Pool cannot cover is not a loan VGC can currently make.
+
+**This retires the PTS-floor/D-projection guard added 2026-09-18.** That
+guard refused approval while the rate was floored, or when the disbursement
+itself would take `D` to zero or below — necessary while disbursement was a
+full-weight draw on the platform's PTS backing. Since Loan Disbursement no
+longer touches the PTS Pool in either direction, it cannot floor the rate, and
+the guard has nothing left to check. The Spendable Pool balance check above is
+now the only funding precondition on loan approval.
 
 #### 9.4.2 Disbursement Is Recorded as a Platform Outflow
 
@@ -1254,11 +1418,14 @@ side entirely unaccounted.
 The generated entry is categorised `Financial & Insurance / Loan Disbursement`,
 references the loan, and is written Settled and locked.
 
-**Consequence for the Point Token Scheme rate:** because every disbursed rupee
-now arrives inside the Platform Outflow total, loan disbursements are **no
-longer subtracted a second time** as their own term in the rate formula (§17).
-Subtracting both would deduct each disbursement twice and understate the rate.
-Total lending is still reported in the rate breakdown for visibility.
+**Consequence for the Point Token Scheme rate:** since 2.28, this entry is
+routed to the **Spendable Pool** (§3.7.1), not the PTS Pool — so a loan
+disbursement has **no effect on `D`** at all, in either direction (§4.1).
+Earlier revisions of this section described avoiding a double-subtraction
+against the rate formula; that concern no longer applies, because Loan
+Disbursement is no longer subtracted from the rate formula even once. Total
+lending is still reported in the rate breakdown (`I_loan`, §4.1) purely for
+visibility.
 
 ### 9.5 Interest Mechanism
 
@@ -1375,11 +1542,11 @@ Interest accrues continuously rather than as discrete annual events, so there is
 
 ## 10. Expense Tracker
 
-**Intent —** Every member gets a personal expense ledger. For VGC Admin, this module is the sole mechanism through which the Admin INR Receipt Ledger is debited. Admin's Platform Outflow entries are publicly visible to all logged-in members, supporting ecosystem transparency.
+**Intent —** Every member gets a personal expense ledger. For VGC Admin, this module is the sole mechanism through which the PTS Pool and Spendable Pool (§3.7.1) are debited. Admin's Platform Outflow entries are publicly visible to all logged-in members, supporting ecosystem transparency.
 
 ### 10.1 Overview
 
-The Expense Tracker is available to all logged-in members. Members record real-world expenses privately. For VGC Admin, every outgoing INR payment must be logged as a Platform Outflow entry — this is the sole debit mechanism for the Admin INR Receipt Ledger. Platform Outflow entries are visible (read-only) to all logged-in members on the Platform Financial Ledger page. All other entries are strictly private.
+The Expense Tracker is available to all logged-in members. Members record real-world expenses privately. For VGC Admin, every outgoing INR payment must be logged as a Platform Outflow entry — this is the sole debit mechanism for the Admin's pools. Platform Outflow entries are visible (read-only) to all logged-in members on the Platform Financial Ledger page. All other entries are strictly private. Which pool a Platform Outflow entry debits is determined automatically by its category, not chosen by the Admin — see §10.7.
 
 ### 10.2 Expense Entry Form
 
@@ -1393,7 +1560,7 @@ The Expense Tracker is available to all logged-in members. Members record real-w
 | Main Category | Dropdown | 15 main categories (see §10.4) |
 | Specific Category | Dropdown | Dependent on Main Category |
 | Reason / Remark | Text | Free-form note or informal IOU detail |
-| Entry Type | Dropdown | **Personal** (default for all members — does not affect any wallet) / **Platform Outflow** (VGC Admin only — debits the Admin INR Receipt Ledger). The Entry Type dropdown is available only in the Admin's expense entry form; general members do not see this field. Platform Outflow entries created by Admin are publicly visible on the Platform Financial Ledger page (see §10.1); all other entries remain private. |
+| Entry Type | Dropdown | **Personal** (default for all members — does not affect any wallet) / **Platform Outflow** (VGC Admin only — debits the PTS Pool or Spendable Pool, whichever §10.7 resolves for the entry's category). The Entry Type dropdown is available only in the Admin's expense entry form; general members do not see this field. Platform Outflow entries created by Admin are publicly visible on the Platform Financial Ledger page (see §10.1); all other entries remain private. |
 | Remark Visibility | Toggle | **VGC Admin only, applies to Platform Outflow entries only.** Admin may set the Reason / Remark field for each Platform Outflow entry to **Public** (the remark is shown on the Platform Financial Ledger page) or **Private** (the remark is visible only in the Admin interface). Default is Private. All other Platform Outflow fields (date, amount, main category, specific category, payment mode) are always visible on the public Platform Financial Ledger page regardless of this setting. |
 | Settlement Status | Toggle | Pending (default) or Settled |
 | Date of Entry | Auto | System timestamp |
@@ -1453,6 +1620,35 @@ The Expense Tracker is available to all logged-in members. Members record real-w
 | Spending by Payment Mode | Breakdown by payment method |
 | Recent Entries | Most recent entries with quick access |
 | Filter and Search | Filter by date range, category, payment mode, settlement status. Full text search on Reason / Remark. |
+
+### 10.7 Pool Routing and the Spendable Pool Gate
+
+**Revised 2026-09-21.** Every Admin Platform Outflow entry debits exactly one
+of the two Admin pools (§3.7.1); which one is resolved automatically from the
+entry's Specific Category and is not an admin-editable field.
+
+| Specific Category | Pool debited |
+| --- | --- |
+| Financial & Insurance → Loan Disbursement | Spendable Pool only — no PTS Pool fallback (§9.4.1) |
+| Financial & Insurance → Investment Payout | Spendable Pool, PTS Pool on shortfall (final, §3.7.1) |
+| Token Surrender payout | PTS Pool, Spendable Pool on shortfall (final, §3.7.1) |
+| Sponsorship fulfilment expense (while the sponsorship is `active`) | That sponsorship's own escrow — not a pool at all, see §13.4 |
+| Sponsorship settlement shortfall (auto-written) | Spendable Pool |
+| Every other category | Spendable Pool only |
+
+**The last two rows are the ones that matter day to day.** An ordinary
+Platform Outflow — utilities, supplies, event costs, anything an admin would
+recognise as "just an expense" — and, as of 2.28, a **Loan Disbursement**
+too, can only ever debit the Spendable Pool, and each is refused outright if
+that balance can't cover it: *"Spendable Pool balance (₹X) is insufficient
+for this ₹Y expense/disbursement."* There is no fallback to the PTS Pool for
+either class, by design (§3.7.1) — neither an ordinary expense nor a loan can
+move the exchange rate any more, because the wallet they draw from was never
+credited with money the rate counted as backing. This is the direct fix for
+the incident that prompted this revision: a ₹10,000 entry meant to read
+₹1,000, logged under Miscellaneous, would now fail as an ordinary balance
+check — a boring, comprehensible error — rather than silently flooring the
+live rate.
 
 ---
 
@@ -1987,21 +2183,22 @@ The sponsor is the Giver and VGC Admin the Taker — the contract analogy, witho
 
 | Stage | Rule |
 | --- | --- |
-| Creation | Verifying a Sponsorship declaration auto-creates the sponsorship record in `active` status. The declared INR is credited to the Admin INR Wallet but is **escrowed**: it does not count in the PTS exchange-rate formula (§17 I_net_sponsor) until the sponsorship is settled. |
+| Creation | Verifying a Sponsorship declaration auto-creates the sponsorship record in `active` status. The declared INR is held in a **per-sponsorship escrow figure** (§4.11) — it credits **neither** the PTS Pool nor the Spendable Pool, and does not count in the PTS exchange-rate formula (§4.1's `D`) until the sponsorship is settled. |
 | Communication | A private 1-to-1 chat between the sponsor and VGC Admin carries the deal — clarifications, evidence of conditions being met, negotiation. Text and image attachments. There is no conditions-met percentage; the chat is the record. |
 | Sponsor levers | None. The sponsor cannot cancel, request a refund, or open a dispute. VGC Admin is the sole decision-maker on the sponsorship's outcome. |
-| Settlement | VGC Admin alone marks the sponsorship settled, recording an optional **returned amount** with its UPI transaction reference and a settlement note. Any return is sent from the Admin's own UPI **outside the platform**; the Admin INR Wallet is debited by the same amount so it keeps mirroring real cash. The remainder (declared amount − returned amount) becomes platform funds and starts counting in the exchange rate. |
+| Fulfilment, while `active` | **Added 2026-09-21.** Any Platform Outflow VGC Admin logs to fulfil the sponsorship's terms is deducted from **that sponsorship's own escrow figure** — not from either pool. This may happen any number of times, across the life of the sponsorship, before settlement. |
+| Settlement | VGC Admin alone marks the sponsorship settled, recording an optional **returned amount** with its UPI transaction reference and a settlement note. Any return is sent from the Admin's own UPI **outside the platform** and is likewise deducted from the escrow figure (§4.11), keeping it mirroring real cash. `remainder = escrow − fulfilment expenses − returned amount`. If `remainder ≥ 0`, it is credited **100% to the PTS Pool** and starts counting in the exchange rate. If `remainder < 0` — fulfilment plus the return exceeded what was collected — the shortfall is debited from the **Spendable Pool** and the system auto-writes the corresponding Platform Outflow entry; nothing is drawn from the PTS Pool for a sponsorship shortfall. |
 | After settlement | The chat locks read-only as the permanent record of what was agreed. Each side may rate the other **once — one shot, final** — with 1–5 stars and an optional written response. Ratings are public and appear on member profiles alongside contract ratings. |
 
 ### 13.5 Post-Verification Actions
 
 | Transaction Type | Immediate Action After VGC Admin Verification |
 | --- | --- |
-| Member buys VGC Tokens | Member's VGC Token Wallet credited immediately |
-| Donation | Donor name and amount published on Donor Page |
-| Grant | Giver name and amount published on Donor Page (reason stays private) |
-| Sponsorship | Sponsorship record auto-created in escrow (§13.4); sponsor ↔ Admin chat opens; UPI ID noted for any settlement return |
-| Investment | Calculations completed, investment recorded, payout schedule created |
+| Member buys VGC Tokens | Member's VGC Token Wallet credited immediately; INR credited 100% to the PTS Pool (§3.7.1) |
+| Donation | Donor name and amount published on Donor Page; INR split 50% PTS Pool / 50% Spendable Pool (§3.7.1) |
+| Grant | Giver name and amount published on Donor Page (reason stays private); INR split 70% PTS Pool / 30% Spendable Pool (§3.7.1) |
+| Sponsorship | Sponsorship record auto-created in escrow (§13.4); sponsor ↔ Admin chat opens; UPI ID noted for any settlement return; **no pool credited yet** |
+| Investment | Calculations completed, investment recorded, payout schedule created; INR split 10% PTS Pool / 90% Spendable Pool (§3.7.1) |
 
 ---
 
