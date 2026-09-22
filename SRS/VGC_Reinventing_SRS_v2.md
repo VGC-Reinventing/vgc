@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.30 | 2026-09-22 | Season economics rewritten from owner design. §11.7: **visible → decided → funded → listed** — the candidacy idea is public before money moves; selection path adds a `pending_funding` season state; election timeline fixed (candidacies ≥15 days before season end, election 3 days before, 24h voting, winner funds within 12h; new season lists only when funded AND the old season ended; winner-default handling left open). §11.13: both models fund a per-game **Game Points Wallet** (pioneer-operated while live, frozen otherwise, member-side in PTS). Independent: full budget pioneer→game wallet at settlement; pioneer proposes the participation ticket, revenue escrowed and split per settlement-phase terms; leftovers withdrawable after end. Secure: stake = 2×budget at the live PTS rate gross of 2.5% tax, fully escrowed and fully returned at settlement; 2×budget points credited to the game wallet with half sub-escrowed; 80%-of-budget datum; reward = **26% of actual distribution** from escrow; remainder + undistributed → the game's point pool for the next pioneer; Admin proposes the ticket, 100% Admin revenue. Old §11.7/§11.13 mechanism (invitation letters, deposit marketplace items, 50/50 points split, 26% committee split) retired. §11.15 added: **declared-rules/enforced-ledger** distribution framework (per-event caps + placement/participation/judged components locked at settlement; server-validated awards; deadline-enforced timeliness; self-computing 80% test). §11.7.3: season start/end carry date **and time**. §11.7.1: the 50-token fee credits Admin only at selection (escrowed until then; decline refunds). |
 | 2.29 | 2026-09-21 | §8.7 extended (owner): the RG **purchaser guarantee is status-proof** — a ticket bought while the blog was live grants read access through every later state (abandonment, takedown, author archive). Implementation gap closed same day: the read endpoint had no `archived` handling despite the archive endpoint's comment promising it, so archiving an RG blog silently cut ticket-holders off. Also same day: seven latent `contains` operator sites (invalid at runtime, "Invalid op: contains") replaced with the proven `\|in:` filter across blog abandon, blog tag filter, search filters, and proposal-decision grandfathering — caught by the first-ever RG-blog abandonment with a sold ticket. |
 | 2.28 | 2026-09-21 | §3.7 replaced with **§3.7.1 PTS Pool / Spendable Pool split rules** (owner design): the Admin INR Receipt Ledger is retired in favour of two segregated Admin wallets — **PTS Pool** (backs the exchange rate) and **Spendable Pool** (discretionary operating cash) — credited by a fixed split at verification: Donation 50/50, Grant 70/30, Investment 10/90, Token Purchase 100/0 to PTS Pool. Sponsorship is escrowed per-sponsorship (unchanged trigger, §13.4) and resolved at settlement: fulfilment expenses and any sponsor refund are deducted from that sponsorship's own escrow while active; a positive remainder goes 100% to the PTS Pool, a negative remainder is drawn from the Spendable Pool and auto-logged as a Platform Outflow. Ordinary Platform Outflow entries (personal, and every Admin category outside the three below) debit the Spendable Pool only and are refused outright if it can't cover them — **these can no longer move the exchange rate**. Three obligation categories keep a one-way, last-resort valve to the other pool, **final and unreconciled by design** (owner ruling, 2026-09-21 — a valve draw is paid and settled there and then, never repaid): Investment Payout installments debit the Spendable Pool first, PTS Pool on shortfall; Token Surrender payouts debit the PTS Pool first, Spendable Pool on shortfall. **Loan Disbursement gets no valve at all** (owner ruling, 2026-09-21): it is funded from the Spendable Pool only, and a request the Spendable Pool cannot cover is simply refused — the member is not granted the amount. This retires the 2025-09-18 PTS-floor/D-projection guard on loan approval (§9.4.1): a loan that never touches the PTS Pool cannot floor the rate, so the guard has nothing left to guard against. §4.1's `D` is no longer a five-table live aggregate; it is now `PTS_Pool_Balance − 10·T_net`, with `PTS_Pool_Balance` a transactionally-mutated wallet balance (new `wallets.type` values `inr_pts_pool` / `inr_spendable_pool`) whose integrity is checked by summing its own ledger rows rather than trusted blind — the same discipline that retired `reserve_inr` on 2026-08-12. Root incident: an admin expense typo (₹10,000 for an intended ₹1,000) floored the live rate same-day with no warning, exposing that ordinary discretionary spending had never been separated from exchange-rate backing. See §3.7.1, §4.1, §4.11, §10.7, §13.4. |
 | 2.27 | 2026-09-19 | §9 loan request reworked (owner), retiring 2.9's 12-month minimum term: the member either picks a **calendar date within one year** (the interest-free window ends on that date) or selects **"more than a year"**, which requires ticking an explicit agreement that 10% p.a. accrues on anything outstanding after the interest-free year (`interest_agreed_at` recorded). Interest-free window unchanged: min(approval + 1 year, chosen date), frozen at approval. Also 2026-09-19: contract points fields show a live token-equivalent hint; My Blogs paginates past 20; passbook blog-title join gated to blog-typed entries. |
@@ -1813,35 +1814,48 @@ After registration window closes, VGC Admin reviews all submitted candidacies an
 | Result | Candidate with maximum votes wins |
 | Tie resolution | If two candidates are tied on maximum votes, VGC Admin casts the deciding vote. If three or more candidates are tied on the same maximum vote count, VGC Admin selects the winner directly. In all tie cases the selection and rationale are recorded publicly and visible to all members in the Election Results section for that game. |
 
-### 11.7 Pioneer Invitation and Season Commencement
+### 11.7 Season Commencement — Idea First, Then Money, Then Listing
 
-After election result or first-time pioneer selection, VGC Admin sends a formal letter of invitation to the new Pioneer.
+> **Rewritten 2026-09-22 (owner design, SRS 2.30).** The previous mechanism —
+> invitation letters, a Secure Funding Deposit marketplace item, a 50/50
+> points split with Admin, and a 26% reward split across committee roles — is
+> retired in full. What follows is the built design.
 
-#### 11.7.1 Independent Funding — Commencement
+**The ordering principle:** a candidacy is an *idea*, and the idea must be
+visible to the people judging it — VGC Admin for a first-time selection,
+voters for an election — *before* any money moves. Financial setup happens
+only after the judgement, and public listing of the season happens only after
+the financial setup. Three gates, in order: **visible → decided → funded →
+listed**.
+
+#### 11.7.1 First-Time Selection Path (new game)
 
 | Step | Rule |
 | --- | --- |
-| Pioneer accepts immediately | Pioneer confirms readiness. Season begins. Marketplace items go live. |
-| Pioneer requests a grace period | Pioneer nominates a specific start date. VGC Admin reviews and either approves the delay or terminates the invitation. |
+| 1. Candidacy submitted | The full season idea (name, description, dates, budget, funding model, events with reward rules) is visible to VGC Admin. The 50-token game fee moves to **escrow** — counted as the member's in the PTS formula, and credited to nobody yet. |
+| 2. Admin selects | Admin adds the game's official name, logo and description; the game goes live in Community. **Only now** are the 50 escrowed tokens credited to VGC Admin. (An admin decline refunds the 50 tokens and removes the proposed game.) |
+| 3. Pioneer funds | The season enters `pending_funding`, visible to the pioneer and Admin only. The pioneer settles the financial commitment per the funding model (§11.13) — no deadline pressure on the first season of a new game. |
+| 4. Season lists | On funding settlement the season's details **lock** and it lists publicly as `upcoming`, with a countdown to its start date-time. It opens for participation automatically at that moment. |
 
-#### 11.7.2 Secure Funding — Commencement
+#### 11.7.2 Election Path (game with a running season)
 
-| Step | Rule |
+| Deadline | Rule |
 | --- | --- |
-| Token deposit deadline | Pioneer must deposit agreed VGC Tokens with VGC Admin within 3 days of receiving the invitation |
-| Deposit mechanism | VGC Admin lists a Secure Funding Deposit marketplace item priced at the deposit amount. Pioneer purchases it. |
-| Tax on conversion | VGC Admin converts deposited tokens to VGC Points via the Point Token Scheme. The standard 2.5% tax applies to this conversion. The resulting VGC Points are 2.5% less than they would be at a tax-free rate. Pioneers selecting Secure Funding must account for this when estimating their VGC Points budget. The exact post-tax Points are shown to both Admin and Pioneer before the conversion is confirmed. |
-| System auto-generates return item | Upon deposit confirmation, the system automatically creates a Deposit Return marketplace item in the pioneer's name. Price locked to exact deposit amount, visible only to VGC Admin, purchasable once, non-editable. |
-| Points distribution | Pioneer receives 50% of the VGC Points obtained by VGC Admin from the conversion. VGC Admin retains the remaining 50%. |
-| Season begins | Season goes live on the stated start date |
-| Failure to deposit or start | If Pioneer does not deposit within 3 days or fails to start on the stated date, VGC Admin takes over management until a new Pioneer is elected. Admin may also terminate the game entirely. |
+| Candidacy window closes | All candidacies must be filed **at least 15 days before the ongoing season ends**. From filing, every candidate's full season idea is publicly visible so candidates can campaign for votes. |
+| Election held | **3 days before** the ongoing season ends. |
+| Voting window | **24 hours**, exactly. Results display the moment the window closes. |
+| Winner funds | The winner has **12 hours** from the result to settle their financial commitment (§11.13). |
+| New season lists | Only when BOTH are true: the winner has funded, and the current season has ended. Then it lists as `upcoming` with its countdown. |
+| Winner fails to fund in 12 hours | **Open item — not yet decided.** Candidate deposit disposition and whether the runner-up is offered the season are for a future revision; until then Admin resolves manually. |
 
-#### 11.7.3 Deposit Return at Season End (Secure Funding)
+#### 11.7.3 Season Timing
 
-| Outcome | Rule |
-| --- | --- |
-| 80% distribution target met | VGC Admin purchases the auto-generated Deposit Return item — deposit returned to Pioneer's VGC Token Wallet. VGC Admin also distributes the 26% reward in VGC Points via Constitutional Provision: Pioneer 10%, Manager 8%, Treasurer 8% of total VGC Points distributed to participants. |
-| 80% distribution target not met | VGC Admin purchases the Deposit Return item — deposit returned. No 26% reward paid. |
+Start and end are a full **date and time**, not a date alone (owner QoL —
+same precision as marketplace pass validity). A season runs at most the span
+stated on the locked candidacy; at its end date-time it becomes `ended`
+automatically (lazy, on read) and no new event entries are accepted. The
+funding settlement moment is also the **lock**: season name, description,
+dates, budget, events and their reward rules are frozen from then on.
 
 ### 11.8 Mid-Season Pioneer Departure
 
@@ -1912,29 +1926,57 @@ VGC Admin verifies the distribution rate at season end by reviewing the Pioneer'
 
 ### 11.13 Funding Models
 
+> **Rewritten 2026-09-22 (owner design, SRS 2.30).** Both models now fund a
+> **Game Points Wallet** — one wallet per game, persisting across seasons.
+> It is operable only by the game's current pioneer, only while a season is
+> live (frozen otherwise), and every debit from it is a rule-governed
+> distribution (§11.15). In the PTS formula the game wallet's points count on
+> the **member side**, exactly as contract escrow does.
+
 #### 11.13.1 Independent Funding
 
 | Aspect | Rule |
 | --- | --- |
-| Source of VGC Points | Pioneer's own VGC Points |
-| Pioneer deposits tokens with Admin | No |
-| Pioneer can post marketplace items | Yes |
-| Commission on pioneer's marketplace sales | 10% to VGC Admin |
-| Pioneer receives | 90% of marketplace item sales at season end |
-| 26% reward | Not applicable |
+| Source of points | The pioneer's own VGC Points: the full stated budget moves pioneer → Game Points Wallet at funding settlement (after selection/election win — never at candidacy, so a losing candidate's points are never locked). |
+| Participation ticket | Proposed by the **pioneer** as a marketplace item linked to the season — RG-blog-ticket pattern: members must hold it to enter the season's events. Revenue escrows until season settlement, then splits **VGC Admin / pioneer per the terms agreed at the settlement phase**. |
+| Leftover points | After the season ends and before it is marked settled, the pioneer may withdraw any points remaining in the Game Points Wallet. |
+| 26% reward | Not applicable. |
 
 #### 11.13.2 Secure Funding
 
+The pioneer risks tokens instead of spending points; the platform creates the
+points and the pioneer earns a reward for distributing them well.
+
 | Aspect | Rule |
 | --- | --- |
-| Pioneer deposits VGC Tokens with Admin | Yes — via Secure Funding Deposit marketplace item |
-| Tax on deposit conversion | 2.5% PTS tax applies when Admin converts the deposit to VGC Points (see §11.7.2) |
-| VGC Points received by pioneer | 50% of VGC Points obtained after PTS conversion of deposit |
-| Pioneer can post marketplace items | No |
-| VGC Admin posts participation items | Yes — 100% of sales go to VGC Admin |
-| Minimum distribution target | At least 80% of allocated VGC Points must be distributed to participants via formal Distribution Records (see §11.11) |
-| If target met | Deposit returned via Deposit Return item + 26% reward in VGC Points (Pioneer 10%, Manager 8%, Treasurer 8%) |
-| If target not met | Deposit returned via Deposit Return item. No 26% reward. |
+| Stake | Tokens equivalent to **2× the stated points budget**, computed at the **live PTS rate at the funding-settlement moment**, gross of the standard 2.5% PTS tax — i.e. `tokens = (2 × budget ÷ R_user) ÷ 0.975`. Same arithmetic as a member Tokens→Points conversion; the differences are that the points land in the Game Points Wallet, and both legs sit in escrow rather than circulation. |
+| Token escrow | The full staked amount is debited from the pioneer's token wallet into escrow for the whole season and is counted as the **member's** in the PTS formula throughout. Returned **in full** when the season is marked settled. |
+| Points credited | 2× the budget is credited to the Game Points Wallet at the same moment. **Half (= the budget) is immediately sub-escrowed**; the other half is the distributable budget for the season's events. |
+| Worked example (owner, 2026-09-22) | Budget 4,000 pts at R_user = 800 pts/token: stake ≈ (8,000 ÷ 800) ÷ 0.975 ≈ 10.26 tokens escrowed; 8,000 points credited to the game wallet — 4,000 distributable, 4,000 escrowed. |
+| Participation ticket | Proposed by **VGC Admin**; 100% of ticket revenue to VGC Admin, nothing to the pioneer. |
+| The 80% datum | 80% **of the budget** (the distributable half) — in the example, 3,200 points — measured from the season ledger's rule-governed distributions (§11.15), never self-reported. |
+| Reward if datum met | **26% of the actual amount distributed**, paid to the pioneer out of the points escrow when the season is marked settled. (Max possible: 26% of the full budget.) |
+| Reward if datum missed | Nothing from escrow to the pioneer. |
+| Escrow remainder | Whatever the points escrow holds after any reward — and any undistributed balance of the distributable half — stays in the Game Points Wallet as the **game's point pool**, available to the game's next pioneer. |
+
+The former mechanism — a Secure Funding Deposit marketplace item, Admin
+performing the conversion and keeping 50% of the points, an auto-generated
+Deposit Return item, and the 26% split across Pioneer/Manager/Treasurer —
+is retired in full.
+
+#### 11.13.3 Escrow Summary (both models + candidacy fees)
+
+Every escrow in this section follows one rule: **while held, it counts as the
+paying member's in the PTS formula** (the same treatment as contract points
+escrow, §4.1), and it resolves only at an explicit decision point:
+
+| Escrow | Created at | Resolves |
+| --- | --- | --- |
+| 50-token new-game fee | Candidacy submission | Selection → credited to VGC Admin; decline → refunded |
+| 10-token election deposit | Candidacy submission | ≥3 votes at election close → refunded; else → credited to VGC Admin |
+| Secure token stake | Funding settlement | Season settled → returned in full to pioneer |
+| Secure points escrow (the budget-sized half) | Funding settlement | Season settled → up to 26%-of-distributed to pioneer, remainder to the game's point pool |
+| Ticket revenue (Independent) | Each ticket sale | Season settlement → split Admin/pioneer per agreed terms |
 
 ### 11.14 Community Game Page Structure
 
@@ -1977,6 +2019,22 @@ As per §11.12.2.
 | Past Election Results | Results of all previous elections |
 | Candidates List | All registered candidates with Season Image, Season Name, Season Preface, VGC Points Budget, and Funding Model Type |
 | Voting (when live) | When voting is open, member casts vote to a candidate |
+
+### 11.15 Point Distribution Framework — Declared Rules, Enforced Ledger
+
+> **Added 2026-09-22 (SRS 2.30; owner approved the proposed design).** The
+> principle: the pioneer declares the distribution rules **before** the season
+> is approved, and the server refuses any distribution that does not match
+> them — fairness by construction, not by trust.
+
+| Element | Rule |
+| --- | --- |
+| Structured reward rules | Each event on the candidacy declares an **allocation cap** (its slice of the season budget; the sum of caps must not exceed the budget) and one or more reward components: a **placement table** (1st: X pts, 2nd: Y, 3rd: Z, …), a **participation reward** (flat points per accepted entry, with an entry cap), and optionally **judged awards** (named prizes with fixed amounts). Locked with the season at funding settlement. |
+| Rules are the promise | The reward rules are visible to participants on the event page before they enter. |
+| Distributions only through rules | The pioneer distributes from the Game Points Wallet by selecting an event + a submission + a rule component — never a free-typed amount. The server validates: season live (or within the post-end settlement grace), component not already awarded for that rank/entry, event cap not exceeded, recipient actually submitted to that event. |
+| Ledger as audit trail | Every award writes a season-ledger row naming the event, the rule component and the recipient. The season page's public Ledger tab is the fairness record. |
+| Timeliness by deadline | Each event's rules include a **distribution deadline** (days after the event closes). Enforced lazily on read: past the deadline the distribute action for that event is withdrawn from the pioneer and the event is flagged for VGC Admin intervention — which also protects the pioneer's own 80% target from one forgotten event. |
+| The 80% test computes itself | Distributed-to-participants ÷ distributable budget, computed live from the ledger and shown on the season page to both pioneer and Admin. Never self-reported. |
 
 ---
 
