@@ -1846,7 +1846,9 @@ listed**.
 | Voting window | **24 hours**, exactly. Results display the moment the window closes. |
 | Winner funds | The winner has **12 hours** from the result to settle their financial commitment (§11.13). |
 | New season lists | Only when BOTH are true: the winner has funded, and the current season has ended. Then it lists as `upcoming` with its countdown. |
-| Winner fails to fund in 12 hours | **Open item — not yet decided.** Candidate deposit disposition and whether the runner-up is offered the season are for a future revision; until then Admin resolves manually. |
+| Winner fails to fund in 12 hours | The winner's season returns to **edit phase** (candidacy editable again) and the **runner-up becomes the winner** with a fresh 12-hour window. The cascade continues down the vote order until a candidate funds or all candidates have failed. |
+| All candidates fail | The game **leaves Community** — status inactive — until a new pioneer is selected through the first-time path (§11.7.1): the new candidate pays the 50-token fee again, but on selection **inherits whatever the Game Points Wallet holds** as their starting pool. |
+| Proposal chat | From submission until the season locks at funding settlement, every candidacy carries a **private chat with VGC Admin** (contract-application-chat pattern). The candidacy remains editable through this discussion phase; the lock at funding settlement closes both editing and the negotiation. |
 
 #### 11.7.3 Season Timing
 
