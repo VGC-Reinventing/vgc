@@ -741,6 +741,19 @@ writes the key. Two safe patterns: filter in the stack
 or write the null explicitly on every insert. Prefer the stack filter — it
 cannot be broken by the next `db.add` that forgets the field.
 
+### `null` in a `db.edit` data block does not clear a timestamp.
+
+`data = {confirmed_at: null}` returns success and leaves the stored value
+exactly as it was. Write `0` instead and test with `$x|to_ms == 0` (or
+`> 0`), which is how every "unset timestamp" check in the tree already reads
+it — an unset timestamp column comes back as 0 through the metadata API too.
+
+> **Incident (2026-09-25):** `admin/pioneer-candidates/{id}/confirm` with
+> `action: "reopen"` answered `{confirmed: false}` while the row stayed
+> confirmed; the pioneer could then fund a proposal Admin had just reopened.
+> Caught only because the test re-confirmed after reopening and got "already
+> confirmed" — the reopen call itself looked perfect.
+
 ### The delete verb is `db.del`, not `db.delete`.
 
 `db.delete` is not a thing; the tree uses `db.del` 19 times. This is the general
