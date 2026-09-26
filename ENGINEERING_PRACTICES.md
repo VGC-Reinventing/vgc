@@ -313,6 +313,22 @@ areas. It cannot tell a loaded list from an errored one: a screen whose data cal
 
 Exercise endpoints directly as well as rendering screens.
 
+### Lazy-on-read must sweep every due row, not only the one being read.
+
+A time-based transition that runs only inside a single record's GET fires only
+if someone opens that record after it is due. Nobody may.
+
+> **Incident (2026-09-27):** period-pass expiry and post-delivery auto-settle
+> lived in `orders/{id}` GET. Three tuition passes expired on 19 Sep, their
+> dispute windows closed on 22 Sep, and on 27 Sep the escrow was still held —
+> nobody had reopened those orders. The vendor was never paid and the PTS
+> rate was reading the held tokens wrong the whole time.
+
+Put the transition in a function that sweeps every due row
+(`function/orders_tick.xs`, `function/season_tick.xs`) and call it from the
+list endpoints and from `pts_compute_rate`, so anything that reads money state
+brings it up to date first.
+
 ### Before building a new endpoint, check whether it already exists and is just unwired.
 
 A missing button is not proof of a missing endpoint. Grep the API tree for the
