@@ -757,6 +757,46 @@ writes the key. Two safe patterns: filter in the stack
 or write the null explicitly on every insert. Prefer the stack filter — it
 cannot be broken by the next `db.add` that forgets the field.
 
+### `db.edit` also writes request inputs named like the table's columns.
+
+A `db.edit` writes every **endpoint input whose name matches a column** of the
+table being edited — even when that input is not in the `data` block. Listing
+the column explicitly in `data` wins, so pin it to its current value.
+
+> **Incident (2026-09-27):** `event-updates/{id}/comments` takes a `content`
+> input (the comment) and then `db.edit event_updates` to bump
+> `comment_count`. Every comment silently replaced the update's own `content`.
+> Probed three ways: dropping the `table =` link on the `id` input changed
+> nothing; renaming the input to `comment` stopped it; keeping `content` but
+> adding `content: $u.content` to `data` also stopped it.
+
+An audit of the whole tree found 31 edits where an input shares a column name
+with the edited table. Most write the same value back (a wallet's own
+`member_id`), but three were live data-loss bugs, fixed the same day:
+sponsorship refund overwrote `sponsorships.amount_inr` with the refund amount;
+vendor-cancel overwrote the buyer's dispute `reason`; proposal decision zeroed
+the proposal's `stock` when the override was omitted. Re-run the audit after
+adding any `db.edit`:
+
+```python
+# columns per table vs inputs per endpoint; flag inputs that match a column of
+# an edited table and are not in that edit's data block
+import re, glob
+cols = {}
+for f in glob.glob('XANO/table/*.xs'):
+    s = open(f).read(); m = re.search(r'table\s+(\w+)\s*\{', s)
+    if m: cols[m.group(1)] = set(re.findall(r'^\s*(?:int|text|decimal|timestamp|bool|json|enum)\??\s+(\w+)\??', s[s.find('schema'):], re.M))
+for f in glob.glob('XANO/api/**/*.xs', recursive=True) + glob.glob('XANO/function/*.xs'):
+    s = open(f).read(); im = re.search(r'\binput\s*\{(.*?)\n  \}', s, re.S)
+    if not im: continue
+    inputs = set(re.findall(r'^\s*(?:int|text|decimal|timestamp|bool|json|enum)\??\s+(\w+)\??', im.group(1), re.M))
+    for m in re.finditer(r'db\.edit\s+(\w+)\s*\{(.*?)\}\s*(?:as\s+\$\w+)?\n', s, re.S):
+        dm = re.search(r'data\s*=\s*\{(.*)', m.group(2), re.S)
+        keys = set(re.findall(r'(\w+)\s*:', dm.group(1))) if dm else set()
+        risky = (inputs & cols.get(m.group(1), set())) - keys - {'id'}
+        if risky: print(f, m.group(1), sorted(risky))
+```
+
 ### `null` in a `db.edit` data block does not clear a timestamp.
 
 `data = {confirmed_at: null}` returns success and leaves the stored value
