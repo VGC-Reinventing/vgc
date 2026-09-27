@@ -797,6 +797,15 @@ for f in glob.glob('XANO/api/**/*.xs', recursive=True) + glob.glob('XANO/functio
         if risky: print(f, m.group(1), sorted(risky))
 ```
 
+### A comment inside an object literal becomes a key.
+
+Xano keeps a `//` line written inside `data = { … }` as a **key** — the pulled
+file shows `"// my note": ``` — so the edit tries to write a field named after
+the comment. Put comments above the statement, never inside the braces.
+Found 2026-09-27 on `admin/games/{id}/review`, caught by diffing the pulled
+file against local before any request ran. A quick check after a push:
+`grep -rn '"//' <pull dir>` must print nothing.
+
 ### `null` in a `db.edit` data block does not clear a timestamp.
 
 `data = {confirmed_at: null}` returns success and leaves the stored value
