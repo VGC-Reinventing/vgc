@@ -18,6 +18,7 @@
 | 2.7 | 2026-08-16 | §14 rewritten against `VGC_Contract_Feature_SRS_v1.0`: the two-stage Opportunity → Contract flow, with applications carrying no terms and a Giver-initiated Request Detailed Proposal gating who may propose (§14.3); proposal revision history; request-changes and decline; Candidate withdrawal; Opportunity drafts and lazy expiry; completion submissions carrying evidence; and an audit trail. §14.12 records what v1.0 was deliberately not followed on, and why. §1.3, §18 Phase 15 and §19 corrected — all three still described the two contract types deleted on 2026-08-12. |
 | 2.6 | 2026-08-12 | §2.6 added: Interest Sector and the sector home screen. Members choose one of Gaming, Education or Farming; the home screen shows the core features to everyone plus only the chosen sector's. Explicitly a display filter, not an access control — §2.6.3 states the non-enforcement rule, because a reader who assumes otherwise would build a permission check the platform does not have. |
 | 2.9 | 2026-08-27 | §9.4.1–9.4.2 added: a loan can only be approved when the Admin INR balance *exceeds* the disbursement, and approval now writes its own Platform Outflow expense rather than relying on the Admin to log one — closing the one payout that debited nobody. §17 corrected as a direct consequence: `I_loan` is no longer subtracted from D, because disbursements now arrive inside `I_expense` and subtracting both deducted every disbursed rupee twice. §8.7 extended: abandoning a blog deactivates its Revenue Generator ticket (sale stops), deletes the blog from every saved list, and notifies Admin; the ticket-holder refund gap is recorded as an open item. §7.4.1 added: group description is editable after creation by Admin/Co-Admin, name/sector/type stay write-once. |
+| 2.45 | 2026-09-28 | §4.0 added, §4.1–§4.5, §4.8, §4.9 superseded (owner design, **agreed, not yet built**): the PTS exchange rate becomes a **pool ratio** — 1 token = PTS Point Pool ÷ PTS Token Pool, with idle drift in favour of points. Two new Admin-held pools: the **PTS Token Pool** (counts its own tokens + INR PTS Pool ÷ 10 + all member tokens, escrow included) and the **PTS Point Pool** (counts its own points + all member points, escrow and game wallets included). A conversion trades at the pre-trade rate; 2.5% tax of the given currency goes to Admin's wallet of that currency on completion; the other 97.5% goes into that currency's PTS pool; the payout comes from the other PTS pool first — Tokens→Points shortfall is minted to the member plus 30% of the minted amount into the PTS Point Pool; Points→Tokens shortfall comes from Admin's token wallet, which may go negative (not counted in the rate). The new pools start empty at switch-over; earlier conversions and rate history are not recalculated. D, T_net, P_net and the per-source I_* figures leave the rate. See §4.0. |
 | 2.44 | 2026-09-27 | §11.7 (owner): the candidacy form **autosaves** in the browser as the member types (restored on return, with a Discard option, only when newer and different — the rule that fixed blog drafts), and a proposal can be **saved as a draft** on the server before submitting: one private draft per member, anything may be blank, no money moves, invisible to VGC Admin and other members, continued or deleted at will. Submitting validates everything and holds the funding as usual, then removes the draft. |
 | 2.43 | 2026-09-27 | §11.7 (owner): the candidacy's **season points budget is no longer typed** — it is the sum of the events' points budgets, computed by the form and shown after the events; VGC Admin's confirmation refuses a proposal whose stored budget differs from that sum. Community's main card is now **listing a new game**; standing as a pioneer starts from the game's page. |
 | 2.42 | 2026-09-27 | §11.13/§11.15 (owner): **rewards are system-computed**, never typed. Two ways, both declared on the candidacy and locked at confirmation: a **rank/prize/participation table** (the reviewer assigns the position, the points come from the table) and a **formula** — points = Σ weight × a number field of the entry form, with an optional maximum per participant; the pioneer or VGC Admin verifies (or corrects) each number and the system computes and pays, once per entry; the verified numbers are recorded. **Season passes:** up to 4 per season (e.g. Platinum/Gold/Silver/Bronze), each admitting to the events the pioneer ticks; each event may add up to 4 tickets of its own. Entering an event needs a pass that covers it or one of its tickets. Every pass/ticket carries a **points multiplier** (1–5): every award its holder receives in a covered event — placement, participation, prize, proof of work or formula — is multiplied by the best multiplier they hold, within the event's budget; awards record base points and the multiplier. Independent: the pioneer prices passes and tickets; Secure: VGC Admin does. **Every candidacy field is required** (the pioneer is the season's acting admin): season description and image, each event's description, rules, image, entry form, points budget and at least one reward rule, and at least one fully described season pass. Supersedes the single season ticket of 2.29, which still works for seasons already set up. |
@@ -515,6 +516,52 @@ To prevent marketplace token flows from distorting the Point Token Scheme rate, 
 ## 4. Point Token Scheme
 
 **Intent —** Members need a controlled bridge between the soft economy (VGC Points, earned through participation) and the hard economy (VGC Tokens, used for purchases). The bridge is governed by a dynamic exchange rate computed from the platform's own real-time economic state. A flat 2.5% tax on every conversion sustains the platform.
+
+### 4.0 PTS v2 — the Pool Ratio Rate (owner design, 2026-09-28; agreed, not yet built)
+
+> Supersedes §4.1–§4.5, §4.8 and §4.9 once built. Those sections are kept below as the record of the system in force until the switch-over.
+
+**Pools.** VGC Admin holds four pools:
+
+| Pool | Holds | Counted for the rate |
+| --- | --- | --- |
+| INR PTS Pool | INR | Backs tokens; contributes ÷ ₹10 to the PTS Token Pool |
+| INR Spendable Pool | INR | Not part of the rate |
+| **PTS Token Pool** | VGC Tokens | Its own tokens + (INR PTS Pool ÷ 10) + all tokens held by members |
+| **PTS Point Pool** | VGC Points | Its own points + all points held by members |
+
+"Held by members" includes everything that still counts as a member's (§2.34): tokens and points in unsettled marketplace orders, contract escrow and candidacy escrow. Game Points Wallets count as member wallets. VGC Admin's own token and points wallets are not part of either pool.
+
+**Rate.**
+
+  Points per token = (PTS Point Pool ÷ PTS Token Pool) ÷ (1 + θ · t_idle)
+
+θ = 0.00005 per minute; t_idle is the minutes since the last conversion, capped at 43,200 (30 days), and resets on every conversion. Idle time therefore favours points: the longer nobody converts, the more each point is worth. Every conversion is priced at the rate **before** it.
+
+**Tokens → Points** (member gives G tokens, rate R points per token):
+
+| Leg | From | To |
+| --- | --- | --- |
+| Tax 2.5% · G | Member | VGC Admin token wallet (leaves the pool) |
+| 97.5% · G | Member | PTS Token Pool |
+| Payout 97.5% · G · R points | PTS Point Pool, as far as it holds | Member |
+| Shortfall | Minted | Member |
+| Pool share: 30% of the minted shortfall | Minted | PTS Point Pool |
+
+**Points → Tokens** (member gives G points):
+
+| Leg | From | To |
+| --- | --- | --- |
+| Tax 2.5% · G | Member | VGC Admin points wallet (leaves the pool) |
+| 97.5% · G | Member | PTS Point Pool |
+| Payout 97.5% · G ÷ R tokens | PTS Token Pool, as far as it holds | Member |
+| Shortfall | VGC Admin token wallet — may go negative | Member |
+
+A negative VGC Admin token balance is not counted in the rate. All legs of a conversion complete together or not at all; the tax moves only on completion. Minimums and idempotency are unchanged (§4.3).
+
+**Switch-over.** The PTS Token Pool and PTS Point Pool start with nothing of their own; every other term is read live, so the rate is defined from the first moment (≈ 236 points per token on 2026-09-28, before drift). Conversions and rate-history rows made under the old formula are not recalculated.
+
+**New flows.** Any other flow that creates or spends points or tokens (awards, rewards, contracts, marketplace, seasons, loans, surrenders) takes its pool treatment from an explicit owner decision, recorded here as it is made. Until then, points and tokens in member wallets reach the pools through the member terms above.
 
 ### 4.1 The Dynamic Rate Formula
 
