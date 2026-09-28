@@ -563,7 +563,7 @@ A negative VGC Admin token balance is not counted in the rate. All legs of a con
 
 **Floor.** Only if a pool counts nothing at all (a brand-new platform with no points anywhere) the rate is 1 point per token, so the first conversion can mint and refill the PTS Point Pool.
 
-**Where the INR PTS Pool came from.** The rate screens show the INR PTS Pool with its movements summed by source from its own ledger (declarations, sponsorship remainders, payouts, surrender spread) instead of the retired per-source income terms. θ is not shown to members.
+**Where the INR PTS Pool came from.** The rate screens show the INR PTS Pool with its movements summed by source from its own ledger (declarations, sponsorship remainders, payouts, surrender spread) instead of the retired per-source income terms. Members see only the rate itself (owner rule 2026-09-29): the pools, their parts, θ and each conversion's pool/mint split are shown to VGC Admin only, in the app and in what the server returns.
 
 **New flows.** Any other flow that creates or spends points or tokens (awards, rewards, contracts, marketplace, seasons, loans, surrenders) takes its pool treatment from an explicit owner decision, recorded here as it is made. Until then, points and tokens in member wallets reach the pools through the member terms above.
 
