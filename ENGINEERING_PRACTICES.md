@@ -850,6 +850,15 @@ proven either way and is not worth risking on an endpoint that moves money.
 > before the `conditional` at `$input.game_id`, then `var.update`d to the new
 > row's id only inside the `if ($is_new_game)` branch.
 
+### `regex_matches` takes the pattern on the left
+
+`regex_matches` is written **pattern first, subject as the argument**:
+`("/^[a-z0-9._-]{2,}@[a-z]{2,}$/"|regex_matches:$in_upi)`. Written the natural
+way round (`$in_upi|regex_matches:"/.../"`) it pushes cleanly and then rejects
+every valid value. Keep the delimiting slashes. Also avoid putting it inside a
+compound `$x == "" || (...)` test; gate it with `conditional { if ($x != "") { precondition (...) } }`
+instead. Found on `profile_PATCH.xs`'s UPI check (2026-09-29).
+
 ---
 
 ## 3. Xano sync discipline
