@@ -970,6 +970,19 @@ Anything that survives that is genuine. **Do not push files to silence the
 preview.** The local tree is kept in its readable form deliberately; adopting the
 exporter's rendering loses the comments and gains no correctness.
 
+### More exporter renderings (2026-11-14) — handled or known.
+
+- **An empty `input = {}` block is dropped:** `function.run f { input = {} } as $x`
+  comes back as `function.run f as $x`. `xano_drift.py` now canonicalises it.
+- **`output` and `return` swap places** in a `db.query` with both. Not
+  canonicalised; `games_GET` and `seasons_GET` are flagged for this alone.
+  Confirm with the token diff above and leave them.
+- **Folder layout:** the exporter writes `me/games_GET.xs` where a hand-made
+  file was `me_games_GET.xs`. A pull-diff shows these as ONLY ON LIVE / ONLY IN
+  TRACKED pairs. Compare the pair's canonical forms and `git mv` the tracked
+  file to the live path when they match (12 renamed on 2026-11-14). Name new
+  files the exporter's way: one folder per path segment.
+
 ### Scoped pushes emit bogus "does not exist" warnings — for functions too.
 
 Pushing a subset of files without their table definitions warns e.g.
@@ -998,6 +1011,37 @@ call sits inside a `try_catch`, so a placeholder would be swallowed and still
 return 200.
 
 ---
+
+### A unique index is written `btree|unique`.
+
+`{type: "unique", field: [{name: "lock_key"}]}` in a table file fails the push
+with "Multidoc import failed: An unknown error occurred" and nothing else. The
+working spelling, as every existing table uses it:
+`{type: "btree|unique", field: [{name: "lock_key", op: "asc"}]}`.
+
+### Money operations take a one-time lock inside their transaction.
+
+2026-10-30: Admin's verify of declaration 117 hung 91 s on a slow server; a
+second verify arrived 58 s in, both passed `status == "pending"`, and the member
+got 6 tokens twice (reversed as `declaration_duplicate_reversal`). A status check
+is not a lock when the first request has not committed yet.
+
+`function/op_lock.xs` inserts a key into `op_locks` (unique on `lock_key`) and
+fails with "already being processed" on a duplicate. **Call it as the first
+statement inside the `db.transaction`**, never before it: inside, a second
+request waits for the first and then fails, and a failed attempt rolls its lock
+back. Taken before the transaction, a later precondition failure (buyer short of
+tokens) leaves the key behind and blocks every valid retry forever — found in
+testing the blog sale, 2026-10-31. Used by declaration verify/reject and
+`blog-sale-offers/{id}/respond`; key them per operation
+(`decl_decide_<id>`, `blog_sale_<offer id>`).
+
+### The comment-in-an-object trap recurred (§2) — check the live export.
+
+`session_cancel` had a `// comment` inside a `db.edit … data = { }` block; on
+the server it became a field literally named `"// A seat refunded …"`. A pull
+and `grep -rn '"// ' /tmp/xano-check` finds any such key; it found only this one
+(fixed 2026-11-14).
 
 ## 4. Free-plan constraints
 
@@ -1367,6 +1411,21 @@ three-rule block. Grep for `vgc-scroll` before adding a new horizontal
 scroll row — copying the nearest example is how this spread the first time.
 
 ---
+
+### A pinned bar inside a box with `overflow: hidden` does not pin.
+
+`position: sticky` sticks to the nearest scroll container, and `overflow:
+hidden` makes the box one. The rich editor's toolbar did not pin until
+`.rte-wrapper` used `overflow: clip`, which clips without creating a scroll
+container. A scroll inside a scroll (the editor's own 70vh scroll) also defeats
+it on phones — there the box grows with its text instead.
+
+### A phone's keyboard is measured with `visualViewport`.
+
+The editor's toolbar sits at the bottom on phones (owner 2026-10-31), raised by
+`scroller.bottom − (visualViewport.offsetTop + visualViewport.height)` minus the
+screen's bottom padding (sticky counts from inside the padding). Headless
+Chromium has no on-screen keyboard: verify on a real phone, iOS especially.
 
 ## 10. Auditing wallets against their ledger trail
 
